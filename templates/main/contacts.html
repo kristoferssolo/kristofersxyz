@@ -1,0 +1,20 @@
+{% extends 'layout.html' %}{% block title %}{{ title }}{% endblock %}{% block content %}
+<div class="contacts">
+	<h1>Contacts</h1>
+	<p><span class="material-icons">email</span><a href="mailto:mail@mail.com" target="_blank"> [mail] </a></p>
+	<p><span class="material-icons">phone</span> [phone] </p>
+	<p><span class="material-icons">business</span> [address] </p>
+</div>
+<div class="new">
+	<form method="post">
+		{% csrf_token %} {{ email.author }}<br />
+		{{ email.subject }}<br />
+		{{ email.full_text }}<br />
+		<span>{{ error }}</span>
+		<div class="save-btn">
+			<button class="save" type="submit">Submit</button>
+		</div>
+	</form>
+</div>
+
+{% endblock %}
