@@ -202,3 +202,51 @@ li a:hover {
 	font-size: 20px;
 	margin-bottom: 20px;
 }
+
+/* CONTACTS */
+.contacts h1 {
+	font-size: 60px;
+	text-align: center;
+	margin: 25px 0;
+}
+
+.contacts p {
+	font-size: 20px;
+	text-align: center;
+}
+
+/* NEW EMAIL/POST */
+.new form {
+	width: 30%;
+	margin: 0 auto 50px auto;
+}
+
+.new h1 {
+	text-align: center;
+	margin-top: 40px;
+	height: auto;
+	margin-bottom: 20px;
+}
+
+.new .save-btn {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.new button {
+	background: none;
+	color: #000;
+	height: auto;
+	border: #000 solid 1px;
+	font-weight: bold;
+	padding: 10px 25px 10px 25px;
+	margin-bottom: 25px;
+}
+
+.new button:hover {
+	background: #000;
+	color: #fff;
+	border: none;
+	transform: scale(1.02);
+}

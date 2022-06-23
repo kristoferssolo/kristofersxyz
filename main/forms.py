@@ -16,7 +16,7 @@ class EmailForm(ModelForm):
 		        'class': 'form-control',
 		        'placeholder': 'Subject',
 		    }),
-		    'message': Textarea(attrs={
+		    'message': TextInput(attrs={
 		        'class': 'form-control',
 		        'placeholder': 'Message',
 		    }),
