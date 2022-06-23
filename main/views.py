@@ -7,3 +7,7 @@ def index(request):
 
 def lighsaber(request):
 	return render(request, 'main/lightsaber.html', {'title': 'Lightsaber'})
+
+
+def about(request):
+	return render(request, 'main/about.html', {'title': 'About Us'})
