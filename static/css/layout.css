@@ -88,7 +88,7 @@ video {
 html,
 body {
   font-family: 'Roboto', sans-serif;
-  background: #f2f2f2;
+  background: #0d1117;
 }
 
 main {
@@ -98,43 +98,32 @@ main {
 /* HEADER */
 
 header ul {
+  width: 100%;
   list-style-type: none;
   overflow: hidden;
-  background-color: #333333;
+  background-color: #161b22;
   position: sticky;
-  position: -webkit-sticky;
   top: 0;
+}
+
+header li {
   text-align: center;
-  z-index: 100;
   font-weight: bold;
-  width: 100%;
-}
-
-.material-icons {
-  position: relative;
-  top: 4px;
-  font-size: 25px;
-}
-
-li {
-  font-size: 18px;
+  font-size: 24px;
   float: left;
-  display: inline-block;
   width: calc(100% / 2);
 }
 
-li a {
+header li a {
   display: inline-block;
-  color: #cccccc;
+  color: #f0f6fc;
   padding: 14px 16px;
   text-decoration: none;
-  transition: transform 0.7s ease;
 }
 
-li a:hover {
+header li a:hover {
   text-decoration: none;
-  color: #fff;
-  transform: scale(1.05);
+  color: #b9bbbd;
 }
 
 /* FOOTER */
@@ -153,14 +142,14 @@ footer {
   bottom: 0;
   width: 100%;
   height: auto;
-  background-color: #333333;
-  color: #666666;
+  background-color: #161b22;
+  color: #f0f6fc;
   flex-wrap: wrap;
   display: flex;
   justify-content: space-around;
-  padding: 8px 0;
 }
 
 footer p {
   font-size: 16px;
+  margin: 10px 0;
 }

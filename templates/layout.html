@@ -19,21 +19,22 @@
                     <div>
                         <ul>
                             <li><a href="{% url 'home' %}">Home</a></li>
+                            <li><a href="{% url 'instructions' %}">Karbs</a></li>
                         </ul>
                     </div>
                 </header>
 
                 <main>{% block content %}{% endblock %}</main>
 
-                <footer>
-                    <p class="footer">
-                        Copyright &copy
-                        <script>
-                            document.write(new Date().getFullYear());
-                        </script>
-                        Kristofers Solo
-                    </p>
-                </footer>
+                <!-- <footer> -->
+                <!--     <p class="footer"> -->
+                <!--         Copyright &copy -->
+                <!--         <script> -->
+                <!--             document.write(new Date().getFullYear()); -->
+                <!--         </script> -->
+                <!--         Kristofers Solo -->
+                <!--     </p> -->
+                <!-- </footer> -->
 
             </div>
         </div>

@@ -1,0 +1,61 @@
+main {
+  border-color: #30363d;
+  border-style: solid;
+  border-width: 1px;
+  max-width: 700px;
+  color: #f0f6fc;
+  padding: 50px;
+  margin: 100px auto 100px auto;
+}
+
+hr {
+  color: #30363d;
+}
+
+h1 {
+  text-align: center;
+}
+
+h2 {
+  margin: 40px 0 0 0;
+}
+
+p {
+  font-size: 18px;
+  margin: 10px 0;
+}
+
+a {
+  text-decoration: none;
+  font-weight: bold;
+  color: #58a6ff;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+code {
+  font-family: Consolas, 'courier new';
+  color: #f0f6fc;
+  background-color: #393f48;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+pre code {
+  background-color: #161b22;
+  display: block;
+  padding: 20px;
+}
+
+aside {
+  color: #8b949e;
+  font-size: 12px;
+  margin: 10px 0;
+  font-style: italic;
+}
+
+.list {
+  margin: 10px 40px;
+}
