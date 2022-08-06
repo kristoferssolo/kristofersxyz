@@ -120,7 +120,7 @@ li {
   font-size: 18px;
   float: left;
   display: inline-block;
-  width: 20%;
+  width: calc(100% / 2);
 }
 
 li a {
@@ -159,4 +159,8 @@ footer {
   display: flex;
   justify-content: space-around;
   padding: 8px 0;
+}
+
+footer p {
+  font-size: 16px;
 }
