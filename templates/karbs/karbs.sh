@@ -3,24 +3,24 @@ echo 'Choose installation size: minimal or full'
 read size
 
 if pacman -Q paru; then
-	echo
+    echo
 else
     sudo pacman -S --noconfirm rust
-	git clone 'https://aur.archlinux.org/paru-bin'
-	cd paru-bin
-	makepkg -si
-	cd ..
-	rm -rf paru-bin
+    git clone 'https://aur.archlinux.org/paru-bin'
+    cd paru-bin
+    makepkg -si
+    cd ..
+    rm -rf paru-bin
 fi
 
 FILE = "pkg-files/$size-pkgs.txt"
 
 if [[ -f "$FILE" ]]; then
-	paru -Syu --noconfirm --needed - <"pkg-files/$size-pkgs.txt"
+    paru -Syu --noconfirm --needed - < "pkg-files/$size-pkgs"
 else
-	curl -LO "https://raw.githubusercontent.com/kristoferssolo/karbs/main/pkg-files/$size-pkgs.txt"
-	paru -Syu --noconfirm --needed - <"$size-pkgs.txt"
-	rm "$size"-pkgs.txt
+    curl -LO "https://raw.githubusercontent.com/kristoferssolo/karbs/main/pkg-files/$size-pkgs"
+    paru -Syu --noconfirm --needed - < "$size-pkgs"
+    rm "$size"-pkgs
 fi
 
 mkdir -p "$HOME"/{repos,Downloads,Documents,Videos,Music,Pictures/screenshots}
@@ -30,11 +30,10 @@ cp -rf "$HOME/repos/solorice/.config" "$HOME"
 rm -rf "$HOME/.config/awesome/desktop"
 touch "$HOME/.config/awesome/weather"
 cp -rf "$HOME/repos/solorice/.local" "$HOME"
-ln -rfs "$HOME/.config/zsh/.zshenv" "$HOME"
+ln -sf "$HOME/.config/zsh/.zshenv" "$HOME"
 git clone 'https://github.com/streetturtle/awesome-wm-widgets' "$HOME/.config/awesome/awesome-wm-widgets"
 
 chsh -s /bin/zsh
-sudo chmod +s /usr/bin/reboot
 
 echo
 echo
