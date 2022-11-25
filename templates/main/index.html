@@ -1,12 +1,16 @@
 {% extends 'layout.html' %}
 {% load static %}
-{% block title %} {{ title }} {% endblock %}
+{% block title %}{{ title }}{% endblock %}
 {% block meta %}
-    <link rel="stylesheet" type="text/css" href="{% static 'main/css/index.css' %}" />
+    <link rel="stylesheet"
+          type="text/css"
+          href="{% static 'main/css/index.css' %}"/>
 {% endblock %}
 {% block content %}
     <div class="center">
         <p>At the moment this website is under construction.</p>
-        <p>For now you can check out <a href="{% url 'instructions' %}">KARBS</a>.</p>
+        <p>
+            For now you can check out <a href="{% url 'instructions' %}">KARBS</a>.
+        </p>
     </div>
 {% endblock %}

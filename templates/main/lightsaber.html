@@ -5,33 +5,31 @@
         <meta charset="UTF-8" />
         <title>Lightsaber</title>
         <link rel="preconnect" href="https://fonts.gstatic.com" />
-        <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@900&display=swap" rel="stylesheet" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css" />
-        <link rel="stylesheet" type="text/css" href="{% static 'main/css/lightsaber.css' %}" />
+        <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@900&display=swap"
+              rel="stylesheet"/>
+        <link rel="stylesheet"
+              href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css"/>
+        <link rel="stylesheet"
+              type="text/css"
+              href="{% static 'main/css/lightsaber.css' %}"/>
     </head>
     <body>
         <label for="green">Green</label>
         <input type="radio" id="green" name="color" checked />
-
         <label for="blue">Blue</label>
         <input type="radio" id="blue" name="color" />
-
         <label for="yellow">Yellow</label>
         <input type="radio" id="yellow" name="color" />
-
         <label for="purple">Purple</label>
         <input type="radio" id="purple" name="color" />
-
         <label for="red">Red</label>
         <input type="radio" id="red" name="color" />
-
         <label for="darksaber">Darksaber</label>
         <input type="radio" id="darksaber" name="color" />
-
         <div class="lightsaber">
             <input type="checkbox" id="on-off" />
             <div class="blade"></div>
-            <label class="hilt" for="on-off"> </label>
+            <label class="hilt" for="on-off"></label>
             <embed src="https://assets.codepen.io/308367/coolsaber.mp3" type="" />
         </div>
     </body>

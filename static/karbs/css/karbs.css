@@ -1,7 +1,5 @@
 main {
-  border-color: #30363d;
-  border-style: solid;
-  border-width: 1px;
+  border: 1px solid #30363d;
   max-width: 700px;
   color: #f0f6fc;
   padding: 50px;
