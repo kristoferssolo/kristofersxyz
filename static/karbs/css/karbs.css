@@ -12,10 +12,14 @@ hr {
 
 h1 {
   text-align: center;
+  font-size: 32px;
+  font-weight: bold;
 }
 
 h2 {
   margin: 40px 0 0 0;
+  font-size: 24px;
+  font-weight: bold;
 }
 
 p {
@@ -56,4 +60,12 @@ aside {
 
 .list {
   margin: 10px 40px;
+}
+
+.upper {
+  list-style-type: circle;
+}
+
+.sub {
+  list-style-type: disc;
 }

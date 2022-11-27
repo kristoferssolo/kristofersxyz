@@ -1,4 +1,4 @@
-{% extends 'layout.html' %}
+{% extends "layout.html" %}
 {% load static %}
 {% block title %}{{ title }}{% endblock %}
 {% block meta %}
@@ -27,28 +27,28 @@
         <a href="https://artixlinux.org/" target="_blank">Artix</a>
         Linux, make sure <code>curl</code> is installed and just run the following as the root user:
     </p>
-    <pre><code>curl -LO krisrofers.xyz/karbs.sh
-sh karbs.sh</code></pre>
+    <pre><code>curl -LO krisrofers.xyz/karbs
+sh karbs</code></pre>
     <p>
         Note that the KARBS scripts will not partition any drives or wipe anything, <strong>but</strong> when it deploys the dotfiles, it will overwrite any preexisting files: e.g. the KARBS .zshrc will replace your old .zshrc, etc.
     </p>
     <h2>What does KARBS install?</h2>
     <hr>
     <p>
-        You can check out the programs list that KARBS parses for installation <a href="https://github.com/kristoferssolo/karbs/blob/main/pkg-files/minimal-pkgs"
+        You can check out the programs list that KARBS parses for installation <a href="https://github.com/kristoferssolo/karbs/blob/main/pkg-files/X11-pkgs"
     target="_blank">right here</a>!
     </p>
     <p>Here is some idea of the programs installed:</p>
     <aside>
         If you don't know any of these programs and this is all Greek to you, don't worry because it's all done automatically for you and you will learn as you use the system.
     </aside>
-    <ul class="list">
+    <ul class="list upper">
         <li>
             <a href="https://awesomewm.org/" target="_blank">awesome</a> - a highly configurable, next generation framework window manager for X
         </li>
         <li>
-            Minimalist and keyboard-centric programs for
-            <ul class="list">
+            Minimalist and keyboard-centric programs for:
+            <ul class="list sub">
                 <li>
                     file management (<a href="https://github.com/gokcehan/lf" target="_blank">lf</a>),
                 </li>
