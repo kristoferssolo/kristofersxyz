@@ -22,7 +22,7 @@ fi
 if pacman -Q paru; then
     :
 else
-    sudo pacman -S --noconfirm rust-src git wget
+    sudo pacman -S --noconfirm rust-src git wget fakeroot
     git clone https://aur.archlinux.org/paru-bin
     cd paru-bin || exit
     makepkg -si
@@ -40,20 +40,21 @@ else
     rm -f $DISPLAY_SERVER-pkgs
 fi
 
-git clone https://github.com/kristoferssolo/solorice "$HOME"
+git clone https://github.com/kristoferssolo/solorice "$HOME/solorice"
+cp -raf "$HOME"/solorice/{./config,./local,.zshenv} "$HOME"
 git clone https://github.com/kristoferssolo/SoloVim "$HOME"/.config/nvim
-rm -rf "$HOME"/{LICENSE,readme.md,.gitignore}
+rm -rf "$HOME"/solorice
 mkdir -p "$HOME"/{Downloads,Documents,Videos,Music,Pictures/screenshots}
 
 if [ $DISPLAY_SERVER = "wayland" ]; then
     rm -rf "$HOME"/.config/{awesome,picom,sx,zsh/.zprofile-X11}
-    mv "$HOME"/.config/zsh/zprofile-wayland "$HOME"/.config/zsh/.zprofile
+    mv "$HOME"/.config/zsh/.zprofile-wayland "$HOME"/.config/zsh/.zprofile
     chsh -s /bin/zsh
     zsh
     Hyprland
 else
     rm -rf "$HOME"/.config/{hypr,waybar,zsh/.zprofile-wayland}
-    mv "$HOME"/.config/zsh/zprofile-X11 "$HOME"/.config/zsh/.zprofile
+    mv "$HOME"/.config/zsh/.zprofile-X11 "$HOME"/.config/zsh/.zprofile
     git clone https://github.com/streetturtle/awesome-wm-widgets "$HOME"/.config/awesome/awesome-wm-widgets
     chsh -s /bin/zsh
     zsh
