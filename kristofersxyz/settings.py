@@ -18,10 +18,10 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: don"t run with debug turned on in production!
-DEBUG = Path(BASE_DIR, "debug").is_file()
+DEBUG = Path.joinpath(BASE_DIR, "debug").is_file()
 
 
-with open(Path(BASE_DIR, "config.json"), "r", encoding="UTF-8") as config_file:
+with open(Path.joinpath(BASE_DIR, "config.json"), "r", encoding="UTF-8") as config_file:
     config = json.load(config_file)
 
 # Quick-start development settings - unsuitable for production
