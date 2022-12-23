@@ -1,71 +1,71 @@
 main {
-  border: 1px solid #30363d;
-  max-width: 700px;
-  color: #f0f6fc;
-  padding: 50px;
-  margin: 100px auto 100px auto;
+    border: 1px solid #30363d;
+    max-width: 700px;
+    color: #f0f6fc;
+    padding: 50px;
+    margin: 100px auto 100px auto;
 }
 
 hr {
-  color: #30363d;
+    color: #30363d;
 }
 
 h1 {
-  text-align: center;
-  font-size: 32px;
-  font-weight: bold;
+    text-align: center;
+    font-size: 32px;
+    font-weight: bold;
 }
 
 h2 {
-  margin: 40px 0 0 0;
-  font-size: 24px;
-  font-weight: bold;
+    margin: 40px 0 0 0;
+    font-size: 24px;
+    font-weight: bold;
 }
 
 p {
-  font-size: 18px;
-  margin: 10px 0;
+    font-size: 18px;
+    margin: 10px 0;
 }
 
 a {
-  text-decoration: none;
-  font-weight: bold;
-  color: #58a6ff;
+    text-decoration: none;
+    font-weight: bold;
+    color: #58a6ff;
 }
 
 a:hover {
-  text-decoration: underline;
+    text-decoration: underline;
 }
 
 code {
-  font-family: Consolas, 'courier new';
-  color: #f0f6fc;
-  background-color: #393f48;
-  border-radius: 8px;
-  padding: 3px;
+    font-family: Consolas, "courier new";
+    color: #f0f6fc;
+    background-color: #393f48;
+    border-radius: 8px;
+    padding: 3px;
 }
 
 pre code {
-  background-color: #161b22;
-  display: block;
-  padding: 20px;
+    background-color: #161b22;
+    display: block;
+    padding: 20px;
 }
 
 aside {
-  color: #8b949e;
-  font-size: 12px;
-  margin: 10px 0;
-  font-style: italic;
+    color: #8b949e;
+    font-size: 12px;
+    margin: 10px 0;
+    font-style: italic;
 }
 
 .list {
-  margin: 10px 40px;
+    margin: 10px 40px;
 }
 
 .upper {
-  list-style-type: circle;
+    list-style-type: circle;
 }
 
 .sub {
-  list-style-type: disc;
+    list-style-type: disc;
 }
