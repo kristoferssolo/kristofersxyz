@@ -3,9 +3,7 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport"
-              content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"/>
-        <link rel="icon" href="{% static 'main/img/logo.svg' %}" />
+        <link rel="icon" href="{% static 'main/img/icons/logo.svg' %}" />
         <title>
             {% block title %}{% endblock %}
         </title>
@@ -16,26 +14,35 @@
               type="text/css"
               href="{% static 'main/css/layout.css' %}"/>
         {% block meta %}{% endblock %}
+        <script src="{% static 'main/js/navigation.js' %}" defer></script>
     </head>
     <body>
-        <div class="page-container">
-            <div class="content-wrap">
-                <header>
-                    <div>
-                        <ul>
-                            <li>
-                                <a href="{% url 'home' %}">Home</a>
-                            </li>
-                            <li>
-                                <a href="{% url 'instructions' %}">Karbs</a>
-                            </li>
-                        </ul>
-                    </div>
-                </header>
-                <main>
-                    {% block content %}{% endblock %}
-                </main>
+        <header class="primary-header flex">
+            <div>
+                <a href="{% url 'home' %}">
+                    <img src="{% static 'main/img/icons/logo.svg' %}" alt="logo" class="logo">
+                </a>
             </div>
-        </div>
+            <button class="mobile-nav-toggle"
+                    aria-controls="primary-navigation"
+                    aria-expanded="false">
+                <span class="sr-only">Menu</span>
+            </button>
+            <nav>
+                <ul id="primary-navigation"
+                    class="primary-navigation flex"
+                    data-visible="false">
+                    <li>
+                        <a href="{% url 'home' %}" class="bold">Home</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'instructions' %}" class="bold">Projects</a>
+                    </li>
+                </ul>
+            </nav>
+        </header>
+        <main>
+            {% block content %}{% endblock %}
+        </main>
     </body>
 </html>

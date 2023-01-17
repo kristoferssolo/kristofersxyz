@@ -1,13 +1,14 @@
 main {
-    border: 1px solid #30363d;
+    border: var(--border);
+    border-radius: var(--border-radius);
     max-width: 700px;
-    color: #f0f6fc;
+    color: var(--text-color);
     padding: 50px;
     margin: 100px auto 100px auto;
 }
 
 hr {
-    color: #30363d;
+    color: var(--hr-color);
 }
 
 h1 {
@@ -30,7 +31,7 @@ p {
 a {
     text-decoration: none;
     font-weight: bold;
-    color: #58a6ff;
+    color: var(--link-text-color);
 }
 
 a:hover {
@@ -39,14 +40,14 @@ a:hover {
 
 code {
     font-family: Consolas, "courier new";
-    color: #f0f6fc;
-    background-color: #393f48;
-    border-radius: 8px;
+    color: var(--text-color);
+    background-color: var(--code-bg-color);
+    border-radius: var(--border-radius);
     padding: 3px;
 }
 
 pre code {
-    background-color: #161b22;
+    background-color: var(--bg);
     display: block;
     padding: 20px;
 }
