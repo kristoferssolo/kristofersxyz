@@ -11,17 +11,18 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 import json
+import sys
 from pathlib import Path
 
-
 # Build paths inside the project like this: BASE_DIR / "subdir".
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_PATH = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE_PATH.joinpath("kristofersxyz", "apps")))
 
 # SECURITY WARNING: don"t run with debug turned on in production!
-DEBUG = Path.joinpath(BASE_DIR, "debug").is_file()
+DEBUG = BASE_PATH.joinpath("debug").is_file()
 
 
-with open(Path.joinpath(BASE_DIR, "config.json"), "r", encoding="UTF-8") as config_file:
+with open(BASE_PATH.joinpath("config.json"), "r", encoding="UTF-8") as config_file:
     config = json.load(config_file)
 
 # Quick-start development settings - unsuitable for production
@@ -62,7 +63,7 @@ ROOT_URLCONF = "kristofersxyz.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [Path.joinpath(BASE_DIR, "templates")],
+        "DIRS": [BASE_PATH.joinpath("templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -84,7 +85,7 @@ WSGI_APPLICATION = "kristofersxyz.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": BASE_PATH / "db.sqlite3",
     }
 }
 
@@ -125,8 +126,8 @@ USE_TZ = True
 
 # STATIC_URL = Path.joinpath(BASE_DIR, "static")
 STATIC_URL = "/static/"
-STATIC_ROOT = Path.joinpath(BASE_DIR, "static")
-MEDIA_ROOT = Path.joinpath(BASE_DIR, "media")
+STATIC_ROOT = BASE_PATH.joinpath("static")
+MEDIA_ROOT = BASE_PATH.joinpath("media")
 
 
 # Default primary key field type
