@@ -3,6 +3,7 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
+        <meta name="color-scheme" content="dark light">
         <link rel="icon" href="{% static 'main/img/icons/logo.svg' %}" />
         <title>
             {% block title %}{% endblock %}
@@ -17,32 +18,36 @@
         <script src="{% static 'main/js/navigation.js' %}" defer></script>
     </head>
     <body>
-        <header class="primary-header flex">
-            <div>
-                <a href="{% url 'home' %}">
-                    <img src="{% static 'main/img/icons/logo.svg' %}" alt="logo" class="logo">
-                </a>
+        <div class="page-container">
+            <div class="content-wrap">
+                <header class="primary-header flex">
+                    <div>
+                        <a href="{% url 'home' %}">
+                            <img src="{% static 'main/img/icons/logo.svg' %}" alt="logo" class="logo">
+                        </a>
+                    </div>
+                    <button class="mobile-nav-toggle"
+                            aria-controls="primary-navigation"
+                            aria-expanded="false">
+                        <span class="sr-only">Menu</span>
+                    </button>
+                    <nav>
+                        <ul id="primary-navigation"
+                            class="primary-navigation flex"
+                            data-visible="false">
+                            <li>
+                                <a href="{% url 'home' %}" class="bold">Home</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'projects' %}" class="bold">Projects</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </header>
+                <main>
+                    {% block content %}{% endblock %}
+                </main>
             </div>
-            <button class="mobile-nav-toggle"
-                    aria-controls="primary-navigation"
-                    aria-expanded="false">
-                <span class="sr-only">Menu</span>
-            </button>
-            <nav>
-                <ul id="primary-navigation"
-                    class="primary-navigation flex"
-                    data-visible="false">
-                    <li>
-                        <a href="{% url 'home' %}" class="bold">Home</a>
-                    </li>
-                    <li>
-                        <a href="{% url 'instructions' %}" class="bold">Projects</a>
-                    </li>
-                </ul>
-            </nav>
-        </header>
-        <main>
-            {% block content %}{% endblock %}
-        </main>
+        </div>
     </body>
 </html>

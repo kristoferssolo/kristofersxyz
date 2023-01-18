@@ -1,29 +1,25 @@
 :root {
-    --bg: #0d1117;
-    --bg-accent: #1a1e25;
-    --border-radius: 8px;
-    --border: 1px solid #30363d;
-    --hover-text-color: #b9bbbd;
-    --hr-color: #30363d;
-    --link-text-color: #58a6ff;
-    --nav-size: 60px;
-    --speed: 500ms;
-    --text-color: #f0f6fc;
-    --code-bg-color: #393f48;
-    --ff-sans-normal: "Roboto", sans-serif;
+    --clr-primary: hsl(216, 28%, 7%);
+    --clr-primary-100: hsla(215, 21%, 11%, 0.9);
+    --clr-primary-200: hsla(215, 21%, 11%, 0.5);
+    --clr-primary-300: hsl(218, 17%, 12%);
+    --clr-primary-400: hsl(212, 12%, 21%);
+    --clr-primary-500: hsl(216, 12%, 25%);
+
+    --clr-secondary: hsl(210, 67%, 96%);
+    --clr-secondary-hover: hsl(210, 3%, 73%);
+    --clr-secondary-link: hsl(212, 100%, 67%);
+
+    font-family: roboto, helvetica, arial, sans-serif;
 }
 
 html,
 body {
-    font-family: var(--ff-sans-normal);
-    color: var(--text-color);
-    background-color: var(--bg);
+    color: var(--clr-secondary);
+    background-color: var(--clr-primary);
     line-height: 1.5;
     min-height: 100vh;
     min-width: 300px;
-
-    display: grid;
-    grid-template-rows: min-content 1fr;
 
     overflow-x: hidden;
 }
@@ -78,22 +74,22 @@ main {
 }
 
 .primary-navigation {
-    background: #161b22e6;
+    background-color: var(--clr-primary-100);
 }
 
 @supports (backdrop-filter: blur(2rem)) {
     .primary-navigation {
-        background: #161b2280;
+        background-color: var(--clr-primary-200);
         backdrop-filter: blur(2rem);
     }
 }
 
 .primary-navigation a {
-    color: var(--text-color);
+    color: var(--clr-secondary);
     text-decoration: none;
 }
 .primary-navigation a:hover {
-    color: var(--hover-text-color);
+    color: var(--clr-secondary-hover);
 }
 
 .primary-navigation a > [aria-hidden="true"] {
@@ -107,7 +103,7 @@ main {
 
         position: fixed;
         z-index: 1000;
-        inset: 0 0 0 10%;
+        inset: 0 0 0 20%;
 
         flex-direction: column;
         padding: min(30vh, 10rem) 2rem;
