@@ -5,16 +5,19 @@
     <link rel="stylesheet"
           type="text/css"
           href="{% static 'main/css/index.css' %}"/>
+    <script src="{% static 'main/js/typewriter.js' %}" defer></script>
 {% endblock %}
 {% block content %}
-    <div class="center">
-        <img src="https://media.giphy.com/media/xTiIzJSKB4l7xTouE8/giphy.gif"
-             alt="Hello there.">
-        <h1>
-            I&#39;m <span class="highlight">Kristofers Solo</span>
-        </h1>
-        <h1>
-            <span id="text-rotate">Jedi</span>
-        </h1>
+    <div id="landing">
+        <div class="landing-title">
+            <div class="">
+                <img src="https://media.giphy.com/media/xTiIzJSKB4l7xTouE8/giphy.gif"
+                     alt="Hello there.">
+            </div>
+            <h1 class="text">
+                I&#39;m <span class="highlight">Kristofers Solo</span>
+            </h1>
+            <h1 id="text" class="text"></h1>
+        </div>
     </div>
 {% endblock %}

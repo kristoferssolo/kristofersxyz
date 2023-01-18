@@ -5,6 +5,10 @@
         <meta charset="UTF-8">
         <meta name="color-scheme" content="dark light">
         <link rel="icon" href="{% static 'main/img/icons/logo.svg' %}" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"
+              rel="stylesheet">
         <title>
             {% block title %}{% endblock %}
         </title>
@@ -18,36 +22,32 @@
         <script src="{% static 'main/js/navigation.js' %}" defer></script>
     </head>
     <body>
-        <div class="page-container">
-            <div class="content-wrap">
-                <header class="primary-header flex">
-                    <div>
-                        <a href="{% url 'home' %}">
-                            <img src="{% static 'main/img/icons/logo.svg' %}" alt="logo" class="logo">
-                        </a>
-                    </div>
-                    <button class="mobile-nav-toggle"
-                            aria-controls="primary-navigation"
-                            aria-expanded="false">
-                        <span class="sr-only">Menu</span>
-                    </button>
-                    <nav>
-                        <ul id="primary-navigation"
-                            class="primary-navigation flex"
-                            data-visible="false">
-                            <li>
-                                <a href="{% url 'home' %}" class="bold">Home</a>
-                            </li>
-                            <li>
-                                <a href="{% url 'projects' %}" class="bold">Projects</a>
-                            </li>
-                        </ul>
-                    </nav>
-                </header>
-                <main>
-                    {% block content %}{% endblock %}
-                </main>
+        <header class="primary-header flex">
+            <div>
+                <a href="{% url 'home' %}">
+                    <img src="{% static 'main/img/icons/logo.svg' %}" alt="logo" class="logo">
+                </a>
             </div>
-        </div>
+            <button class="mobile-nav-toggle"
+                    aria-controls="primary-navigation"
+                    aria-expanded="false">
+                <span class="sr-only">Menu</span>
+            </button>
+            <nav>
+                <ul id="primary-navigation"
+                    class="primary-navigation flex"
+                    data-visible="false">
+                    <li>
+                        <a href="{% url 'home' %}" class="bold">Home</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'projects' %}" class="bold">Projects</a>
+                    </li>
+                </ul>
+            </nav>
+        </header>
+        <main>
+            {% block content %}{% endblock %}
+        </main>
     </body>
 </html>

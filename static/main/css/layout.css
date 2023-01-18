@@ -10,7 +10,7 @@
     --clr-secondary-hover: hsl(210, 3%, 73%);
     --clr-secondary-link: hsl(212, 100%, 67%);
 
-    font-family: roboto, helvetica, arial, sans-serif;
+    font-family: "Roboto", arial, sans-serif;
 }
 
 html,
@@ -24,11 +24,8 @@ body {
     overflow-x: hidden;
 }
 
-main {
-    min-height: 100%;
-}
-
 /* Utility classes */
+
 .flex {
     display: flex;
     gap: var(--gap, 1rem);
