@@ -1,13 +1,13 @@
 const PRIMARY_NAV = document.querySelector(".primary-navigation")
-const NAV_TOGGLE = document.querySelector(".mobile-nav-toggle")
+const EMAIL = document.querySelector(".mobile-nav-toggle")
 
-NAV_TOGGLE.addEventListener("click", () => {
-    const visibility = PRIMARY_NAV.getAttribute("data-visible") === "false"
-    if (visibility) {
+EMAIL.addEventListener("click", () => {
+    const VISIBILITY = PRIMARY_NAV.getAttribute("data-visible") === "false"
+    if (VISIBILITY) {
         PRIMARY_NAV.setAttribute("data-visible", true)
-        NAV_TOGGLE.setAttribute("aria-expanded", true)
+        EMAIL.setAttribute("aria-expanded", true)
     } else {
         PRIMARY_NAV.setAttribute("data-visible", false)
-        NAV_TOGGLE.setAttribute("aria-expanded", false)
+        EMAIL.setAttribute("aria-expanded", false)
     }
 })

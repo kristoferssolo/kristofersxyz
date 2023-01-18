@@ -1,3 +1,10 @@
+:root {
+    --clr-purple: hsl(251, 91%, 63%);
+    --clr-blue: hsl(201, 85%, 55%);
+    --clr-dark-blue: hsl(201, 100%, 35%);
+    --clr-black: hsl(248, 16%, 10%);
+}
+
 #landing {
     display: flex;
     height: 100%;
@@ -21,4 +28,62 @@ img {
     font-size: 3rem;
     font-weight: 700;
     text-align: center;
+}
+
+.landing-icons {
+    display: flex;
+    justify-content: center;
+    text-align: center;
+    width: 20%;
+    margin: 3rem auto 0 auto;
+}
+
+.social-link {
+    text-decoration: none;
+}
+
+.social-link > i {
+    display: grid;
+    place-items: center;
+    color: var(--clr-secondary);
+    background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='100' ry='100' stroke='%23EEF5FCFF' stroke-width='4' stroke-dasharray='24' stroke-dashoffset='8' stroke-linecap='square'/%3e%3c/svg%3e");
+    border-radius: 100px;
+    margin: auto 0.5rem 1rem 0.5rem;
+    font-size: 2rem;
+    width: 3rem;
+    aspect-ratio: 1;
+}
+
+.social-link:hover > i {
+    background-color: var(--clr-secondary);
+}
+
+.email:hover > i {
+    color: var(--clr-purple);
+    border: 2px solid var(--clr-purple);
+    background-image: none;
+}
+.telegram:hover > i {
+    color: var(--clr-blue);
+    border: 2px solid var(--clr-blue);
+    background-image: none;
+}
+.linkedin:hover > i {
+    color: var(--clr-dark-blue);
+    border: 2px solid var(--clr-dark-blue);
+    background-image: none;
+}
+.github:hover > i {
+    color: var(--clr-black);
+    border: 2px solid var(--clr-black);
+    background-image: none;
+}
+
+.social-link .label {
+    display: none;
+    color: var(--clr-secondary);
+}
+
+.social-link:hover .label {
+    display: block;
 }

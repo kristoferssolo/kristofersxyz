@@ -1,4 +1,5 @@
 :root {
+    font-size: 16px;
     --clr-primary: hsl(216, 28%, 7%);
     --clr-primary-100: hsla(215, 21%, 11%, 0.9);
     --clr-primary-200: hsla(215, 21%, 11%, 0.5);
@@ -68,6 +69,7 @@ body {
 
 .mobile-nav-toggle {
     display: none;
+    cursor: pointer;
 }
 
 .primary-navigation {

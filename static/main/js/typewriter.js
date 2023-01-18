@@ -34,6 +34,7 @@ typewriter = () => {
             if (i === PHRASES.length) {
                 i = 0
             }
+            TEXT_DISPLAY.innerHTML = "&nbsp;" // prevent element movement
         }
     }
     const TYPING_SPEED = Math.random() * 300

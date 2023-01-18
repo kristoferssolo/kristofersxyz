@@ -5,6 +5,9 @@
     <link rel="stylesheet"
           type="text/css"
           href="{% static 'main/css/index.css' %}"/>
+    <link href="{% static 'fontawesomefree/css/all.min.css' %}"
+          rel="stylesheet"
+          type="text/css">
     <script src="{% static 'main/js/typewriter.js' %}" defer></script>
 {% endblock %}
 {% block content %}
@@ -17,7 +20,34 @@
             <h1 class="text">
                 I&#39;m <span class="highlight">Kristofers Solo</span>
             </h1>
-            <h1 id="text" class="text"></h1>
+            <h1 id="text" class="text">&nbsp;</h1>
+            <!-- ICONS -->
+            <div class="landing-icons">
+                <a class="social-link email"
+                   target="_blank"
+                   href="mailto:kristians.cagulis@pm.me">
+                    <i class="fa-sharp fa-solid fa-envelope"></i>
+                    <span class="label">E-Mail</span>
+                </a>
+                <a class="social-link telegram"
+                   target="_blank"
+                   href="https://telegram.me/kristofers_solo">
+                    <i class="fa-sharp fa-solid fa-paper-plane"></i>
+                    <span class="label">Telegram</span>
+                </a>
+                <a class="social-link linkedin"
+                   target="_blank"
+                   href="https://www.linkedin.com/in/kristians-francis-cagulis">
+                    <i class="fa-brands fa-linkedin-in"></i>
+                    <span class="label">LinkedIn</span>
+                </a>
+                <a class="social-link github"
+                   target="_blank"
+                   href="https://github.com/kristoferssolo">
+                    <i class="fa-brands fa-github "></i>
+                    <span class="label">GitHub</span>
+                </a>
+            </div>
         </div>
     </div>
 {% endblock %}
