@@ -8,7 +8,6 @@ window.addEventListener("load", async () => {
 
     while (1) {
         for (let phrase in PHRASES) {
-            console.log(PHRASES[phrase])
             if (!is_end) {
                 for (let character in PHRASES[phrase]) {
                     current_phrase.push(PHRASES[phrase][character])
