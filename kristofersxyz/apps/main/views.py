@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 
 
 def index(request):
@@ -11,3 +11,8 @@ def lightsaber(request):
 
 def projects(request):
     return render(request, "main/projects.html", {"title": "Projects"})
+
+
+def karbs(request):
+    """Karbs install script"""
+    return redirect("/projects/karbs/")

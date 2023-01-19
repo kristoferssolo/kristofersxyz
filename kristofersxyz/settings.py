@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "fontawesomefree",
     "main",
-    "karbs",
+    "projects",
 ]
 
 MIDDLEWARE = [
