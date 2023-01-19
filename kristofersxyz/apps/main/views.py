@@ -15,4 +15,4 @@ def projects(request):
 
 def karbs(request):
     """Karbs install script"""
-    return redirect("/projects/karbs/")
+    return redirect("/projects/karbs")
