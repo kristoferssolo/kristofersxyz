@@ -17,9 +17,15 @@
               href="{% static 'main/css/reset.css' %}"/>
         <link rel="stylesheet"
               type="text/css"
+              href="{% static 'main/css/colors.css' %}"/>
+        <link rel="stylesheet"
+              type="text/css"
+              href="{% static 'main/css/navigation_button.css' %}"/>
+        <link rel="stylesheet"
+              type="text/css"
               href="{% static 'main/css/layout.css' %}"/>
-        {% block meta %}{% endblock %}
         <script src="{% static 'main/js/navigation.js' %}" defer></script>
+        {% block meta %}{% endblock %}
     </head>
     <body>
         <header class="primary-header flex">
@@ -28,11 +34,9 @@
                     <img src="{% static 'main/img/icons/logo.svg' %}" alt="logo" class="logo">
                 </a>
             </div>
-            <button class="mobile-nav-toggle"
-                    aria-controls="primary-navigation"
-                    aria-expanded="false">
-                <span class="sr-only">Menu</span>
-            </button>
+            <div class="mobile-nav-toggle">
+                <div class="mobile-nav-toggle__line"></div>
+            </div>
             <nav>
                 <ul id="primary-navigation"
                     class="primary-navigation flex"

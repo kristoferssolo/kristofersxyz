@@ -1,13 +1,15 @@
 const PRIMARY_NAV = document.querySelector(".primary-navigation")
-const EMAIL = document.querySelector(".mobile-nav-toggle")
+const MENU_BUTTON = document.querySelector(".mobile-nav-toggle")
 
-EMAIL.addEventListener("click", () => {
+MENU_BUTTON.addEventListener("click", () => {
     const VISIBILITY = PRIMARY_NAV.getAttribute("data-visible") === "false"
     if (VISIBILITY) {
         PRIMARY_NAV.setAttribute("data-visible", true)
-        EMAIL.setAttribute("aria-expanded", true)
+        MENU_BUTTON.setAttribute("aria-expanded", true)
+        MENU_BUTTON.classList.add("open")
     } else {
         PRIMARY_NAV.setAttribute("data-visible", false)
-        EMAIL.setAttribute("aria-expanded", false)
+        MENU_BUTTON.setAttribute("aria-expanded", false)
+        MENU_BUTTON.classList.remove("open")
     }
 })
