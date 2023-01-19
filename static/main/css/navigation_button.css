@@ -41,12 +41,6 @@
     transition: all 0.5s ease-in-out;
 }
 
-.mobile-nav-toggle:hover > *,
-.mobile-nav-toggle:hover > *::before,
-.mobile-nav-toggle:hover > ::after {
-    background-color: var(--color-text-hover);
-}
-
 .mobile-nav-toggle__line::before {
     transform: translateY(-16px);
 }
