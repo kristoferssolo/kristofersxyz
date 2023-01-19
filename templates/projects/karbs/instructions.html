@@ -7,67 +7,66 @@
           href="{% static 'projects/css/karbs/instructions.css' %}"/>
 {% endblock %}
 {% block content %}
-    <h1>Kristofers Auto-Rice Bootsrapping Script (KARBS)</h1>
-    <hr>
-    <p>
-        KARBS is an efficient shell script that will install a fully-featured tiling window manager-based system on any
-        <a href="https://archlinux.org/" target="_blank">Arch</a> or
-        <a href="https://artixlinux.org/" target="_blank">Artix</a>
-        Linux-based system, without any of the routine of manual post-install processes and configuration.
-    </p>
-    <p>
-        By default, KARBS installs and deploys
-        <a href="https://github.com/kristoferssolo/solorice" target="_blank">my own personal dotfiles</a>.
-    </p>
-    <h2>Installation</h2>
-    <hr>
-    <p>
-        On any (preferably fresh) install of an
-        <a href="https://archlinux.org/" target="_blank">Arch</a> or
-        <a href="https://artixlinux.org/" target="_blank">Artix</a>
-        Linux, make sure <code>curl</code> is installed and just run the following as the root user:
-    </p>
-    <pre><code>curl -LO krisrofers.xyz/karbs
-sh karbs</code></pre>
-    <p>
-        Note that the KARBS scripts will not partition any drives or wipe anything, <strong>but</strong> when it deploys the dotfiles, it will overwrite any preexisting files: e.g. the KARBS .zshrc will replace your old .zshrc, etc.
-    </p>
-    <h2>What does KARBS install?</h2>
-    <hr>
-    <p>
-        You can check out the programs list that KARBS parses for installation <a href="https://github.com/kristoferssolo/karbs/blob/main/pkg-files/X11-pkgs"
+    <article class="markdown-body">
+        <h1>Kristofers Auto-Rice Bootsrapping Script (KARBS)</h1>
+        <p>
+            KARBS is an efficient shell script that will install a fully-featured tiling window manager-based system on any
+            <a href="https://archlinux.org/" target="_blank">Arch</a> or
+            <a href="https://artixlinux.org/" target="_blank">Artix</a>
+            Linux-based system, without any of the routine of manual post-install processes and configuration.
+        </p>
+        <p>
+            By default, KARBS installs and deploys
+            <a href="https://github.com/kristoferssolo/solorice" target="_blank">my own personal dotfiles</a>.
+        </p>
+        <h2>Installation</h2>
+        <p>
+            On any (preferably fresh) install of an
+            <a href="https://archlinux.org/" target="_blank">Arch</a> or
+            <a href="https://artixlinux.org/" target="_blank">Artix</a>
+            Linux, make sure <code>curl</code> is installed and just run the following as the root user:
+        </p>
+        <pre>curl -LO krisrofers.xyz/karbs
+sh karbs</pre>
+        <p>
+            Note that the KARBS scripts will not partition any drives or wipe anything, <strong>but</strong> when it deploys the dotfiles, it will overwrite any preexisting files: e.g. the KARBS .zshrc will replace your old .zshrc, etc.
+        </p>
+        <h2>What does KARBS install?</h2>
+        <p>
+            You can check out the programs list that KARBS parses for installation <a href="https://github.com/kristoferssolo/karbs/blob/main/pkg-files/X11-pkgs"
     target="_blank">right here</a>!
-    </p>
-    <p>Here is some idea of the programs installed:</p>
-    <aside>
-        If you don't know any of these programs and this is all Greek to you, don't worry because it's all done automatically for you and you will learn as you use the system.
-    </aside>
-    <ul class="list upper">
-        <li>
-            <a href="https://awesomewm.org/" target="_blank">awesome</a> - a highly configurable, next generation framework window manager for X
-        </li>
-        <li>
-            Minimalist and keyboard-centric programs for:
-            <ul class="list sub">
-                <li>
-                    file management (<a href="https://github.com/gokcehan/lf" target="_blank">lf</a>),
-                </li>
-                <li>
-                    video (<a href="https://mpv.io/" target="_blank">mpv</a>),
-                </li>
-                <li>
-                    image viewer (<a href="https://github.com/nsxiv/nsxiv" target="_blank">nsxiv</a>),
-                </li>
-                <li>
-                    pdf/djvu/epub reader (<a href="https://pwmt.org/projects/zathura/" target="_blank">zathura</a>).
-                </li>
-            </ul>
+        </p>
+        <p>Here is some idea of the programs installed:</p>
+        <aside>
+            If you don't know any of these programs and this is all Greek to you, don't worry because it's all done automatically for you and you will learn as you use the system.
+        </aside>
+        <ul>
             <li>
-                A well featured and configured shell (<a href="https://www.zsh.org/" target="_blank">zsh</a>) and other core programs.
+                <a href="https://awesomewm.org/" target="_blank">awesome</a> - a highly configurable, next generation framework window manager for X
             </li>
-        </li>
-    </ul>
-    <p>
-        Note that making your own fork of KARBS is as easy as using your own dotfiles, making a programs file like the one above, and making any other direct changes to the script you want.
-    </p>
+            <li>
+                Minimalist and keyboard-centric programs for:
+                <ul>
+                    <li>
+                        file management (<a href="https://github.com/gokcehan/lf" target="_blank">lf</a>),
+                    </li>
+                    <li>
+                        video (<a href="https://mpv.io/" target="_blank">mpv</a>),
+                    </li>
+                    <li>
+                        image viewer (<a href="https://github.com/nsxiv/nsxiv" target="_blank">nsxiv</a>),
+                    </li>
+                    <li>
+                        pdf/djvu/epub reader (<a href="https://pwmt.org/projects/zathura/" target="_blank">zathura</a>).
+                    </li>
+                </ul>
+                <li>
+                    A well featured and configured shell (<a href="https://www.zsh.org/" target="_blank">zsh</a>) and other core programs.
+                </li>
+            </li>
+        </ul>
+        <p>
+            Note that making your own fork of KARBS is as easy as using your own dotfiles, making a programs file like the one above, and making any other direct changes to the script you want.
+        </p>
+    </article>
 {% endblock %}

@@ -16,6 +16,7 @@
     --color-scale-gray-9: #0d1117;
 
     --color-scale-gray-0-transparent-10: #f0f6fc1a;
+    --color-scale-gray-4-transparent-40: #6e768166;
     --color-scale-gray-8-transparent-50: #161b2280;
     --color-scale-gray-9-transparent-0: #0d111700;
 
@@ -35,8 +36,10 @@
     --color-canvas-default: var(--color-scale-gray-9);
     --color-canvas-default-transparent: var(--color-scale-gray-9-transparent-0);
     --color-canvas-subtle: var(--color-scale-gray-8);
+    --color-canvas-subtle-transparent: var(--color-scale-gray-4-transparent-40);
 
     --color-border-default: var(--color-scale-gray-6);
+    --color-border-muted: var(--color-scale-gray-7);
 
     --color-header-bg-default: var(--color-scale-gray-8);
     --color-header-bg-transparent: var(--color-scale-gray-8-transparent-5);
@@ -58,7 +61,8 @@
     --color-accent-fg: var(--color-scale-purple-4);
 
     --color-text-link: var(--color-accent-fg);
-
+    --base-text-weight-semibold: 600;
+    --font-monospace: "JetBrains Mono", Menlo, Consolas, monospace;
     font-family: "Roboto", arial, sans-serif;
     font-size: 16px;
 }

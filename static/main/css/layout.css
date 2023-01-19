@@ -20,8 +20,14 @@ body {
     text-transform: uppercase;
 }
 
+b,
+strong,
 .bold {
-    font-weight: 700;
+    font-weight: var(--base-text-weight-semibold);
+}
+
+em {
+    font-style: italic;
 }
 
 /* Navigation bar */
