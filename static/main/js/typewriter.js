@@ -1,46 +1,38 @@
-const TEXT_DISPLAY = document.getElementById("text")
-const PHRASES = ["Software Developer", "Jedi"]
-let i = 0
-let j = 0
-let current_phrase = []
-let is_deleting = false
-let is_end = false
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-typewriter = () => {
-    is_end = false
-    TEXT_DISPLAY.innerHTML = current_phrase.join("")
+async function typewriter() {
+    const TEXT_DISPLAY = document.getElementById("rotating-text")
+    const PHRASES = ["Software Developer", "Jedi", "Student"]
+    let current_phrase = []
+    let is_end = false
 
-    if (i < PHRASES.length) {
-        if (!is_deleting && j <= PHRASES[i].length) {
-            current_phrase.push(PHRASES[i][j])
-            j++
-            TEXT_DISPLAY.innerHTML = current_phrase.join("")
-        }
-        if (is_deleting && j <= PHRASES[i].length) {
-            current_phrase.pop(PHRASES[i][j])
-            j--
-            TEXT_DISPLAY.innerHTML = current_phrase.join("")
-        }
-
-        if (j == PHRASES[i].length) {
-            is_end = true
-            is_deleting = true
-        }
-
-        if (is_deleting && j === 0) {
-            current_phrase = []
-            is_deleting = false
-            i++
-            if (i === PHRASES.length) {
-                i = 0
+    while (1) {
+        for (let phrase in PHRASES) {
+            console.log(PHRASES[phrase])
+            if (!is_end) {
+                for (let character in PHRASES[phrase]) {
+                    current_phrase.push(PHRASES[phrase][character])
+                    TEXT_DISPLAY.innerHTML = current_phrase.join("")
+                    await sleep(150)
+                }
+                if (current_phrase.join("") == PHRASES[phrase]) {
+                    await sleep(1000)
+                    is_end = true
+                }
+            } else {
+                while (1) {
+                    current_phrase.pop()
+                    if (!current_phrase.length) {
+                        is_end = false
+                        TEXT_DISPLAY.innerHTML = "&nbsp;"
+                        await sleep(500)
+                        break
+                    }
+                    TEXT_DISPLAY.innerHTML = current_phrase.join("")
+                    await sleep(80)
+                }
             }
-            TEXT_DISPLAY.innerHTML = "&nbsp;" // prevent element movement
         }
     }
-    const TYPING_SPEED = Math.random() * 300
-    const DELETE_SPEED = Math.random() * 100
-    const TIME = is_end ? 2000 : is_deleting ? DELETE_SPEED : TYPING_SPEED
-    setTimeout(typewriter, TIME)
 }
-
 window.addEventListener("load", typewriter)
