@@ -1,6 +1,6 @@
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-async function typewriter() {
+window.addEventListener("load", async () => {
     const TEXT_DISPLAY = document.getElementById("rotating-text")
     const PHRASES = ["Software Developer", "Jedi", "Student"]
     let current_phrase = []
@@ -34,5 +34,4 @@ async function typewriter() {
             }
         }
     }
-}
-window.addEventListener("load", typewriter)
+})
