@@ -1,23 +1,72 @@
 :root {
+    --color-scale-black: #010409;
+    --color-scale-white: #ffffff;
+
+    --color-scale-white-transparent-7: #ffffffbc;
+
+    --color-scale-gray-0: #f0f6fc;
+    --color-scale-gray-1: #c9d1d9;
+    --color-scale-gray-2: #b1bac4;
+    --color-scale-gray-3: #8b949e;
+    --color-scale-gray-4: #6e7681;
+    --color-scale-gray-5: #484f58;
+    --color-scale-gray-6: #30363d;
+    --color-scale-gray-7: #21262d;
+    --color-scale-gray-8: #161b22;
+    --color-scale-gray-9: #0d1117;
+
+    --color-scale-gray-0-transparent-10: #f0f6fc1a;
+    --color-scale-gray-8-transparent-50: #161b2280;
+    --color-scale-gray-9-transparent-0: #0d111700;
+
+    --color-scale-purple-0: #eddeff;
+    --color-scale-purple-1: #e2c5ff;
+    --color-scale-purple-2: #d2a8ff;
+    --color-scale-purple-3: #bc8cff;
+    --color-scale-purple-4: #a371f7;
+    --color-scale-purple-5: #8957e5;
+    --color-scale-purple-6: #6e40c9;
+    --color-scale-purple-7: #553098;
+    --color-scale-purple-8: #3c1e70;
+    --color-scale-purple-9: #271052;
+
+    --color-scale-purple-4-transparent-06: #a371f70f;
+
+    --color-canvas-default: var(--color-scale-gray-9);
+    --color-canvas-default-transparent: var(--color-scale-gray-9-transparent-0);
+    --color-canvas-subtle: var(--color-scale-gray-8);
+
+    --color-border-default: var(--color-scale-gray-6);
+
+    --color-header-bg-default: var(--color-scale-gray-8);
+    --color-header-bg-transparent: var(--color-scale-gray-8-transparent-5);
+    --color-header-text: var(--color-scale-white-transparent-7);
+
+    --color-btn-text: var(--color-scale-gray-1);
+    --color-btn-bg: var(--color-scale-gray-7);
+    --color-btn-border: var(--color-scale-gray-0-transparent-1);
+    --color-btn-hover-bg: var(--color-scale-gray-6);
+    --color-btn-hover-border: var(--color-scale-gray-3);
+    --color-btn-active-border: var(--color-scale-gray-5);
+
+    --color-fg-default: var(--color-scale-gray-1);
+    --color-fg-muted: var(--color-scale-gray-3);
+    --color-fg-subtle: var(--color-scale-gray-4);
+    --color-fg-on-emphasis: var(--color-scale-white);
+    --color-text-hover: var(--color-fg-muted);
+
+    --color-accent-fg: var(--color-scale-purple-4);
+
+    --color-text-link: var(--color-accent-fg);
+
     font-size: 16px;
-    --clr-primary: hsl(216, 28%, 7%);
-    --clr-primary-100: hsla(215, 21%, 11%, 0.9);
-    --clr-primary-200: hsla(215, 21%, 11%, 0.5);
-    --clr-primary-300: hsl(218, 17%, 12%);
-    --clr-primary-400: hsl(212, 12%, 21%);
-    --clr-primary-500: hsl(216, 12%, 25%);
-
-    --clr-secondary: hsl(210, 67%, 96%);
-    --clr-secondary-hover: hsl(210, 3%, 73%);
-    --clr-secondary-link: hsl(212, 100%, 67%);
-
     font-family: "Roboto", arial, sans-serif;
 }
 
 html,
 body {
-    color: var(--clr-secondary);
-    background-color: var(--clr-primary);
+    color: var(--color-fg-default);
+    background-color: var(--color-canvas-default);
     line-height: 1.5;
     min-height: 100vh;
     min-width: 300px;
@@ -73,22 +122,22 @@ body {
 }
 
 .primary-navigation {
-    background-color: var(--clr-primary-100);
+    background-color: var(--color-header-bg-default);
 }
 
 @supports (backdrop-filter: blur(2rem)) {
     .primary-navigation {
-        background-color: var(--clr-primary-200);
+        background-color: var(--color-header-bg-transparent);
         backdrop-filter: blur(2rem);
     }
 }
 
 .primary-navigation a {
-    color: var(--clr-secondary);
+    color: var(--color-fg-default);
     text-decoration: none;
 }
 .primary-navigation a:hover {
-    color: var(--clr-secondary-hover);
+    color: var(--color-fg-muted);
 }
 
 .primary-navigation a > [aria-hidden="true"] {
@@ -136,16 +185,11 @@ body {
     }
 }
 
-@media (min-width: 35em) and (max-width: 55em) {
-    .primary-navigation a > [aria-hidden="true"] {
-        display: none;
-    }
-}
-
 @media (min-width: 35em) {
     .primary-navigation {
         --gap: clamp(1.5rem, 5vw, 3rem);
         padding-block: 16px;
         padding-inline: clamp(3rem, 8vw, 10rem);
+        background-color: var(--color-header-bg-default);
     }
 }

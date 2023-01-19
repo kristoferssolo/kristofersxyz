@@ -1,9 +1,8 @@
 :root {
-    --clr-card: hsl(218, 17%, 12%);
-    --clr-card-060: hsla(0, 0%, 100%, 0.06);
-    --clr-card-100: hsla(0, 0%, 100%, 0.1);
-    --clr-card-400: hsla(0, 0%, 100%, 0.4);
-    --clr-card-500: hsla(0, 0%, 100%, 0.5);
+    --color-card-default: var(--color-scale-gray-8);
+    --color-card-border: var(--color-scale-gray-0-transparent-10);
+    --color-card-bg-hover: var(--color-scale-purple-4-transparent-06);
+    --color-card-accent: var(--color-accent-fg);
 }
 
 .body {
@@ -25,7 +24,7 @@
 }
 
 .card {
-    background-color: var(--clr-card-100);
+    background-color: var(--color-card-border);
     border-radius: 10px;
     cursor: pointer;
     display: flex;
@@ -55,7 +54,7 @@
 .card::before {
     background: radial-gradient(
         800px circle at var(--mouse-x) var(--mouse-y),
-        var(--clr-card-060),
+        var(--color-card-bg-hover),
         transparent 40%
     );
     z-index: 3;
@@ -64,14 +63,14 @@
 .card::after {
     background: radial-gradient(
         600px circle at var(--mouse-x) var(--mouse-y),
-        var(--clr-card-400),
+        var(--color-card-accent),
         transparent 40%
     );
     z-index: 1;
 }
 
 .card > .card-content {
-    background-color: var(--clr-card);
+    background-color: var(--color-card-default);
     border-radius: inherit;
     display: flex;
     flex-direction: column;
@@ -89,7 +88,7 @@ h2,
 h3,
 h4,
 span {
-    color: rgb(240, 240, 240);
+    color: var(--color-fg-default);
     font-weight: 400;
     margin: 0px;
 }
@@ -111,12 +110,6 @@ span {
 .card-info-title > h3 {
     font-size: 1.1em;
     line-height: 20px;
-}
-
-.card-info-title > h4 {
-    color: var(--clr-card-500);
-    font-size: 0.85em;
-    margin-top: 8px;
 }
 
 /* -- ↓ ↓ ↓ some responsiveness ↓ ↓ ↓ -- */
