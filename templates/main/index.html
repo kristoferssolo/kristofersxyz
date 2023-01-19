@@ -9,6 +9,7 @@
           rel="stylesheet"
           type="text/css">
     <script src="{% static 'main/js/typewriter.js' %}" defer></script>
+    <script src="{% static 'main/js/text_swap.js' %}" defer></script>
 {% endblock %}
 {% block content %}
     <div id="landing">
@@ -18,7 +19,7 @@
                      alt="Hello there.">
             </div>
             <h1 class="text">
-                I&#39;m <span class="highlight">Kristofers Solo</span>
+                I&#39;m <span id="swap-text">Kristofers Solo</span>
             </h1>
             <h1 id="rotating-text" class="text">&nbsp;</h1>
             <!-- ICONS -->
