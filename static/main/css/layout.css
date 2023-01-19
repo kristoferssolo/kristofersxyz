@@ -29,7 +29,7 @@ body {
 .logo {
     margin: 1rem;
     padding: 1rem;
-    max-width: 2.5rem;
+    width: 3rem;
     aspect-ratio: 1;
 }
 
