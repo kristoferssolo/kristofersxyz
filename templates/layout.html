@@ -39,16 +39,12 @@
                 <div class="mobile-nav-toggle__line"></div>
             </div>
             <nav>
-                <ul id="primary-navigation"
-                    class="primary-navigation flex"
-                    data-visible="false">
-                    <li>
-                        <a href="{% url 'home' %}" class="bold">Home</a>
-                    </li>
-                    <li>
-                        <a href="{% url 'projects' %}" class="bold">Projects</a>
-                    </li>
-                </ul>
+                <div id="primary-navigation"
+                     class="primary-navigation flex"
+                     data-visible="false">
+                    <a href="{% url 'home' %}" class="bold">Home</a>
+                    <a href="{% url 'projects' %}" class="bold">Projects</a>
+                </div>
             </nav>
         </header>
         <main>
