@@ -21,7 +21,7 @@
     top: 30%;
 }
 img {
-    width: 40%;
+    width: clamp(20rem, 50%, 70rem);
 }
 
 .text {
@@ -34,7 +34,6 @@ img {
     display: flex;
     justify-content: center;
     text-align: center;
-    width: 20%;
     margin: 3rem auto 0 auto;
 }
 
@@ -45,11 +44,12 @@ img {
 .social-link > i {
     display: grid;
     place-items: center;
-    color: var(--color-fg-default);
-    background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='100' ry='100' stroke='%23EEF5FCFF' stroke-width='4' stroke-dasharray='24' stroke-dashoffset='8' stroke-linecap='square'/%3e%3c/svg%3e");
-    border-radius: 100px;
-    margin: auto 0.5rem 1rem 0.5rem;
     font-size: 2rem;
+    color: var(--color-fg-default);
+    /* background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='100' ry='100' stroke='%23EEF5FCFF' stroke-width='4' stroke-dasharray='24' stroke-dashoffset='8' stroke-linecap='square'/%3e%3c/svg%3e"); */
+    border: 0.1rem solid var(--color-fg-default);
+    border-radius: 100%;
+    margin: 0 0.5rem 1rem 0.5rem;
     width: 3rem;
     aspect-ratio: 1;
 }
@@ -63,16 +63,19 @@ img {
     border: 2px solid var(--color-mail);
     background-image: none;
 }
+
 .telegram:hover > i {
     color: var(--color-telegram);
     border: 2px solid var(--color-telegram);
     background-image: none;
 }
+
 .linkedin:hover > i {
     color: var(--color-linkedin);
     border: 2px solid var(--color-linkedin);
     background-image: none;
 }
+
 .github:hover > i {
     color: var(--color-github);
     border: 2px solid var(--color-github);

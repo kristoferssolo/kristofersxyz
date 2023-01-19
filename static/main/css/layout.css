@@ -29,7 +29,7 @@ body {
 .logo {
     margin: 1rem;
     padding: 1rem;
-    width: 3rem;
+    max-width: 2.5rem;
     aspect-ratio: 1;
 }
 
@@ -51,10 +51,11 @@ body {
 
 .primary-navigation a {
     color: var(--color-fg-default);
+    font-size: 2rem;
     text-decoration: none;
 }
 .primary-navigation a:hover {
-    color: var(--color-fg-muted);
+    color: var(--color-text-hover);
 }
 
 .primary-navigation a > [aria-hidden="true"] {
@@ -68,7 +69,7 @@ body {
 
         position: fixed;
         z-index: 1000;
-        inset: 0 0 0 20%;
+        inset: 0 0 0 40%;
 
         flex-direction: column;
         padding: min(30vh, 10rem) 2rem;
@@ -89,7 +90,7 @@ body {
 @media (min-width: 35em) {
     .primary-navigation {
         --gap: clamp(1.5rem, 5vw, 3rem);
-        padding-block: 16px;
+        padding-block: 1rem;
         padding-inline: clamp(3rem, 8vw, 10rem);
         background-color: var(--color-header-bg-default);
     }
