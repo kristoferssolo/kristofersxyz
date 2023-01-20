@@ -18,8 +18,8 @@
     --color-scale-gray-0-transparent-10: #f0f6fc1a;
     --color-scale-gray-1-transparent-15: #c9d1d966;
     --color-scale-gray-3-transparent-20: #8b949e33;
+    --color-scale-gray-3-transparent-50: #8b949e80;
     --color-scale-gray-4-transparent-40: #6e768166;
-    --color-scale-gray-5-transparent-50: #484f5880;
     --color-scale-gray-8-transparent-50: #161b2280;
 
     --color-scale-purple-0: #eddeff;
@@ -90,14 +90,14 @@
     --color-border-muted: var(--color-scale-gray-2);
 
     --color-header-bg-default: var(--color-scale-gray-7);
-    --color-header-bg-transparent: var(--color-scale-gray-5-transparent-50);
+    --color-header-bg-transparent: var(--color-scale-gray-3-transparent-50);
     --color-header-text: var(--color-scale-gray-0);
     --color-header-text-hover: var(--color-scale-white-transparent-70);
 
     --color-btn-text: var(--color-scale-gray-7);
     --color-btn-bg: var(--color-scale-gray-0);
     --color-btn-border: var(--color-scale-gray-1-transparent-15);
-    --color-btn-hover-bg: var(--color-scale-gray-2);
+    --color-btn-hover-bg: var(--color-scale-gray-1);
     --color-btn-hover-border: var(--color-scale-gray-1-transparent-15);
     --color-btn-active-border: var(--color-scale-gray-1-transparent-15);
 

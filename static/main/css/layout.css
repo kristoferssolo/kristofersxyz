@@ -115,6 +115,7 @@ em {
     }
     [data-color-mode="light"] {
         --color-header-text: var(--color-fg-default);
+        --color-header-bg-default: var(--color-scale-gray-0);
     }
 
     .color-mode-toggle {
