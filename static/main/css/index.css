@@ -55,7 +55,7 @@ video {
 }
 
 .social-link:hover > i {
-    background-color: var(--color-fg-default);
+    background-color: var(--color-social-icon-bg);
 }
 
 .email:hover > i {

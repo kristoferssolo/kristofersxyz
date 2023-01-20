@@ -78,6 +78,8 @@
     --color-card-border: var(--color-scale-gray-0-transparent-10);
     --color-card-bg-hover: var(--color-scale-purple-4-transparent-10);
     --color-card-accent: var(--color-accent-fg);
+
+    --color-social-icon-bg: var(--color-scale-gray-1);
 }
 
 [data-color-mode="light"] {
@@ -114,4 +116,6 @@
     --color-card-border: var(--color-scale-gray-1-transparent-15);
     --color-card-bg-hover: var(--color-scale-purple-2-transparent-40);
     --color-card-accent: var(--color-accent-fg);
+
+    --color-social-icon-bg: var(--color-scale-gray-0);
 }
