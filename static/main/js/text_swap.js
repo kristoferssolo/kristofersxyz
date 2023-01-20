@@ -1,10 +1,17 @@
 const DISPLAY_NAME = document.getElementById("swap-text")
+const NAMES = [
+    "Kristiāns",
+    "Francis",
+    "Cagulis",
+    "Kristiāns Francis Cagulis",
+    "KFC",
+    "Kristofers",
+    "Solo",
+    "Kristofers Solo",
+    "Salaspils 1",
+    "Šis puisis",
+]
 
 DISPLAY_NAME.addEventListener("click", () => {
-    const NAMES = ["Kristofers Solo", "Kristiāns Francis Cagulis"]
-    if (DISPLAY_NAME.innerHTML == NAMES[0]) {
-        DISPLAY_NAME.innerHTML = NAMES[1]
-    } else {
-        DISPLAY_NAME.innerHTML = NAMES[0]
-    }
+    DISPLAY_NAME.innerHTML = NAMES[Math.floor(Math.random() * NAMES.length)]
 })
