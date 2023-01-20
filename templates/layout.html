@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-color-mode="dark">
     <head>
         <meta charset="UTF-8">
         <meta name="color-scheme" content="dark light">
@@ -26,6 +26,7 @@
               type="text/css"
               href="{% static 'main/css/layout.css' %}"/>
         <script src="{% static 'main/js/navigation.js' %}" defer></script>
+        <script src="{% static 'main/js/lightmode.js' %}" defer></script>
         {% block meta %}{% endblock %}
     </head>
     <body>
@@ -44,6 +45,9 @@
                      data-visible="false">
                     <a href="{% url 'home' %}" class="bold">Home</a>
                     <a href="{% url 'projects' %}" class="bold">Projects</a>
+                    <button id="color-mode-toggle"
+                            class="color-mode-toggle"
+                            aria-label="toggle dark mode "></button>
                 </div>
             </nav>
         </header>

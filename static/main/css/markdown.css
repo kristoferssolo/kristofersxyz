@@ -290,7 +290,14 @@
         border-left: none;
         border-right: none;
         border-radius: 0;
+    }
+
+    [data-color-mode="dark"] {
         background-color: var(--color-scale-gray-8);
         color: var(--color-scale-gray-0);
+    }
+    [data-color-mode="light"] {
+        background-color: var(--color-scale-gray-2);
+        color: var(--color-scale-gray-9);
     }
 }

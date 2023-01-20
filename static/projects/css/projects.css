@@ -1,10 +1,3 @@
-:root {
-    --color-card-default: var(--color-scale-gray-8);
-    --color-card-border: var(--color-scale-gray-0-transparent-10);
-    --color-card-bg-hover: var(--color-scale-purple-4-transparent-06);
-    --color-card-accent: var(--color-accent-fg);
-}
-
 .body {
     align-items: center;
     display: flex;
