@@ -1,10 +1,11 @@
 let lightmode = localStorage.getItem("lightmode")
 const HTML = document.documentElement
-console.log(HTML)
 
 const ENABLE_LIGHT_MODE = () => {
+    const AUDIO = document.getElementById("flashbang")
     HTML.setAttribute("data-color-mode", "light")
     localStorage.setItem("lightmode", "enabled")
+    AUDIO.play()
 }
 
 const DISABLE_LIGHT_MODE = () => {
