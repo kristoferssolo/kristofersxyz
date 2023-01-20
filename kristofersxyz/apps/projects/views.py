@@ -11,3 +11,7 @@ def karbs(request):
 
 def instructions(request):
     return render(request, "projects/karbs/instructions.html", {"title": "Karbs Instructions"})
+
+
+def traffic_light_detector(request):
+    return render(request, "projects/traffic_light_detector/traffic_light_detector.html", {"title": "Traffic Light Detector"})

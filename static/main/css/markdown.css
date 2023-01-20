@@ -163,7 +163,6 @@
 }
 
 .markdown-body img {
-    max-width: 100%;
     box-sizing: content-box;
     background-color: var(--color-canvas-default);
 }
@@ -264,10 +263,19 @@
     content: "]";
 }
 
+.markdown-body img {
+    box-sizing: content-box;
+}
+
 .markdown-body .emoji {
     max-width: none;
     vertical-align: text-top;
     background-color: transparent;
+}
+
+g-emoji img {
+    width: 1em;
+    height: 1em;
 }
 
 .markdown-body .footnotes {
@@ -282,6 +290,10 @@
 
 .markdown-body .footnotes li {
     position: relative;
+}
+
+.markdown-body .footnotes li p {
+    font-size: 0.75rem;
 }
 
 @media (max-width: 35em) {
