@@ -20,7 +20,6 @@
     top: 30%;
 }
 
-img,
 video {
     width: clamp(20rem, 50%, 70rem);
 }

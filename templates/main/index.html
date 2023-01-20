@@ -14,13 +14,12 @@
 {% block content %}
     <div id="landing">
         <div class="landing-title">
-            <video autoplay loop muted playsinline alt="Hello there.">
-                <source src="{% static 'main/img/hello-there/hello-there.mp4' %}"
-                        type="video/mp4">
-                <source src="{% static 'main/img/hello-there/hello-there.mp4' %}"
-                        type="video/mp4"
-                        onerror="fallback(parentNode)">
-                <img src="{% static 'main/img/hello-there/hello-there.gif' %}">
+            <video autoplay
+                   loop
+                   muted
+                   playsinline
+                   alt="Hello there."
+                   src="{% static 'main/img/hello-there.mp4' %}">
             </video>
             <h1 class="text">
                 I&#39;m <span id="swap-text">Kristofers Solo</span>
