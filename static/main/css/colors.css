@@ -64,6 +64,12 @@
     --color-btn-hover-border: var(--color-scale-gray-3);
     --color-btn-active-border: var(--color-scale-gray-5);
 
+    --color-btn-primary-text: var(--color-scale-white);
+    --color-btn-primary-bg: var(--color-scale-purple-4);
+    --color-btn-primary-border: var(--color-scale-gray-0-transparent-10);
+    --color-btn-primary-hover-bg: var(--color-scale-purple-3);
+    --color-btn-primary-hover-border: var(--color-scale-gray-0-transparent-10);
+
     --color-fg-default: var(--color-scale-gray-1);
     --color-fg-muted: var(--color-scale-gray-3);
     --color-fg-subtle: var(--color-scale-gray-4);
@@ -71,7 +77,6 @@
     --color-text-hover: var(--color-fg-muted);
 
     --color-accent-fg: var(--color-scale-purple-4);
-
     --color-text-link: var(--color-accent-fg);
 
     --color-card-default: var(--color-scale-gray-8);
@@ -102,6 +107,12 @@
     --color-btn-hover-bg: var(--color-scale-gray-1);
     --color-btn-hover-border: var(--color-scale-gray-1-transparent-15);
     --color-btn-active-border: var(--color-scale-gray-1-transparent-15);
+
+    --color-btn-primary-text: var(--color-scale-white);
+    --color-btn-primary-bg: var(--color-scale-purple-4);
+    --color-btn-primary-border: var(--color-scale-gray-0-transparent-10);
+    --color-btn-primary-hover-bg: var(--color-scale-purple-3);
+    --color-btn-primary-hover-border: var(--color-scale-gray-0-transparent-10);
 
     --color-fg-default: var(--color-scale-gray-7);
     --color-fg-muted: var(--color-scale-gray-5);

@@ -1,13 +1,21 @@
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap");
 
+.block {
+    margin: 8em auto 8em auto;
+    max-width: 50rem;
+}
+
+.block > .btn-container {
+    text-align: right;
+    margin-bottom: 1em;
+}
+
 .markdown-body {
     font-size: 16px;
     border: 1px solid var(--color-border-default);
     border-radius: 1rem;
-    max-width: 50rem;
     color: var(--color-fg-default);
     padding: 2rem;
-    margin: 8em auto 8em auto;
     line-height: 1.5;
     word-wrap: break-word;
 }
@@ -88,12 +96,12 @@
     font-size: 1rem;
 }
 
-.markdown-body a {
+.markdown-body a:not(.btn) {
     text-decoration: none;
     color: var(--color-accent-fg);
 }
 
-.markdown-body a:hover {
+.markdown-body a:hover:not(.btn) {
     text-decoration: underline;
 }
 
@@ -297,8 +305,15 @@ g-emoji img {
 }
 
 @media (max-width: 35em) {
-    .markdown-body {
+    .block {
         margin: 2em 0 2em 0;
+    }
+
+    .block > .btn-container {
+        text-align: center;
+    }
+
+    .markdown-body {
         border-left: none;
         border-right: none;
         border-radius: 0;

@@ -7,349 +7,356 @@
           href="{% static 'main/css/markdown.css' %}"/>
 {% endblock %}
 {% block content %}
-    <article class="markdown-body">
-        <h1>Traffic-Light-Detector</h1>
-        <h2>
-            Reduce traffic congestion effects due to human reaction times at intersections
-            with traffic lights by utilizing a computer system based on direct communication
-            method of changes in the circumscribed route intersection.
-        </h2>
-        <h3>Motivation for the project:</h3>
-        <p>
-            As civilisation develops, it develops coherent, large-scale socio-economic
-            formations that contribute to the development of well-being and the concomitant
-            development of conurbation. The market demand for infrastructure motivates
-            individuals to privatise their vehicles, which, in turn, rapidly increases the
-            accident rate. A scientific study entitled <em>"Accident analysis & prevention"</em><sup id="reference-1"><a href="#footnote-1" data-footnote-ref="">1</a></sup> (2.5)
-            indicates that there is a statistically significant observation between the potential
-            of a road user and prior involvement in an accident, as well as an observable
-            characteristic: following the direction of a high-flow motorway, defined as the
-            time between the subject and the subject's vehicles.
-        </p>
-        <p>
-            Based on research, it can be hypothesised that reducing the likelihood of
-            first-time accidents has a more significant effect on road safety than developing
-            systems to improve the safety habits of drivers involved in accidents. With this
-            assumption, the problem of eliminating the impact of human reaction time on the
-            realisation of traffic congestion can be defined as a motivated project by applying
-            computer solutions based on the direct communication methodology of the intersection
-            changes, on a route section equipped with a traffic signal traffic regulator.
-        </p>
-        <p>
-            Furthermore, studies such as
-            <em>"In-depth investigations of PTW-car accidents caused by human errors (Moto-Auto)"</em><sup id="reference-2"><a href="#footnote-2" data-footnote-ref="">2</a></sup>
-            indicate that in different traffic intersection configurations,
-            a statistical predominance of frontal collisions, more precisely around 45%, is observed in 1/9 of
-            the collision types (frontal collisions) in 60% of the configurations.
-        </p>
-        <p>
-            Road accidents also represent a share of society's costs, or more precisely,
-            costs can be broken down into several categorisations - by the number of people
-            involved, by the type of cost, by the impact of the accident on lives. A study
-            on the cost of traffic accidents, <em>"The cost of traffic accident and equivalent
-            accident number (Case study in developing country - Indonesia)"</em><sup id="reference-3"><a href="#footnote-3" data-footnote-ref="">3</a></sup> estimates the
-            cost of a single fatal accident in all categories at around 17 869,19 €, which
-            justifies the monetary motivation and commercial potential of the solution.
-        </p>
-        <p>
-            There are several reasons, as mentioned in the scientific study
-            <em>"Traffic conflict standards for intersections"</em><sup id="reference-4"><a href="#footnote-4" data-footnote-ref="">4</a></sup>,
-            why an intersection may be categorised as a high hazard area in a delineated format.
-            Firstly, a segment where different groups of road users overlap, more specifically
-            different types of vehicles, including private and commercial, as well as pedestrians
-            converging from several directions can make it difficult for drivers to anticipate the
-            actions of other road users, increasing the potential for collisions. Secondly,
-            intersections have a number of hierarchical and complex traffic control systems,
-            such as signs, traffic signals and traffic regulators, which allow for the possibility
-            of inaccurate interpretation of the situation. Finally, intersections are characterised
-            by distracted drivers, for example, looking for a turn, trying to read signs or understand
-            the traffic, listening to music on a mobile device or having a conversation, which
-            increases the likelihood of an accident.
-        </p>
-        <p>
-            Providing drivers with direct communication of intersection changes is important,
-            based on the <em>"Situational Awareness and Safety"</em><sup id="reference-5"><a href="#footnote-5" data-footnote-ref="">5</a></sup> study , as it contributes to
-            smooth and efficient traffic movement. If drivers are unsure about a traffic light,
-            they may hesitate or stop unnecessarily, which can cause congestion and delays.
-            In addition, providing a direct method of informing drivers of green lights can
-            help prevent accidents and improve overall road safety. By providing clear and
-            concise information to drivers, we can help ensure that traffic flows smoothly
-            and that everyone on the road can get to their destination safely.
-        </p>
-        <p>
-            Since the judgement that reducing the likelihood of first-time accidents has a significant
-            effect on the safety of road users can be put forward reasonably and as a leading reason
-            points to the fact that the realisation of traffic congestion increases the potential for
-            accidents and that traffic conflicts exist with a particularly increased likelihood at
-            intersections, the following position can be put forward, that a statistically tested
-            hypothesis on the correlation of traffic congestion on traffic accidents in studies
-            such as the <em>"Current Understanding of the Effects of Congestion on Traffic Accidents"</em><sup id="reference-6"><a href="#footnote-6" data-footnote-ref="">6</a></sup>
-            justifies the relevance of the project to the wider community and points to the need
-            for an adapted, modular solution.
-        </p>
-        <h3>Existing solutions:</h3>
-        <p>
-            The motivation and potential solutions for the project were also presented in different
-            formats of existing solutions. Each solution described offers a different format of user
-            interface, practical application and results.
-        </p>
-        <p>
-            Tesla's <em>"Traffic Light and Stop Sign Control"</em><sup id="reference-7"><a href="#footnote-7" data-footnote-ref="">7</a></sup> provides direct information to the user on
-            the status of the traffic light controller and adjusts the response of the vehicle, more
-            specifically, if the vehicle is analytically detected as unable to manoeuvre within the time
-            allowed by the controller, the control system will reduce speed and stop the vehicle at the
-            first permissible position according to the controller's conditions. The solution offers efficient
-            and optimal functionality with extensive technical support and a clear and easy to use user interface.
-            The most significant drawback of the solution offered by Tesla is the limited vehicle support
-            of the control system, more precisely, the system is only available for Tesla cars equipped
-            with the required sensors.
-        </p>
-        <p>
-            Audi's <em>"Traffic-light countdown system"</em><sup id="reference-8"><a href="#footnote-8" data-footnote-ref="">8</a></sup>,
-            described by the journalism company Engadget,
-            proposes and offers to provide the user directly with a countdown system, more precisely
-            a period of time during which the traffic-light traffic regulator will remain the same or
-            change to another state. The solution proposed by Audi offers a user-friendly and
-            comprehensible user interface, including a format in which the driver's attention
-            can be easily and in an informed way focused on the changes in traffic. The most significant
-            drawback of the proposed solution is the need to equip all traffic light controllers
-            and cars with sensors and to develop a communication network, and the fact that Audi
-            only offers the technology for Audi cars at the moment.
-        </p>
-        <h3>Solution description:</h3>
-        <p>
-            In response to the problem described in the motivation, the authors considered
-            a solution that eliminates the impact of human reaction time on the realisation
-            of traffic congestion, using a computer system based on a direct gated intersection
-            change communication methodology, on a route section equipped with a traffic signal traffic controller.
-        </p>
-        <p>
-            The authors propose to develop a small, easily transportable and modular device,
-            the basic principle of which is to use sensors embedded in the device to detect
-            the position of the traffic signal traffic controller corresponding to the position
-            of the vehicle at an intersection and to inform the driver when the signal is
-            detected, according to the expected signal - permission to continue the route.
-        </p>
-        <p>
-            Ierosinātais risinājums sastāv no 4 pamatprincipiem, kas likvidē cilvēka reakcijas laika ietekmi
-            uz satiksmes sastrēgumu realizāciju:
-        </p>
-        <ul>
-            <li>
-                The modular device shall be equipped in its basic configuration with a visual image sensor which,
-                according to the instructions for use integral to the device, is positioned parallel to the
-                direction of movement of the vehicle, which provides continuous low-quality image documentation
-                for the purpose of determining whether the vehicle has reached a traffic intersection.
-            </li>
-            <li>
-                When the device detects a vehicle approaching a traffic intersection using an image recognition
-                model, it increases the quality of the captured images and identifies the traffic signal traffic
-                regulators and their positions.
-            </li>
-            <li>
-                The identified regulators and their states are summarised to determine the appropriate regulator for the vehicle route.
-            </li>
-            <li>
-                Using the information obtained, the device analyses the situation: if the controller is observed
-                with the signal "OK to proceed" and the vehicle has not stopped, it does not inform, whereas if
-                the controller is observed with the signal "Not OK to proceed" and the vehicle has slowed down or
-                stopped, the device informs the driver of the signal change when the signal "OK to proceed" is
-                received, using the basic module for the audible signal or the optional light and other user interfaces formats.
-            </li>
-        </ul>
-        <p>Aprakstītā ierīce pamatprincipu un funkcionalitātes nodrošināšanai izmanto:</p>
-        <ul>
-            <li>
-                Raspberry Pi 4 microcontroller -
-                <a href="https://www.raspberrypi.com/products/raspberry-pi-4-model-b/?variant=raspberry-pi-4-model-b-8gb"
-                   target="_blank">Raspberry Pi 4</a>
-            </li>
-            <li>
-                Raspberry Pi high quality modular camera -
-                <a href="https://www.raspberrypi.com/products/raspberry-pi-high-quality-camera/"
-                   target="_blank">Sony IMX477</a>
-            </li>
-        </ul>
-        <p>The device can be upgraded by adding:</p>
-        <ul>
-            <li>[Potential upgrades here]</li>
-        </ul>
-        <p>
-            A basic package is offered for system communication and user information, which includes an audible signal
-            that plays and informs the driver of the need to concentrate on the route process, as well as on the
-            surrounding cars, which the device plays when a signal is received from the traffic signal traffic
-            controller to allow the route to proceed.
-        </p>
-        <p>
-            As the system provides a direct form of communication about the actual changes in the route of the
-            vehicle on the section of the route equipped with the light-signalling traffic controller, it does
-            not store the collected data in the long term and deletes the data after processing the captured route
-            visualisations, saving and updating the vehicle situation, therefore the solution proposed by the authors
-            ensures complete security of the user's data.
-        </p>
-        <section class="footnotes">
-            <ol>
-                <li id="footnote-1">
-                    <p>
-                        Nicholson, A.J. and Tight, M.R. (1989) Research paper "Accident Analysis and Prevention:
-                        Course Notes 1987/88". Institute of Transport Studies, University of Leeds, Leeds, England.
-                        <a href="#reference-1"
-                           data-footnote-backref=""
-                           aria-label="Back to content"
-                           class="data-footnote-backref">
-                            <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
-                            <img class="emoji"
-                                 alt="leftwards_arrow_with_hook"
-                                 src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
-                                 width="20"
-                                 height="20">
-                            </g-emoji>
-                        </a>
-                    </p>
+    <div class="block">
+        <div class="btn-container">
+            <a class="btn btn-primary"
+               href="https://github.com/kristoferssolo/Traffic-Light-Detector"
+               target="_blank">GitHub</a>
+        </div>
+        <article class="markdown-body">
+            <h1>Traffic-Light-Detector</h1>
+            <h2>
+                Reduce traffic congestion effects due to human reaction times at intersections
+                with traffic lights by utilizing a computer system based on direct communication
+                method of changes in the circumscribed route intersection.
+            </h2>
+            <h3>Motivation for the project:</h3>
+            <p>
+                As civilisation develops, it develops coherent, large-scale socio-economic
+                formations that contribute to the development of well-being and the concomitant
+                development of conurbation. The market demand for infrastructure motivates
+                individuals to privatise their vehicles, which, in turn, rapidly increases the
+                accident rate. A scientific study entitled <em>"Accident analysis & prevention"</em><sup id="reference-1"><a href="#footnote-1" data-footnote-ref="">1</a></sup> (2.5)
+                indicates that there is a statistically significant observation between the potential
+                of a road user and prior involvement in an accident, as well as an observable
+                characteristic: following the direction of a high-flow motorway, defined as the
+                time between the subject and the subject's vehicles.
+            </p>
+            <p>
+                Based on research, it can be hypothesised that reducing the likelihood of
+                first-time accidents has a more significant effect on road safety than developing
+                systems to improve the safety habits of drivers involved in accidents. With this
+                assumption, the problem of eliminating the impact of human reaction time on the
+                realisation of traffic congestion can be defined as a motivated project by applying
+                computer solutions based on the direct communication methodology of the intersection
+                changes, on a route section equipped with a traffic signal traffic regulator.
+            </p>
+            <p>
+                Furthermore, studies such as
+                <em>"In-depth investigations of PTW-car accidents caused by human errors (Moto-Auto)"</em><sup id="reference-2"><a href="#footnote-2" data-footnote-ref="">2</a></sup>
+                indicate that in different traffic intersection configurations,
+                a statistical predominance of frontal collisions, more precisely around 45%, is observed in 1/9 of
+                the collision types (frontal collisions) in 60% of the configurations.
+            </p>
+            <p>
+                Road accidents also represent a share of society's costs, or more precisely,
+                costs can be broken down into several categorisations - by the number of people
+                involved, by the type of cost, by the impact of the accident on lives. A study
+                on the cost of traffic accidents, <em>"The cost of traffic accident and equivalent
+                accident number (Case study in developing country - Indonesia)"</em><sup id="reference-3"><a href="#footnote-3" data-footnote-ref="">3</a></sup> estimates the
+                cost of a single fatal accident in all categories at around 17 869,19 €, which
+                justifies the monetary motivation and commercial potential of the solution.
+            </p>
+            <p>
+                There are several reasons, as mentioned in the scientific study
+                <em>"Traffic conflict standards for intersections"</em><sup id="reference-4"><a href="#footnote-4" data-footnote-ref="">4</a></sup>,
+                why an intersection may be categorised as a high hazard area in a delineated format.
+                Firstly, a segment where different groups of road users overlap, more specifically
+                different types of vehicles, including private and commercial, as well as pedestrians
+                converging from several directions can make it difficult for drivers to anticipate the
+                actions of other road users, increasing the potential for collisions. Secondly,
+                intersections have a number of hierarchical and complex traffic control systems,
+                such as signs, traffic signals and traffic regulators, which allow for the possibility
+                of inaccurate interpretation of the situation. Finally, intersections are characterised
+                by distracted drivers, for example, looking for a turn, trying to read signs or understand
+                the traffic, listening to music on a mobile device or having a conversation, which
+                increases the likelihood of an accident.
+            </p>
+            <p>
+                Providing drivers with direct communication of intersection changes is important,
+                based on the <em>"Situational Awareness and Safety"</em><sup id="reference-5"><a href="#footnote-5" data-footnote-ref="">5</a></sup> study , as it contributes to
+                smooth and efficient traffic movement. If drivers are unsure about a traffic light,
+                they may hesitate or stop unnecessarily, which can cause congestion and delays.
+                In addition, providing a direct method of informing drivers of green lights can
+                help prevent accidents and improve overall road safety. By providing clear and
+                concise information to drivers, we can help ensure that traffic flows smoothly
+                and that everyone on the road can get to their destination safely.
+            </p>
+            <p>
+                Since the judgement that reducing the likelihood of first-time accidents has a significant
+                effect on the safety of road users can be put forward reasonably and as a leading reason
+                points to the fact that the realisation of traffic congestion increases the potential for
+                accidents and that traffic conflicts exist with a particularly increased likelihood at
+                intersections, the following position can be put forward, that a statistically tested
+                hypothesis on the correlation of traffic congestion on traffic accidents in studies
+                such as the <em>"Current Understanding of the Effects of Congestion on Traffic Accidents"</em><sup id="reference-6"><a href="#footnote-6" data-footnote-ref="">6</a></sup>
+                justifies the relevance of the project to the wider community and points to the need
+                for an adapted, modular solution.
+            </p>
+            <h3>Existing solutions:</h3>
+            <p>
+                The motivation and potential solutions for the project were also presented in different
+                formats of existing solutions. Each solution described offers a different format of user
+                interface, practical application and results.
+            </p>
+            <p>
+                Tesla's <em>"Traffic Light and Stop Sign Control"</em><sup id="reference-7"><a href="#footnote-7" data-footnote-ref="">7</a></sup> provides direct information to the user on
+                the status of the traffic light controller and adjusts the response of the vehicle, more
+                specifically, if the vehicle is analytically detected as unable to manoeuvre within the time
+                allowed by the controller, the control system will reduce speed and stop the vehicle at the
+                first permissible position according to the controller's conditions. The solution offers efficient
+                and optimal functionality with extensive technical support and a clear and easy to use user interface.
+                The most significant drawback of the solution offered by Tesla is the limited vehicle support
+                of the control system, more precisely, the system is only available for Tesla cars equipped
+                with the required sensors.
+            </p>
+            <p>
+                Audi's <em>"Traffic-light countdown system"</em><sup id="reference-8"><a href="#footnote-8" data-footnote-ref="">8</a></sup>,
+                described by the journalism company Engadget,
+                proposes and offers to provide the user directly with a countdown system, more precisely
+                a period of time during which the traffic-light traffic regulator will remain the same or
+                change to another state. The solution proposed by Audi offers a user-friendly and
+                comprehensible user interface, including a format in which the driver's attention
+                can be easily and in an informed way focused on the changes in traffic. The most significant
+                drawback of the proposed solution is the need to equip all traffic light controllers
+                and cars with sensors and to develop a communication network, and the fact that Audi
+                only offers the technology for Audi cars at the moment.
+            </p>
+            <h3>Solution description:</h3>
+            <p>
+                In response to the problem described in the motivation, the authors considered
+                a solution that eliminates the impact of human reaction time on the realisation
+                of traffic congestion, using a computer system based on a direct gated intersection
+                change communication methodology, on a route section equipped with a traffic signal traffic controller.
+            </p>
+            <p>
+                The authors propose to develop a small, easily transportable and modular device,
+                the basic principle of which is to use sensors embedded in the device to detect
+                the position of the traffic signal traffic controller corresponding to the position
+                of the vehicle at an intersection and to inform the driver when the signal is
+                detected, according to the expected signal - permission to continue the route.
+            </p>
+            <p>
+                Ierosinātais risinājums sastāv no 4 pamatprincipiem, kas likvidē cilvēka reakcijas laika ietekmi
+                uz satiksmes sastrēgumu realizāciju:
+            </p>
+            <ul>
+                <li>
+                    The modular device shall be equipped in its basic configuration with a visual image sensor which,
+                    according to the instructions for use integral to the device, is positioned parallel to the
+                    direction of movement of the vehicle, which provides continuous low-quality image documentation
+                    for the purpose of determining whether the vehicle has reached a traffic intersection.
                 </li>
-                <li id="footnote-2">
-                    <p>
-                        Avinash P. Penumaka, Giovanni Savino, Niccolò Baldanzini, Marco Pierini,
-                        In-depth investigations of PTW-car accidents caused by human errors, Safety
-                        Science, Volume 68, 2014, Pages 212-221, ISSN 0925-7535, DOI:
-                        <a href="https://doi.org/10.1016/j.ssci.2014.04.004" target="_blank">10.1016-j.ssci.2014.04.004</a>
-                        <a href="#reference-2"
-                           data-footnote-backref=""
-                           aria-label="Back to content"
-                           class="data-footnote-backref">
-                            <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
-                            <img class="emoji"
-                                 alt="leftwards_arrow_with_hook"
-                                 src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
-                                 width="20"
-                                 height="20">
-                            </g-emoji>
-                        </a>
-                    </p>
+                <li>
+                    When the device detects a vehicle approaching a traffic intersection using an image recognition
+                    model, it increases the quality of the captured images and identifies the traffic signal traffic
+                    regulators and their positions.
                 </li>
-                <li id="footnote-3">
-                    <p>
-                        Gito Sugiyanto, Department of Civil Engineering, Faculty of Engineering,
-                        Jenderal Soedirman University Purwokerto, Mayjend Sungkono, Blater, Kalimanah,
-                        Purbalingga, Central Java, Indonesia,
-                        <a href="http://www.arpnjournals.org/jeas/research_papers/rp_2017/jeas_0117_5631.pdf"
-                           target="_blank">
-                            "THE COST OF TRAFFIC ACCIDENT AND EQUIVALENT ACCIDENT NUMBER
-                            IN DEVELOPING COUNTRIES (CASE STUDY IN INDONESIA)"
-                        </a>, ISSN 1819-6608.
-                        <a href="#reference-3"
-                           data-footnote-backref=""
-                           aria-label="Back to content"
-                           class="data-footnote-backref">
-                            <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
-                            <img class="emoji"
-                                 alt="leftwards_arrow_with_hook"
-                                 src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
-                                 width="20"
-                                 height="20">
-                            </g-emoji>
-                        </a>
-                    </p>
+                <li>
+                    The identified regulators and their states are summarised to determine the appropriate regulator for the vehicle route.
                 </li>
-                <li id="footnote-4">
-                    <p>
-                        Tarek Said and Sani Zein (1999) Traffic conflict standards at intersections,
-                        Transportation Planning and Technology, 22:4, 309-323, DOI: <a href="https://doi.org/10.1080/03081069908717634" target="_blank">10.1080/03081069908717634</a>
-                        <a href="#reference-4"
-                           data-footnote-backref=""
-                           aria-label="Back to content"
-                           class="data-footnote-backref">
-                            <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
-                            <img class="emoji"
-                                 alt="leftwards_arrow_with_hook"
-                                 src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
-                                 width="20"
-                                 height="20">
-                            </g-emoji>
-                        </a>
-                    </p>
+                <li>
+                    Using the information obtained, the device analyses the situation: if the controller is observed
+                    with the signal "OK to proceed" and the vehicle has not stopped, it does not inform, whereas if
+                    the controller is observed with the signal "Not OK to proceed" and the vehicle has slowed down or
+                    stopped, the device informs the driver of the signal change when the signal "OK to proceed" is
+                    received, using the basic module for the audible signal or the optional light and other user interfaces formats.
                 </li>
-                <li id="footnote-5">
-                    <p>
-                        N.A Stanton, P.R.G. Chambers, J Piggott, Situation Awareness and Security,
-                        Security Science, Vol. 39, 3rd edition, 2001, pp. 189-204, ISSN 0925-7535,
-                        DOI: <a href="https://doi.org/10.1016/S0925-7535(01)00010-8" target="_blank">10.1015/S0925-7535(01)00010-8</a>
-                        <a href="#reference-5"
-                           data-footnote-backref=""
-                           aria-label="Back to content"
-                           class="data-footnote-backref">
-                            <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
-                            <img class="emoji"
-                                 alt="leftwards_arrow_with_hook"
-                                 src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
-                                 width="20"
-                                 height="20">
-                            </g-emoji>
-                        </a>
-                    </p>
+            </ul>
+            <p>Aprakstītā ierīce pamatprincipu un funkcionalitātes nodrošināšanai izmanto:</p>
+            <ul>
+                <li>
+                    Raspberry Pi 4 microcontroller -
+                    <a href="https://www.raspberrypi.com/products/raspberry-pi-4-model-b/?variant=raspberry-pi-4-model-b-8gb"
+                       target="_blank">Raspberry Pi 4</a>
                 </li>
-                <li id="footnote-6">
-                    <p>
-                        Retalak, Angus Eugen and Bertram Ostendorf. 2019. "Current understanding
-                        of the impact of congestion on traffic accidents" International Journal
-                        of Environmental Research and the State of Society 16, no. 18: 3400.
-                        DOI: <a href="https://doi.org/10.3390/ijerph16183400" target="_blank">10.3390-ijerph-16183400</a>
-                        <a href="#reference-6"
-                           data-footnote-backref=""
-                           aria-label="Back to content"
-                           class="data-footnote-backref">
-                            <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
-                            <img class="emoji"
-                                 alt="leftwards_arrow_with_hook"
-                                 src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
-                                 width="20"
-                                 height="20">
-                            </g-emoji>
-                        </a>
-                    </p>
+                <li>
+                    Raspberry Pi high quality modular camera -
+                    <a href="https://www.raspberrypi.com/products/raspberry-pi-high-quality-camera/"
+                       target="_blank">Sony IMX477</a>
                 </li>
-                <li id="footnote-7">
-                    <p>
-                        &copy; Tesla 2022 instructional publication
-                        <a href="https://www.tesla.com/ownersmanual/modely/en_eu/GUID-A701F7DC-875C-4491-BC84-605A77EA152C.html"
-                           target="_blank">"Controlling traffic lights and stop signs"</a> in the Model-Y description.
-                        <a href="#reference-7"
-                           data-footnote-backref=""
-                           aria-label="Back to content"
-                           class="data-footnote-backref">
-                            <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
-                            <img class="emoji"
-                                 alt="leftwards_arrow_with_hook"
-                                 src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
-                                 width="20"
-                                 height="20">
-                            </g-emoji>
-                        </a>
-                    </p>
-                </li>
-                <li id="footnote-8">
-                    <p>
-                        Audi's solution, described by Robert Baldwin in his 2016
-                        journalistic publication
-                        <a href="https://www.engadget.com/2016-12-09-audis-traffic-light-countdown.html"
-                           target="_blank">
-                            "Audi's new traffic-light countdown is the first step to smarter cities"
-                        </a>
-                        <a href="#reference-8"
-                           data-footnote-backref=""
-                           aria-label="Back to content"
-                           class="data-footnote-backref">
-                            <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
-                            <img class="emoji"
-                                 alt="leftwards_arrow_with_hook"
-                                 src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
-                                 width="20"
-                                 height="20">
-                            </g-emoji>
-                        </a>
-                    </p>
-                </li>
-            </ol>
-        </section>
-    </article>
+            </ul>
+            <p>The device can be upgraded by adding:</p>
+            <ul>
+                <li>[Potential upgrades here]</li>
+            </ul>
+            <p>
+                A basic package is offered for system communication and user information, which includes an audible signal
+                that plays and informs the driver of the need to concentrate on the route process, as well as on the
+                surrounding cars, which the device plays when a signal is received from the traffic signal traffic
+                controller to allow the route to proceed.
+            </p>
+            <p>
+                As the system provides a direct form of communication about the actual changes in the route of the
+                vehicle on the section of the route equipped with the light-signalling traffic controller, it does
+                not store the collected data in the long term and deletes the data after processing the captured route
+                visualisations, saving and updating the vehicle situation, therefore the solution proposed by the authors
+                ensures complete security of the user's data.
+            </p>
+            <section class="footnotes">
+                <ol>
+                    <li id="footnote-1">
+                        <p>
+                            Nicholson, A.J. and Tight, M.R. (1989) Research paper "Accident Analysis and Prevention:
+                            Course Notes 1987/88". Institute of Transport Studies, University of Leeds, Leeds, England.
+                            <a href="#reference-1"
+                               data-footnote-backref=""
+                               aria-label="Back to content"
+                               class="data-footnote-backref">
+                                <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
+                                <img class="emoji"
+                                     alt="leftwards_arrow_with_hook"
+                                     src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
+                                     width="20"
+                                     height="20">
+                                </g-emoji>
+                            </a>
+                        </p>
+                    </li>
+                    <li id="footnote-2">
+                        <p>
+                            Avinash P. Penumaka, Giovanni Savino, Niccolò Baldanzini, Marco Pierini,
+                            In-depth investigations of PTW-car accidents caused by human errors, Safety
+                            Science, Volume 68, 2014, Pages 212-221, ISSN 0925-7535, DOI:
+                            <a href="https://doi.org/10.1016/j.ssci.2014.04.004" target="_blank">10.1016-j.ssci.2014.04.004</a>
+                            <a href="#reference-2"
+                               data-footnote-backref=""
+                               aria-label="Back to content"
+                               class="data-footnote-backref">
+                                <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
+                                <img class="emoji"
+                                     alt="leftwards_arrow_with_hook"
+                                     src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
+                                     width="20"
+                                     height="20">
+                                </g-emoji>
+                            </a>
+                        </p>
+                    </li>
+                    <li id="footnote-3">
+                        <p>
+                            Gito Sugiyanto, Department of Civil Engineering, Faculty of Engineering,
+                            Jenderal Soedirman University Purwokerto, Mayjend Sungkono, Blater, Kalimanah,
+                            Purbalingga, Central Java, Indonesia,
+                            <a href="http://www.arpnjournals.org/jeas/research_papers/rp_2017/jeas_0117_5631.pdf"
+                               target="_blank">
+                                "THE COST OF TRAFFIC ACCIDENT AND EQUIVALENT ACCIDENT NUMBER
+                                IN DEVELOPING COUNTRIES (CASE STUDY IN INDONESIA)"
+                            </a>, ISSN 1819-6608.
+                            <a href="#reference-3"
+                               data-footnote-backref=""
+                               aria-label="Back to content"
+                               class="data-footnote-backref">
+                                <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
+                                <img class="emoji"
+                                     alt="leftwards_arrow_with_hook"
+                                     src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
+                                     width="20"
+                                     height="20">
+                                </g-emoji>
+                            </a>
+                        </p>
+                    </li>
+                    <li id="footnote-4">
+                        <p>
+                            Tarek Said and Sani Zein (1999) Traffic conflict standards at intersections,
+                            Transportation Planning and Technology, 22:4, 309-323, DOI: <a href="https://doi.org/10.1080/03081069908717634" target="_blank">10.1080/03081069908717634</a>
+                            <a href="#reference-4"
+                               data-footnote-backref=""
+                               aria-label="Back to content"
+                               class="data-footnote-backref">
+                                <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
+                                <img class="emoji"
+                                     alt="leftwards_arrow_with_hook"
+                                     src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
+                                     width="20"
+                                     height="20">
+                                </g-emoji>
+                            </a>
+                        </p>
+                    </li>
+                    <li id="footnote-5">
+                        <p>
+                            N.A Stanton, P.R.G. Chambers, J Piggott, Situation Awareness and Security,
+                            Security Science, Vol. 39, 3rd edition, 2001, pp. 189-204, ISSN 0925-7535,
+                            DOI: <a href="https://doi.org/10.1016/S0925-7535(01)00010-8" target="_blank">10.1015/S0925-7535(01)00010-8</a>
+                            <a href="#reference-5"
+                               data-footnote-backref=""
+                               aria-label="Back to content"
+                               class="data-footnote-backref">
+                                <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
+                                <img class="emoji"
+                                     alt="leftwards_arrow_with_hook"
+                                     src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
+                                     width="20"
+                                     height="20">
+                                </g-emoji>
+                            </a>
+                        </p>
+                    </li>
+                    <li id="footnote-6">
+                        <p>
+                            Retalak, Angus Eugen and Bertram Ostendorf. 2019. "Current understanding
+                            of the impact of congestion on traffic accidents" International Journal
+                            of Environmental Research and the State of Society 16, no. 18: 3400.
+                            DOI: <a href="https://doi.org/10.3390/ijerph16183400" target="_blank">10.3390-ijerph-16183400</a>
+                            <a href="#reference-6"
+                               data-footnote-backref=""
+                               aria-label="Back to content"
+                               class="data-footnote-backref">
+                                <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
+                                <img class="emoji"
+                                     alt="leftwards_arrow_with_hook"
+                                     src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
+                                     width="20"
+                                     height="20">
+                                </g-emoji>
+                            </a>
+                        </p>
+                    </li>
+                    <li id="footnote-7">
+                        <p>
+                            &copy; Tesla 2022 instructional publication
+                            <a href="https://www.tesla.com/ownersmanual/modely/en_eu/GUID-A701F7DC-875C-4491-BC84-605A77EA152C.html"
+                               target="_blank">"Controlling traffic lights and stop signs"</a> in the Model-Y description.
+                            <a href="#reference-7"
+                               data-footnote-backref=""
+                               aria-label="Back to content"
+                               class="data-footnote-backref">
+                                <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
+                                <img class="emoji"
+                                     alt="leftwards_arrow_with_hook"
+                                     src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
+                                     width="20"
+                                     height="20">
+                                </g-emoji>
+                            </a>
+                        </p>
+                    </li>
+                    <li id="footnote-8">
+                        <p>
+                            Audi's solution, described by Robert Baldwin in his 2016
+                            journalistic publication
+                            <a href="https://www.engadget.com/2016-12-09-audis-traffic-light-countdown.html"
+                               target="_blank">
+                                "Audi's new traffic-light countdown is the first step to smarter cities"
+                            </a>
+                            <a href="#reference-8"
+                               data-footnote-backref=""
+                               aria-label="Back to content"
+                               class="data-footnote-backref">
+                                <g-emoji class="g-emoji" alias="leftwards_arrow_with_hook" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png">
+                                <img class="emoji"
+                                     alt="leftwards_arrow_with_hook"
+                                     src="https://github.githubassets.com/images/icons/emoji/unicode/21a9.png"
+                                     width="20"
+                                     height="20">
+                                </g-emoji>
+                            </a>
+                        </p>
+                    </li>
+                </ol>
+            </section>
+        </article>
+    </div>
 {% endblock %}

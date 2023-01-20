@@ -104,6 +104,7 @@ em {
 
     .primary-navigation a:hover {
         background-color: var(--color-btn-hover-bg);
+        transition-duration: 0.1s;
     }
 
     .primary-navigation[data-visible="true"] {
@@ -135,5 +136,6 @@ em {
 
     .primary-navigation *:hover {
         color: var(--color-header-text-hover);
+        transition-duration: 0.1s;
     }
 }
