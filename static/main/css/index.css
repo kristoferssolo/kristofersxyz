@@ -15,12 +15,12 @@
 .landing-title {
     position: absolute;
     margin: 1rem;
-    padding: 1rem;
     left: 0;
     right: 0;
     top: 30%;
 }
-img {
+
+video {
     width: clamp(20rem, 50%, 70rem);
 }
 

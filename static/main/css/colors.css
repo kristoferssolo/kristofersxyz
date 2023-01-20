@@ -2,7 +2,7 @@
     --color-scale-black: #010409;
     --color-scale-white: #ffffff;
 
-    --color-scale-white-transparent-7: #ffffffbc;
+    --color-scale-white-transparent-70: #ffffffbc;
 
     --color-scale-gray-0: #f0f6fc;
     --color-scale-gray-1: #c9d1d9;
@@ -42,12 +42,12 @@
     --color-border-muted: var(--color-scale-gray-7);
 
     --color-header-bg-default: var(--color-scale-gray-8);
-    --color-header-bg-transparent: var(--color-scale-gray-8-transparent-5);
-    --color-header-text: var(--color-scale-white-transparent-7);
+    --color-header-bg-transparent: var(--color-scale-gray-8-transparent-50);
+    --color-header-text: var(--color-scale-white-transparent-70);
 
     --color-btn-text: var(--color-scale-gray-1);
     --color-btn-bg: var(--color-scale-gray-7);
-    --color-btn-border: var(--color-scale-gray-0-transparent-1);
+    --color-btn-border: var(--color-scale-gray-0-transparent-10);
     --color-btn-hover-bg: var(--color-scale-gray-6);
     --color-btn-hover-border: var(--color-scale-gray-3);
     --color-btn-active-border: var(--color-scale-gray-5);
