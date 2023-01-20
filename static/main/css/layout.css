@@ -69,6 +69,18 @@ em {
     margin-inline-end: 0.75rem;
 }
 
+.color-mode-toggle {
+    color: var(--color-header-text);
+    border: 2px solid currentColor;
+    margin: auto;
+    padding: 4px;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 5px;
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
 @media (max-width: 35em) {
     .primary-navigation {
         --gap: 3rem;
@@ -104,6 +116,12 @@ em {
     [data-color-mode="light"] {
         --color-header-text: var(--color-fg-default);
     }
+
+    .color-mode-toggle {
+        margin: 0 1rem 0 auto;
+        width: 3rem;
+        height: 3rem;
+    }
 }
 
 @media (min-width: 35em) {
@@ -114,12 +132,7 @@ em {
         background-color: var(--color-header-bg-default);
     }
 
-    .primary-navigation a:hover {
+    .primary-navigation *:hover {
         color: var(--color-header-text-hover);
     }
-}
-
-#color-mode-toggle {
-    width: 2rem;
-    height: 2rem;
 }
