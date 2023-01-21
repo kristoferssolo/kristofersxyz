@@ -13,7 +13,6 @@
     appearance: none;
     text-decoration: none;
     transition-property: color, background-color, border-color;
-    max-width: 3rem;
 }
 
 .btn {

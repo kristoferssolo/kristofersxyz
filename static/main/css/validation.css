@@ -1,0 +1,21 @@
+.valid {
+    color: green;
+}
+
+.not-valid {
+    color: red;
+}
+
+#check-list li {
+    list-style: square;
+}
+
+#register-form {
+    display: grid;
+    place-items: center;
+    margin-top: 5rem;
+}
+
+#register-form > input {
+    margin-top: 1rem;
+}
