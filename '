@@ -27,13 +27,13 @@ $(document).ready(function () {
             }
         })
 
-    // if (window.matchMedia) {
-    //     if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-    //         disable_light_mode()
-    //     } else {
-    //         enable_light_mode()
-    //     }
-    // }
+    if (window.matchMedia) {
+        if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+            enable_light_mode()
+        } else {
+            disable_light_mode()
+        }
+    }
 
     $("#color-mode-toggle").click(() => {
         lightmode = localStorage.getItem("lightmode")
