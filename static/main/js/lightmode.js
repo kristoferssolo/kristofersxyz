@@ -1,27 +1,31 @@
-let lightmode = localStorage.getItem("lightmode")
-const HTML = document.documentElement
-const AUDIO = document.getElementById("flashbang")
+$(document).ready(function() {
+    let lightmode = localStorage.getItem("lightmode")
+    const HTML = $("html")
+    const AUDIO = $("#flashbang")
 
-const ENABLE_LIGHT_MODE = () => {
-    HTML.setAttribute("data-color-mode", "light")
-    localStorage.setItem("lightmode", "enabled")
-}
-
-const DISABLE_LIGHT_MODE = () => {
-    HTML.setAttribute("data-color-mode", "dark")
-    localStorage.setItem("lightmode", null)
-}
-
-if (lightmode === "enabled") {
-    ENABLE_LIGHT_MODE()
-}
-
-document.querySelector("#color-mode-toggle").addEventListener("click", () => {
-    lightmode = localStorage.getItem("lightmode")
-    if (lightmode !== "enabled") {
-        ENABLE_LIGHT_MODE()
-        AUDIO.play()
-    } else {
-        DISABLE_LIGHT_MODE()
+    const enable_light_mode = () => {
+        HTML.attr("data-color-mode", "light")
+        $("meta[name='color-scheme']").attr("content", "light")
+        localStorage.setItem("lightmode", "enabled")
     }
+
+    const disable_light_mode = () => {
+        HTML.attr("data-color-mode", "dark")
+        $("meta[name='color-scheme']").attr("content", "dark")
+        localStorage.setItem("lightmode", null)
+    }
+
+    if (lightmode === "enabled") {
+        enable_light_mode()
+    }
+
+    $("#color-mode-toggle").click(() => {
+        lightmode = localStorage.getItem("lightmode")
+        if (lightmode !== "enabled") {
+            enable_light_mode()
+            AUDIO[0].play()
+        } else {
+            disable_light_mode()
+        }
+    })
 })

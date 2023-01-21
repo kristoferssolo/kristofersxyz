@@ -3,7 +3,7 @@
 <html lang="en" data-color-mode="dark">
     <head>
         <meta charset="UTF-8">
-        <meta name="color-scheme" content="dark light">
+        <meta name="color-scheme" content="dark">
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="{% static 'main/img/icons/logo.svg' %}" />
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,6 +28,7 @@
         <link rel="stylesheet"
               type="text/css"
               href="{% static 'main/css/layout.css' %}"/>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
         <script src="{% static 'main/js/navigation.js' %}" defer></script>
         <script src="{% static 'main/js/lightmode.js' %}" defer></script>
         {% block meta %}{% endblock %}
@@ -50,7 +51,7 @@
                     <a href="{% url 'projects' %}" class="bold">Projects</a>
                     <button id="color-mode-toggle"
                             class="color-mode-toggle"
-                            aria-label="toggle dark mode ">
+                            aria-label="toggle dark mode">
                         <audio id="flashbang"
                                src="{% static 'main/audio/csgo-throwing-flashbang-sound-effect.m4a' %}">
                         </audio>
