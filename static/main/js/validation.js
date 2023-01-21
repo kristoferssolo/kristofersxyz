@@ -88,8 +88,8 @@ $(document).ready(function () {
             $("#submit-btn").remove()
         }
     }
-})
 
-$("#register-form").submit(function (e) {
-    e.preventDefault()
+    $("#submit-btn").click(function () {
+        $("#register-form").submit()
+    })
 })

@@ -1,15 +1,15 @@
-$(document).ready(function () {
+window.addEventListener("DOMContentLoaded", () => {
+    const HTML = document.documentElement
+    const AUDIO = document.getElementById("flashbang")
     let lightmode = localStorage.getItem("lightmode")
-    const HTML = $("html")
-    const AUDIO = $("#flashbang")
 
     const enable_light_mode = () => {
-        HTML.attr("data-color-mode", "light")
+        HTML.setAttribute("data-color-mode", "light")
         localStorage.setItem("lightmode", "enabled")
     }
 
     const disable_light_mode = () => {
-        HTML.attr("data-color-mode", "dark")
+        HTML.setAttribute("data-color-mode", "dark")
         localStorage.setItem("lightmode", null)
     }
 
@@ -35,13 +35,15 @@ $(document).ready(function () {
         }
     }
 
-    $("#color-mode-toggle").click(() => {
-        lightmode = localStorage.getItem("lightmode")
-        if (lightmode !== "enabled") {
-            enable_light_mode()
-            AUDIO[0].play()
-        } else {
-            disable_light_mode()
-        }
-    })
+    document
+        .querySelector("#color-mode-toggle")
+        .addEventListener("click", () => {
+            lightmode = localStorage.getItem("lightmode")
+            if (lightmode !== "enabled") {
+                enable_light_mode()
+                AUDIO.play()
+            } else {
+                disable_light_mode()
+            }
+        })
 })
