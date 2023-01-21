@@ -1,4 +1,4 @@
-$(document).ready(function() {
+$(document).ready(function () {
     let register_form = $("#register-form")
     let username = $("#username")
     let password = $("#password")
@@ -24,7 +24,7 @@ $(document).ready(function() {
         symbol: "1 Symbol",
     }
 
-    username.change(function() {
+    username.change(function () {
         if (username.val() === "") {
             valid_username = false
         } else {
@@ -33,20 +33,20 @@ $(document).ready(function() {
         submit()
     })
 
-    password.change(function() {
+    password.change(function () {
         valid_password = true
         check_block.empty()
         check_block.append($("<p>").text("Password must consist of:"))
-        check_block.append($("<ul>", { id: "check-list" }))
+        check_block.append($("<ul>", {id: "check-list"}))
         for (let item in CHECKS) {
             if (!new RegExp(CHECKS[item]).test(password.val())) {
                 $("#check-list").append(
-                    $("<li>", { id: item, class: "not-valid" }).text(TEXT[item])
+                    $("<li>", {id: item, class: "not-valid"}).text(TEXT[item])
                 )
                 valid_password = false
             } else {
                 $("#check-list").append(
-                    $("<li>", { id: item, class: "valid" }).text(TEXT[item])
+                    $("<li>", {id: item, class: "valid"}).text(TEXT[item])
                 )
             }
         }
@@ -54,7 +54,7 @@ $(document).ready(function() {
         submit()
     })
 
-    confirm_password.change(function() {
+    confirm_password.change(function () {
         check_password_match()
     })
 
@@ -62,7 +62,7 @@ $(document).ready(function() {
         $("#password-match").remove()
         if (password.val() != confirm_password.val()) {
             check_block.append(
-                $("<p>", { id: "password-match", class: "not-valid" }).text(
+                $("<p>", {id: "password-match", class: "not-valid"}).text(
                     "Passwords do not match"
                 )
             )
@@ -90,6 +90,6 @@ $(document).ready(function() {
     }
 })
 
-register_form.submit(function(e) {
+$("#register-form").submit(function (e) {
     e.preventDefault()
 })
