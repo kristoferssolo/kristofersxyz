@@ -9,3 +9,7 @@ Install packages from `requirements.txt`.
 pip install --upgrade pip -r requirements.txt
 ```
 
+Start `localhost`.
+```shell
+./manage.py runserver
+```
