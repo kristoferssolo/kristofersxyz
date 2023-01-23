@@ -6,5 +6,4 @@ urlpatterns = [
     path("", views.index, name="home"),
     path("karbs", views.karbs, name="karbs"),
     path("lightsaber", views.lightsaber, name="lightsaber"),
-    path("validation", views.validation, name="validation"),
 ]

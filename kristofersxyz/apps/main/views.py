@@ -16,7 +16,3 @@ def projects(request):
 def karbs(request):
     """Karbs install script"""
     return redirect("/projects/karbs")
-
-
-def validation(request):
-    return render(request, "main/validation.html", {"title": "Validation"})
