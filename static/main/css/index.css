@@ -1,6 +1,7 @@
 :root {
-    --color-mail: #7e63f8;
+    --color-mail: #6d4aff;
     --color-telegram: #2baaee;
+    --color-mastodon: #595aff;
     --color-linkedin: #0074b3;
     --color-github: #0d1117;
 }
@@ -79,6 +80,12 @@ video {
 .github:hover > i {
     color: var(--color-github);
     border: 2px solid var(--color-github);
+    background-image: none;
+}
+
+.mastodon:hover > i {
+    color: var(--color-mastodon);
+    border: 2px solid var(--color-mastodon);
     background-image: none;
 }
 
