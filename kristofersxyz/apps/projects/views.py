@@ -6,7 +6,7 @@ def projects(request):
 
 
 def karbs(request):
-    return render(request, "projects/karbs/karbs", {"title": "KARBS"})
+    return render(request, "projects/karbs/karbs/karbs", {"title": "KARBS"})
 
 
 def instructions(request):
