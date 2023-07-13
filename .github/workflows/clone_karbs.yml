@@ -1,0 +1,18 @@
+name: Clone karbs repo into a subfolder
+on:
+  # This workflow will be triggered when code is pushed to the repository
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the main repository code
+      - name: Checkout main repository
+        uses: actions/checkout@v2
+      # Clone karbs repository into a specific subfolder
+      - name: Checkout karbs repository
+        uses: actions/checkout@v2
+        with:
+          repository: "kristoferssolo/karbs"
+          path: "src/apps/projects/templates/karbs/karbs"
