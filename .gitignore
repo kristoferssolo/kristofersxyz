@@ -129,8 +129,9 @@ dmypy.json
 .pyre/
 
 
+local-cdn/
 config.json
-debug
+node_modules/
+package-lock.json
 
-/static/admin/
-/static/fontawesomefree/
+db.sqlite3
