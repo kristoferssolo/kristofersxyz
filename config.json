@@ -1,0 +1,7 @@
+{
+    "DEBUG": false,
+    "SECRET_KEY": "",
+    "ALLOWED_HOSTS": [
+        ""
+    ]
+}

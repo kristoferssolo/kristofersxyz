@@ -130,7 +130,6 @@ dmypy.json
 
 
 local-cdn/
-config.json
 node_modules/
 package-lock.json
 
