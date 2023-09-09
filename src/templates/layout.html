@@ -2,29 +2,29 @@
 <!DOCTYPE html>
 <html lang="en" data-color-mode="dark">
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="icon" href="{% static 'main/img/icons/logo.svg' %}">
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="{% static 'main/img/icons/logo.svg' %}" />
         <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"
-              rel="stylesheet">
+              rel="stylesheet" />
         <title>
             {% block title %}{% endblock %}
         </title>
         <link rel="stylesheet"
               type="text/css"
-              href="{% static 'main/css/reset.css' %}">
+              href="{% static 'main/css/reset.css' %}" />
         <link rel="stylesheet"
               type="text/css"
-              href="{% static 'main/css/colors.css' %}">
+              href="{% static 'main/css/colors.css' %}" />
         <link rel="stylesheet"
               type="text/css"
-              href="{% static 'main/css/navigation_button.css' %}">
+              href="{% static 'main/css/navigation_button.css' %}" />
         <link rel="stylesheet"
               type="text/css"
-              href="{% static 'main/css/button.css' %}">
+              href="{% static 'main/css/button.css' %}" />
         <link rel="stylesheet"
               type="text/css"
-              href="{% static 'main/css/layout.css' %}">
+              href="{% static 'main/css/layout.css' %}" />
         <script src="{% static 'main/js/navigation.js' %}" defer></script>
         <script src="{% static 'main/js/lightmode.js' %}" defer></script>
         {% block meta %}{% endblock %}
@@ -33,7 +33,7 @@
         <header class="primary-header flex">
             <div>
                 <a href="{% url 'home' %}">
-                    <img src="{% static 'main/img/icons/logo.svg' %}" alt="logo" class="logo">
+                    <img src="{% static 'main/img/icons/logo.svg' %}" alt="logo" class="logo" />
                 </a>
             </div>
             <div class="mobile-nav-toggle">
@@ -52,7 +52,7 @@
                                src="{% static 'main/audio/csgo-throwing-flashbang-sound-effect.m4a' %}">
                         </audio>
                         <svg width="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 496">
-                            <path fill="currentColor" d="M8,256C8,393,119,504,256,504S504,393,504,256,393,8,256,8,8,119,8,256ZM256,440V72a184,184,0,0,1,0,368Z" transform="translate(-8 -8)"/>
+                            <path fill="currentColor" d="M8,256C8,393,119,504,256,504S504,393,504,256,393,8,256,8,8,119,8,256ZM256,440V72a184,184,0,0,1,0,368Z" transform="translate(-8 -8)" />
                         </svg>
                     </button>
                 </div>

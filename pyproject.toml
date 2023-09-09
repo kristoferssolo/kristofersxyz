@@ -1,3 +1,19 @@
+[project]
+name = "kristofersxyz"
+version = "0.1.0"
+description = "Portfolio build using django."
+authors = [{ name = "Kristofers Solo", email = "dev@kristofers.xyz" }]
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPLv3" }
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3:10",
+  "Programming Language :: Python :: 3:11",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+]
+
+
 [tool.mypy]
 check_untyped_defs = true
 disallow_any_generics = true

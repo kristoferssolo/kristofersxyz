@@ -1,7 +1,7 @@
 # Kristofers Solo website
 Portfolio build using [django](https://www.djangoproject.com/).
 
-![Lint](https://github.com/kristoferssolo/kristofersxyz/actions/workflows/lint.yml/badge.svg)
+![](https://github.com/kristoferssolo/kristofersxyz/actions/workflows/ruff.yml/badge.svg) ![](https://github.com/kristoferssolo/kristofersxyz/actions/workflows/test.yml/badge.svg)
 
 ## Development server
 Install packages from `requirements.txt`.
