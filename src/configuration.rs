@@ -1,7 +1,7 @@
-use std::{env, path::PathBuf};
-
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
+use sqlx::postgres::{PgConnectOptions, PgSslMode};
+use std::{env, fmt::Display, str::FromStr};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Deserialize)]
@@ -11,7 +11,31 @@ pub struct Settings {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct DatabaseSettings {
-    pub path: PathBuf,
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub password: String,
+    pub database_name: String,
+    pub require_ssl: bool,
+}
+
+impl DatabaseSettings {
+    #[must_use]
+    pub fn connect_options(&self) -> PgConnectOptions {
+        let ssl_mode = if self.require_ssl {
+            PgSslMode::Require
+        } else {
+            PgSslMode::Prefer
+        };
+
+        PgConnectOptions::new()
+            .host(&self.host)
+            .port(self.port)
+            .username(&self.username)
+            .password(&self.password)
+            .database(&self.database_name)
+            .ssl_mode(ssl_mode)
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -29,15 +53,34 @@ impl AppEnvironment {
     }
 }
 
-impl TryFrom<String> for AppEnvironment {
-    type Error = ConfigurationError;
+impl AsRef<str> for AppEnvironment {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match value.to_lowercase().as_str() {
+impl Display for AppEnvironment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl FromStr for AppEnvironment {
+    type Err = ConfigurationError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
             "local" => Ok(Self::Local),
             "production" => Ok(Self::Production),
             other => Err(ConfigurationError::InvalidEnvironment(other.to_owned())),
         }
+    }
+}
+
+impl TryFrom<String> for AppEnvironment {
+    type Error = ConfigurationError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::from_str(&value)
     }
 }
 
@@ -69,10 +112,26 @@ pub fn get_settings() -> Result<Settings, ConfigurationError> {
     Config::builder()
         .add_source(File::from(config_directory.join("base.toml")))
         .add_source(File::from(
-            config_directory.join(format!("{}.toml", environment.as_str())),
+            config_directory.join(format!("{environment}.toml")),
         ))
         .add_source(Environment::with_prefix("APP").separator("__"))
         .build()?
         .try_deserialize()
         .map_err(ConfigurationError::Build)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use claims::assert_matches;
+    use std::str::FromStr;
+
+    #[test]
+    fn parses_environment_names_case_insensitively() {
+        assert_matches!(AppEnvironment::from_str("LoCaL"), Ok(AppEnvironment::Local));
+        assert_matches!(
+            AppEnvironment::from_str("PRODUCTION"),
+            Ok(AppEnvironment::Production)
+        );
+    }
 }

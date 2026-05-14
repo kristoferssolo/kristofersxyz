@@ -1,9 +1,9 @@
 use axum::extract::FromRef;
 use leptos::prelude::LeptosOptions;
 use sqlx::{
-    SqlitePool,
-    migrate::Migrator,
-    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
+    PgPool,
+    migrate::{MigrateError, Migrator},
+    postgres::PgPoolOptions,
 };
 use thiserror::Error;
 
@@ -14,7 +14,7 @@ static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 #[derive(Clone)]
 pub struct AppState {
     pub leptos_options: LeptosOptions,
-    pub pool: SqlitePool,
+    pub pool: PgPool,
 }
 
 impl FromRef<AppState> for LeptosOptions {
@@ -25,39 +25,25 @@ impl FromRef<AppState> for LeptosOptions {
 
 #[derive(Debug, Error)]
 pub enum AppStateError {
-    #[error("failed to create database directory")]
-    CreateDatabaseDirectory(#[source] std::io::Error),
-    #[error("failed to connect to SQLite database")]
+    #[error("failed to connect to PostgreSQL database")]
     Connect(#[source] sqlx::Error),
     #[error("failed to run database migrations")]
-    Migrate(#[source] sqlx::migrate::MigrateError),
+    Migrate(#[source] MigrateError),
 }
 
-/// Builds the shared application state, establishes the `SQLite` pool,
+/// Builds the shared application state, establishes the `PostgreSQL` pool,
 /// and runs embedded migrations.
 ///
 /// # Errors
 ///
-/// Returns an error if the database directory cannot be created, `SQLite`
-/// cannot be opened, or migrations fail.
+/// Returns an error if `PostgreSQL` cannot be reached or migrations fail.
 pub async fn build_app_state(
     leptos_options: LeptosOptions,
     database: &DatabaseSettings,
 ) -> Result<AppState, AppStateError> {
-    if let Some(parent) = database.path.parent() {
-        std::fs::create_dir_all(parent).map_err(AppStateError::CreateDatabaseDirectory)?;
-    }
-
-    let connect_options = SqliteConnectOptions::new()
-        .filename(&database.path)
-        .create_if_missing(true)
-        .foreign_keys(true)
-        .journal_mode(SqliteJournalMode::Wal)
-        .synchronous(SqliteSynchronous::Normal);
-
-    let pool = SqlitePoolOptions::new()
+    let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect_with(connect_options)
+        .connect_with(database.connect_options())
         .await
         .map_err(AppStateError::Connect)?;
 
