@@ -1,11 +1,10 @@
+use crate::app::pages::{HomePage, NotFoundPage};
 use leptos::prelude::*;
 use leptos_meta::{Meta, MetaTags, Stylesheet, Title, provide_meta_context};
 use leptos_router::{
-    StaticSegment,
     components::{Route, Router, Routes},
+    path,
 };
-
-use crate::app::pages::{HomePage, NotFoundPage};
 
 #[must_use]
 pub fn shell(options: LeptosOptions) -> impl IntoView {
@@ -13,14 +12,14 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
         <!DOCTYPE html>
         <html lang="en">
             <head>
-                <meta charset="utf-8"/>
-                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <AutoReload options=options.clone() />
-                <HydrationScripts options/>
-                <MetaTags/>
+                <HydrationScripts options />
+                <MetaTags />
             </head>
             <body>
-                <App/>
+                <App />
             </body>
         </html>
     }
@@ -31,15 +30,15 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     view! {
-        <Stylesheet id="leptos" href="/pkg/kristofersxyz.css"/>
-        <Title text="Kristofers Solo"/>
+        <Stylesheet id="leptos" href="/pkg/kristofersxyz.css" />
+        <Title text="Kristofers Solo" />
         <Meta
             name="description"
             content="Personal portfolio of Kristofers Solo, a Rust-focused software developer."
         />
         <Router>
-            <Routes fallback=|| view! { <NotFoundPage/> }.into_view()>
-                <Route path=StaticSegment("") view=HomePage/>
+            <Routes fallback=|| view! { <NotFoundPage /> }.into_view()>
+                <Route path=path!("/") view=HomePage />
             </Routes>
         </Router>
     }
