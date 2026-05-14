@@ -1,0 +1,8 @@
+target/
+.git/
+.gitignore
+*.md
+.claude/
+kulala/
+end2end/
+.env*
