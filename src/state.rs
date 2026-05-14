@@ -7,7 +7,7 @@ use sqlx::{
 };
 use thiserror::Error;
 
-use crate::configuration::DatabaseSettings;
+use crate::configuration::{DatabaseSettings, DatabaseSettingsError};
 
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
@@ -25,6 +25,8 @@ impl FromRef<AppState> for LeptosOptions {
 
 #[derive(Debug, Error)]
 pub enum AppStateError {
+    #[error("invalid database configuration")]
+    Configuration(#[from] DatabaseSettingsError),
     #[error("failed to connect to PostgreSQL database")]
     Connect(#[source] sqlx::Error),
     #[error("failed to run database migrations")]
@@ -43,7 +45,7 @@ pub async fn build_app_state(
 ) -> Result<AppState, AppStateError> {
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect_with(database.connect_options())
+        .connect_with(database.connect_options()?)
         .await
         .map_err(AppStateError::Connect)?;
 

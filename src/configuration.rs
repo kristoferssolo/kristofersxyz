@@ -13,29 +13,51 @@ pub struct Settings {
 pub struct DatabaseSettings {
     pub host: String,
     pub port: u16,
-    pub username: String,
-    pub password: String,
+    pub username: Option<String>,
+    pub password: Option<String>,
     pub database_name: String,
     pub require_ssl: bool,
 }
 
 impl DatabaseSettings {
-    #[must_use]
-    pub fn connect_options(&self) -> PgConnectOptions {
+    /// Builds `PostgreSQL` connection options from the configured database settings.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the database username or password is missing from
+    /// configuration and environment overrides.
+    pub fn connect_options(&self) -> Result<PgConnectOptions, DatabaseSettingsError> {
         let ssl_mode = if self.require_ssl {
             PgSslMode::Require
         } else {
             PgSslMode::Prefer
         };
 
-        PgConnectOptions::new()
+        let username = self
+            .username
+            .as_deref()
+            .ok_or(DatabaseSettingsError::MissingUsername)?;
+        let password = self
+            .password
+            .as_deref()
+            .ok_or(DatabaseSettingsError::MissingPassword)?;
+
+        Ok(PgConnectOptions::new()
             .host(&self.host)
             .port(self.port)
-            .username(&self.username)
-            .password(&self.password)
+            .username(username)
+            .password(password)
             .database(&self.database_name)
-            .ssl_mode(ssl_mode)
+            .ssl_mode(ssl_mode))
     }
+}
+
+#[derive(Debug, Error)]
+pub enum DatabaseSettingsError {
+    #[error("database username must be provided through configuration or environment")]
+    MissingUsername,
+    #[error("database password must be provided through configuration or environment")]
+    MissingPassword,
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -7,8 +7,8 @@ services:
       APP_ENVIRONMENT: ${APP_ENVIRONMENT:-production}
       APP__DATABASE__HOST: db
       APP__DATABASE__PORT: 5432
-      APP__DATABASE__USERNAME: ${POSTGRES_USER:?set POSTGRES_USER}
-      APP__DATABASE__PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      APP__DATABASE__USERNAME: ${POSTGRES_USER:-postgres}
+      APP__DATABASE__PASSWORD: ${POSTGRES_PASSWORD}
       APP__DATABASE__DATABASE_NAME: ${POSTGRES_DB:-kristofersxyz}
       APP__DATABASE__REQUIRE_SSL: "false"
     depends_on:
@@ -17,8 +17,8 @@ services:
   db:
     image: postgres:18-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-kristofersxyz}
     volumes:
       - postgres_data:/var/lib/postgresql/data
