@@ -1,7 +1,9 @@
 [package]
 name = "kristofersxyz"
 version = "0.1.0"
-edition = "2021"
+authors = ["Kristofers Solo <dev@kristofers.xyz>"]
+edition = "2024"
+license = "MIT"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -17,19 +19,25 @@ tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 wasm-bindgen = { version = "0.2.106", optional = true }
 
 [features]
-hydrate = [
-    "leptos/hydrate",
-    "dep:console_error_panic_hook",
-    "dep:wasm-bindgen",
-]
+hydrate = ["leptos/hydrate", "dep:console_error_panic_hook", "dep:wasm-bindgen"]
 ssr = [
-    "dep:axum",
-    "dep:tokio",
-    "dep:leptos_axum",
-    "leptos/ssr",
-    "leptos_meta/ssr",
-    "leptos_router/ssr",
+  "dep:axum",
+  "dep:tokio",
+  "dep:leptos_axum",
+  "leptos/ssr",
+  "leptos_meta/ssr",
+  "leptos_router/ssr",
 ]
+
+[dev-dependencies]
+claims = "0.8"
+rstest = "0.26"
+tempfile = "3.27"
+
+[lints.clippy]
+nursery = "warn"
+pedantic = "warn"
+unwrap_used = "warn"
 
 # Defines a size-optimized profile for the WASM bundle in release mode
 [profile.wasm-release]
