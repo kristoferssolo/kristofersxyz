@@ -1,12 +1,12 @@
-
 #[cfg(feature = "ssr")]
+#[allow(clippy::unwrap_used)]
 #[tokio::main]
 async fn main() {
     use axum::Router;
+    use kristofersxyz::app::{App, shell};
     use leptos::logging::log;
     use leptos::prelude::*;
-    use leptos_axum::{generate_route_list, LeptosRoutes};
-    use kristofersxyz::app::*;
+    use leptos_axum::{LeptosRoutes, generate_route_list};
 
     let conf = get_configuration(None).unwrap();
     let addr = conf.leptos_options.site_addr;
