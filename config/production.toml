@@ -2,5 +2,4 @@
 host = "0.0.0.0"
 
 [database]
-host = "db"
-require_ssl = true
+path = "/app/data/portfolio.db"
