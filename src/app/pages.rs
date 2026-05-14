@@ -1,6 +1,5 @@
-use leptos::prelude::*;
-
 use crate::app::content::{FocusArea, PortfolioContent, Profile, Project, get_portfolio_content};
+use leptos::prelude::*;
 
 #[component]
 pub fn HomePage() -> impl IntoView {
@@ -9,10 +8,12 @@ pub fn HomePage() -> impl IntoView {
     view! {
         <Suspense fallback=TerminalLoadingPage>
             {move || Suspend::new(async move {
-                portfolio.await.map_or_else(
-                    |_| view! { <TerminalErrorPage/> }.into_any(),
-                    |content| view! { <PortfolioPage content/> }.into_any(),
-                )
+                portfolio
+                    .await
+                    .map_or_else(
+                        |_| view! { <TerminalErrorPage /> }.into_any(),
+                        |content| view! { <PortfolioPage content /> }.into_any(),
+                    )
             })}
         </Suspense>
     }
@@ -25,8 +26,13 @@ pub fn NotFoundPage() -> impl IntoView {
             <section class="max-w-md">
                 <p class="text-sm text-[#6ea3bd]">"$ cd /"</p>
                 <h1 class="mt-3 text-2xl text-[#eef2f7]">"Page not found."</h1>
-                <p class="mt-3 text-[#9da9b8]">"This portfolio currently lives at the root URL only."</p>
-                <a class="mt-5 inline-block text-[#8db7cc] no-underline hover:text-[#f3c677]" href="/">
+                <p class="mt-3 text-[#9da9b8]">
+                    "This portfolio currently lives at the root URL only."
+                </p>
+                <a
+                    class="mt-5 inline-block text-[#8db7cc] no-underline hover:text-[#f3c677]"
+                    href="/"
+                >
                     "Return home"
                 </a>
             </section>
@@ -54,7 +60,9 @@ fn PortfolioPage(content: PortfolioContent) -> impl IntoView {
             ></div>
             <div class="relative mx-auto max-w-5xl px-5 py-6 sm:px-7">
                 <header class="flex flex-wrap items-center justify-between gap-4 pb-4 text-sm text-[#8f9baa]">
-                    <a class="text-[#c8d1dc] no-underline" href="#top">"~/kristoferssolo/portfolio"</a>
+                    <a class="text-[#c8d1dc] no-underline" href="#top">
+                        "~/kristoferssolo/portfolio"
+                    </a>
                 </header>
 
                 <section id="top" class="py-16 sm:py-24">
@@ -70,7 +78,7 @@ fn PortfolioPage(content: PortfolioContent) -> impl IntoView {
                         <span>{profile.summary.clone()}</span>
                     </div>
                     <div class="mt-10 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-                        <ProfileLinks profile=profile.clone()/>
+                        <ProfileLinks profile=profile.clone() />
                     </div>
                 </section>
 
@@ -80,7 +88,7 @@ fn PortfolioPage(content: PortfolioContent) -> impl IntoView {
                     <div class="mt-8 space-y-5">
                         {projects
                             .into_iter()
-                            .map(|project| view! { <TerminalProject project/> })
+                            .map(|project| view! { <TerminalProject project /> })
                             .collect_view()}
                     </div>
                 </section>
@@ -95,13 +103,13 @@ fn PortfolioPage(content: PortfolioContent) -> impl IntoView {
                     <ul class="mt-6 space-y-3">
                         {working_style
                             .into_iter()
-                            .map(|focus| view! { <FocusAreaRow focus/> })
+                            .map(|focus| view! { <FocusAreaRow focus /> })
                             .collect_view()}
                     </ul>
                 </section>
 
                 <footer id="contact" class="py-8">
-                    <TerminalFooterLinks profile/>
+                    <TerminalFooterLinks profile />
                 </footer>
             </div>
         </main>
@@ -113,7 +121,7 @@ fn TerminalLoadingPage() -> impl IntoView {
     view! {
         <main class="grid min-h-screen place-items-center bg-[#0b0d10] px-5 font-mono text-[#d8dee9]">
             <div class="max-w-md">
-                <p class="text-sm text-[#6ea3bd]">"$ sqlite3 data/portfolio.db"</p>
+                <p class="text-sm text-[#6ea3bd]">"$ psql"</p>
                 <p class="mt-3 text-[#9da9b8]">"Loading portfolio content…"</p>
             </div>
         </main>
@@ -125,9 +133,11 @@ fn TerminalErrorPage() -> impl IntoView {
     view! {
         <main class="grid min-h-screen place-items-center bg-[#0b0d10] px-5 font-mono text-[#d8dee9]">
             <div class="max-w-md">
-                <p class="text-sm text-[#6ea3bd]">"$ sqlite3 data/portfolio.db"</p>
+                <p class="text-sm text-[#6ea3bd]">"$ psql"</p>
                 <h1 class="mt-3 text-2xl text-[#eef2f7]">"Content unavailable."</h1>
-                <p class="mt-3 text-[#9da9b8]">"The portfolio database could not be read."</p>
+                <p class="mt-3 text-[#9da9b8]">
+                    "The portfolio database is empty or could not be read."
+                </p>
             </div>
         </main>
     }

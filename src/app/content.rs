@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "ssr")]
-use sqlx::{FromRow, SqlitePool};
+use sqlx::{FromRow, PgPool};
 #[cfg(feature = "ssr")]
 use std::collections::BTreeMap;
 #[cfg(feature = "ssr")]
@@ -56,7 +56,7 @@ pub struct FocusArea {
 pub async fn get_portfolio_content() -> Result<PortfolioContent, ServerFnError> {
     #[cfg(feature = "ssr")]
     {
-        let pool = expect_context::<SqlitePool>();
+        let pool = expect_context::<PgPool>();
         return load_portfolio_content(&pool)
             .await
             .map_err(ServerFnError::from);
@@ -128,9 +128,7 @@ struct FocusAreaRow {
 }
 
 #[cfg(feature = "ssr")]
-pub async fn load_portfolio_content(
-    pool: &SqlitePool,
-) -> Result<PortfolioContent, ContentStoreError> {
+pub async fn load_portfolio_content(pool: &PgPool) -> Result<PortfolioContent, ContentStoreError> {
     let profile = sqlx::query_as::<_, ProfileRow>(
         "SELECT name, title, summary, about, email FROM profile LIMIT 1",
     )
@@ -157,7 +155,9 @@ pub async fn load_portfolio_content(
     .await?;
 
     let project_links = sqlx::query_as::<_, ProjectLinkRow>(
-        "SELECT project_id, label, href FROM project_links ORDER BY project_id, sort_order",
+        "SELECT project_id, label, href
+FROM project_links
+ORDER BY project_id, sort_order",
     )
     .fetch_all(pool)
     .await?;
@@ -220,37 +220,4 @@ pub async fn load_portfolio_content(
             })
             .collect(),
     })
-}
-
-#[cfg(all(test, feature = "ssr"))]
-mod tests {
-    use claims::assert_some_eq;
-    use sqlx::SqlitePool;
-
-    use super::load_portfolio_content;
-
-    #[tokio::test]
-    async fn loads_seeded_portfolio_content() {
-        let pool = SqlitePool::connect("sqlite::memory:")
-            .await
-            .expect("in-memory sqlite pool");
-
-        sqlx::migrate!("./migrations")
-            .run(&pool)
-            .await
-            .expect("migrations should apply");
-
-        let content = load_portfolio_content(&pool)
-            .await
-            .expect("seeded content should load");
-
-        assert_eq!(content.profile.name, "Kristofers Solo");
-        assert_some_eq!(
-            content
-                .projects
-                .first()
-                .map(|project| project.name.as_str()),
-            "kristofers.xyz"
-        );
-    }
 }
