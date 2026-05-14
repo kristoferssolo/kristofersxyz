@@ -79,6 +79,11 @@ db-reset:
     sqlx database create
     just migrate
 
+# Run PostgreSQL through Podman Compose
+[group("db")]
+db-up:
+    podman compose up db -d
+
 # Serve the release build
 serve: build
     ./target/server/release/server
