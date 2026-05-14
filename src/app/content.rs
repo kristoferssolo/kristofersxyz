@@ -1,106 +1,256 @@
+use leptos::prelude::*;
+use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "ssr")]
+use sqlx::{FromRow, SqlitePool};
+#[cfg(feature = "ssr")]
+use std::collections::BTreeMap;
+#[cfg(feature = "ssr")]
+use thiserror::Error;
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct PortfolioContent {
+    pub profile: Profile,
+    pub projects: Vec<Project>,
+    pub working_style: Vec<FocusArea>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Profile {
-    pub name: &'static str,
-    pub title: &'static str,
-    pub summary: &'static str,
-    pub email: &'static str,
-    pub links: &'static [SocialLink],
+    pub name: String,
+    pub title: String,
+    pub summary: String,
+    pub about: String,
+    pub email: String,
+    pub links: Vec<SocialLink>,
 }
 
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SocialLink {
-    pub label: &'static str,
-    pub href: &'static str,
-    pub rel: &'static str,
+    pub label: String,
+    pub href: String,
+    pub rel: String,
 }
 
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Project {
-    pub name: &'static str,
-    pub summary: &'static str,
-    pub stack: &'static [&'static str],
-    pub links: &'static [ProjectLink],
+    pub name: String,
+    pub summary: String,
+    pub stack: Vec<String>,
+    pub links: Vec<ProjectLink>,
 }
 
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ProjectLink {
-    pub label: &'static str,
-    pub href: &'static str,
+    pub label: String,
+    pub href: String,
 }
 
-pub const PROFILE: Profile = Profile {
-    name: "Kristofers Solo",
-    title: "Rust-focused software developer building reliable web systems and developer tools.",
-    summary: "I build practical software with an emphasis on Rust, typed interfaces, maintainable web systems, and tooling that makes day-to-day development simpler.",
-    email: "mailto:dev@kristofers.xyz",
-    links: &[
-        SocialLink {
-            label: "Codeberg",
-            href: "https://codeberg.org/kristoferssolo",
-            rel: "me noopener noreferrer",
-        },
-        SocialLink {
-            label: "GitHub",
-            href: "https://github.com/kristoferssolo",
-            rel: "me noopener noreferrer",
-        },
-        SocialLink {
-            label: "Mastodon",
-            href: "https://fosstodon.org/@kristofers_solo",
-            rel: "me noopener noreferrer",
-        },
-        SocialLink {
-            label: "Email",
-            href: "mailto:dev@kristofers.xyz",
-            rel: "noopener noreferrer",
-        },
-    ],
-};
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct FocusArea {
+    pub label: String,
+    pub detail: String,
+}
 
-pub const PROJECTS: &[Project] = &[
-    Project {
-        name: "kristofers.xyz",
-        summary: "A single-page personal portfolio built with Rust, Leptos, Axum, server-side rendering, and a small typed content model.",
-        stack: &["Rust", "Leptos", "Axum", "SCSS"],
-        links: &[
-            ProjectLink {
-                label: "Codeberg",
-                href: "https://codeberg.org/kristoferssolo",
-            },
-            ProjectLink {
-                label: "GitHub",
-                href: "https://github.com/kristoferssolo",
-            },
-        ],
-    },
-    Project {
-        name: "Rust Web Services",
-        summary: "Backend and service work focused on typed APIs, clear operational boundaries, and maintainable deployment surfaces.",
-        stack: &["Rust", "Axum", "PostgreSQL", "Docker"],
-        links: &[],
-    },
-    Project {
-        name: "Developer Tooling",
-        summary: "CLI and automation work that keeps development workflows fast, explicit, and easy to reason about.",
-        stack: &["Rust", "CLI", "Automation"],
-        links: &[],
-    },
-];
+#[server]
+pub async fn get_portfolio_content() -> Result<PortfolioContent, ServerFnError> {
+    #[cfg(feature = "ssr")]
+    {
+        let pool = expect_context::<SqlitePool>();
+        return load_portfolio_content(&pool)
+            .await
+            .map_err(ServerFnError::from);
+    }
 
-#[cfg(test)]
+    #[cfg(not(feature = "ssr"))]
+    {
+        Err(ServerFnError::new(
+            "portfolio content is only available on the server",
+        ))
+    }
+}
+
+#[cfg(feature = "ssr")]
+#[derive(Debug, Error)]
+pub enum ContentStoreError {
+    #[error("failed to query portfolio content")]
+    Query(#[from] sqlx::Error),
+    #[error("missing profile row in portfolio database")]
+    MissingProfile,
+}
+
+#[cfg(feature = "ssr")]
+#[derive(FromRow)]
+struct ProfileRow {
+    name: String,
+    title: String,
+    summary: String,
+    about: String,
+    email: String,
+}
+
+#[cfg(feature = "ssr")]
+#[derive(FromRow)]
+struct SocialLinkRow {
+    label: String,
+    href: String,
+    rel: String,
+}
+
+#[cfg(feature = "ssr")]
+#[derive(FromRow)]
+struct ProjectRow {
+    id: i64,
+    name: String,
+    summary: String,
+}
+
+#[cfg(feature = "ssr")]
+#[derive(FromRow)]
+struct ProjectStackRow {
+    project_id: i64,
+    stack: String,
+}
+
+#[cfg(feature = "ssr")]
+#[derive(FromRow)]
+struct ProjectLinkRow {
+    project_id: i64,
+    label: String,
+    href: String,
+}
+
+#[cfg(feature = "ssr")]
+#[derive(FromRow)]
+struct FocusAreaRow {
+    label: String,
+    detail: String,
+}
+
+#[cfg(feature = "ssr")]
+pub async fn load_portfolio_content(
+    pool: &SqlitePool,
+) -> Result<PortfolioContent, ContentStoreError> {
+    let profile = sqlx::query_as::<_, ProfileRow>(
+        "SELECT name, title, summary, about, email FROM profile LIMIT 1",
+    )
+    .fetch_optional(pool)
+    .await?
+    .ok_or(ContentStoreError::MissingProfile)?;
+
+    let links = sqlx::query_as::<_, SocialLinkRow>(
+        "SELECT label, href, rel FROM social_links ORDER BY sort_order",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let projects = sqlx::query_as::<_, ProjectRow>(
+        "SELECT id, name, summary FROM projects ORDER BY sort_order",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let stacks = sqlx::query_as::<_, ProjectStackRow>(
+        "SELECT project_id, stack FROM project_stacks ORDER BY project_id, sort_order",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let project_links = sqlx::query_as::<_, ProjectLinkRow>(
+        "SELECT project_id, label, href FROM project_links ORDER BY project_id, sort_order",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let working_style = sqlx::query_as::<_, FocusAreaRow>(
+        "SELECT label, detail FROM focus_areas ORDER BY sort_order",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let mut stacks_by_project = BTreeMap::<i64, Vec<String>>::new();
+    for row in stacks {
+        stacks_by_project
+            .entry(row.project_id)
+            .or_default()
+            .push(row.stack);
+    }
+
+    let mut links_by_project = BTreeMap::<i64, Vec<ProjectLink>>::new();
+    for row in project_links {
+        links_by_project
+            .entry(row.project_id)
+            .or_default()
+            .push(ProjectLink {
+                label: row.label,
+                href: row.href,
+            });
+    }
+
+    Ok(PortfolioContent {
+        profile: Profile {
+            name: profile.name,
+            title: profile.title,
+            summary: profile.summary,
+            about: profile.about,
+            email: profile.email,
+            links: links
+                .into_iter()
+                .map(|row| SocialLink {
+                    label: row.label,
+                    href: row.href,
+                    rel: row.rel,
+                })
+                .collect(),
+        },
+        projects: projects
+            .into_iter()
+            .map(|row| Project {
+                name: row.name,
+                summary: row.summary,
+                stack: stacks_by_project.remove(&row.id).unwrap_or_default(),
+                links: links_by_project.remove(&row.id).unwrap_or_default(),
+            })
+            .collect(),
+        working_style: working_style
+            .into_iter()
+            .map(|row| FocusArea {
+                label: row.label,
+                detail: row.detail,
+            })
+            .collect(),
+    })
+}
+
+#[cfg(all(test, feature = "ssr"))]
 mod tests {
-    use super::*;
-    use claims::{assert_some, assert_some_eq};
+    use claims::assert_some_eq;
+    use sqlx::SqlitePool;
 
-    #[test]
-    fn portfolio_content_contains_public_identity() {
-        assert_eq!(PROFILE.name, "Kristofers Solo");
-        let mastodon = assert_some!(PROFILE.links.iter().find(|link| link.label == "Mastodon"));
-        assert_eq!(mastodon.href, "https://fosstodon.org/@kristofers_solo");
+    use super::load_portfolio_content;
+
+    #[tokio::test]
+    async fn loads_seeded_portfolio_content() {
+        let pool = SqlitePool::connect("sqlite::memory:")
+            .await
+            .expect("in-memory sqlite pool");
+
+        sqlx::migrate!("./migrations")
+            .run(&pool)
+            .await
+            .expect("migrations should apply");
+
+        let content = load_portfolio_content(&pool)
+            .await
+            .expect("seeded content should load");
+
+        assert_eq!(content.profile.name, "Kristofers Solo");
         assert_some_eq!(
-            PROJECTS.first().map(|project| project.name),
+            content
+                .projects
+                .first()
+                .map(|project| project.name.as_str()),
             "kristofers.xyz"
-        );
-        assert_some!(
-            PROJECTS
-                .iter()
-                .find(|project| project.name == "kristofers.xyz")
         );
     }
 }
