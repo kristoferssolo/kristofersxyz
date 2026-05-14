@@ -85,9 +85,8 @@ pub const PROJECTS: &[Project] = &[
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use claims::{assert_some, assert_some_eq};
-
-    use super::{PROFILE, PROJECTS};
 
     #[test]
     fn portfolio_content_contains_public_identity() {

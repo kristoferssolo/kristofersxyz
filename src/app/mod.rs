@@ -1,5 +1,4 @@
 mod content;
-mod layout;
 mod pages;
 mod routes;
 
