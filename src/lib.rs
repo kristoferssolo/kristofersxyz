@@ -1,6 +1,12 @@
 #![recursion_limit = "512"]
 
 pub mod app;
+#[cfg(feature = "ssr")]
+pub mod configuration;
+#[cfg(feature = "ssr")]
+pub mod db;
+#[cfg(feature = "ssr")]
+pub mod startup;
 
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]

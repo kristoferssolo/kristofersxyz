@@ -1,12 +1,20 @@
 #[cfg(feature = "ssr")]
 #[allow(clippy::unwrap_used)]
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), StartupError> {
     use axum::Router;
-    use kristofersxyz::app::{App, shell};
+    use kristofersxyz::{
+        app::{App, shell},
+        startup,
+    };
     use leptos::logging::log;
     use leptos::prelude::*;
     use leptos_axum::{LeptosRoutes, file_and_error_handler, generate_route_list};
+
+    dotenvy::dotenv().ok();
+
+    let settings = Settings::from_env()?;
+    let app = startup::build_app(settings).await?;
 
     let conf = get_configuration(None).unwrap();
     let addr = conf.leptos_options.site_addr;

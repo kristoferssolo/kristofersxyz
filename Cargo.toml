@@ -17,16 +17,27 @@ leptos_axum = { version = "0.8", optional = true }
 leptos_meta = { version = "0.8" }
 tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 wasm-bindgen = { version = "0.2.106", optional = true }
+sqlx = { version = "0.9", features = [
+  "runtime-tokio",
+  "macros",
+  "sqlite",
+  "migrate",
+], optional = true }
+serde = { version = "1.0", features = ["derive"] }
+config = { version = "0.15", default-features = false, features = ["toml"] }
+dotenvy = "0.15"
+thiserror = "2.0"
 
 [features]
 hydrate = ["leptos/hydrate", "dep:console_error_panic_hook", "dep:wasm-bindgen"]
 ssr = [
-  "dep:axum",
-  "dep:tokio",
-  "dep:leptos_axum",
   "leptos/ssr",
   "leptos_meta/ssr",
   "leptos_router/ssr",
+  "dep:axum",
+  "dep:leptos_axum",
+  "dep:sqlx",
+  "dep:tokio",
 ]
 
 [dev-dependencies]
