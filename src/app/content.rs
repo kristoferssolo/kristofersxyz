@@ -1,223 +1,141 @@
-use leptos::prelude::*;
-use serde::{Deserialize, Serialize};
-
-#[cfg(feature = "ssr")]
-use sqlx::{FromRow, PgPool};
-#[cfg(feature = "ssr")]
-use std::collections::BTreeMap;
-#[cfg(feature = "ssr")]
-use thiserror::Error;
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PortfolioContent {
     pub profile: Profile,
-    pub projects: Vec<Project>,
-    pub working_style: Vec<FocusArea>,
+    pub projects: &'static [Project],
+    pub working_style: &'static [FocusArea],
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy)]
 pub struct Profile {
-    pub name: String,
-    pub title: String,
-    pub summary: String,
-    pub about: String,
-    pub email: String,
-    pub links: Vec<SocialLink>,
+    pub name: &'static str,
+    pub title: &'static str,
+    pub summary: &'static str,
+    pub about: &'static str,
+    pub email: &'static str,
+    pub links: &'static [SocialLink],
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy)]
 pub struct SocialLink {
-    pub label: String,
-    pub href: String,
-    pub rel: String,
+    pub label: &'static str,
+    pub href: &'static str,
+    pub rel: &'static str,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy)]
 pub struct Project {
-    pub name: String,
-    pub summary: String,
-    pub stack: Vec<String>,
-    pub links: Vec<ProjectLink>,
+    pub name: &'static str,
+    pub summary: &'static str,
+    pub stack: &'static [&'static str],
+    pub links: &'static [ProjectLink],
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy)]
 pub struct ProjectLink {
-    pub label: String,
-    pub href: String,
+    pub label: &'static str,
+    pub href: &'static str,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy)]
 pub struct FocusArea {
-    pub label: String,
-    pub detail: String,
+    pub label: &'static str,
+    pub detail: &'static str,
 }
 
-#[server]
-pub async fn get_portfolio_content() -> Result<PortfolioContent, ServerFnError> {
-    #[cfg(feature = "ssr")]
-    {
-        let pool = expect_context::<PgPool>();
-        return load_portfolio_content(&pool)
-            .await
-            .map_err(ServerFnError::from);
-    }
-
-    #[cfg(not(feature = "ssr"))]
-    {
-        Err(ServerFnError::new(
-            "portfolio content is only available on the server",
-        ))
-    }
-}
-
-#[cfg(feature = "ssr")]
-#[derive(Debug, Error)]
-pub enum ContentStoreError {
-    #[error("failed to query portfolio content")]
-    Query(#[from] sqlx::Error),
-    #[error("missing profile row in portfolio database")]
-    MissingProfile,
-}
-
-#[cfg(feature = "ssr")]
-#[derive(FromRow)]
-struct ProfileRow {
-    name: String,
-    title: String,
-    summary: String,
-    about: String,
-    email: String,
-}
-
-#[cfg(feature = "ssr")]
-#[derive(FromRow)]
-struct SocialLinkRow {
-    label: String,
-    href: String,
-    rel: String,
-}
-
-#[cfg(feature = "ssr")]
-#[derive(FromRow)]
-struct ProjectRow {
-    id: i64,
-    name: String,
-    summary: String,
-}
-
-#[cfg(feature = "ssr")]
-#[derive(FromRow)]
-struct ProjectStackRow {
-    project_id: i64,
-    stack: String,
-}
-
-#[cfg(feature = "ssr")]
-#[derive(FromRow)]
-struct ProjectLinkRow {
-    project_id: i64,
-    label: String,
-    href: String,
-}
-
-#[cfg(feature = "ssr")]
-#[derive(FromRow)]
-struct FocusAreaRow {
-    label: String,
-    detail: String,
-}
-
-#[cfg(feature = "ssr")]
-pub async fn load_portfolio_content(pool: &PgPool) -> Result<PortfolioContent, ContentStoreError> {
-    let profile = sqlx::query_as::<_, ProfileRow>(
-        "SELECT name, title, summary, about, email FROM profile LIMIT 1",
-    )
-    .fetch_optional(pool)
-    .await?
-    .ok_or(ContentStoreError::MissingProfile)?;
-
-    let links = sqlx::query_as::<_, SocialLinkRow>(
-        "SELECT label, href, rel FROM social_links ORDER BY sort_order",
-    )
-    .fetch_all(pool)
-    .await?;
-
-    let projects = sqlx::query_as::<_, ProjectRow>(
-        "SELECT id, name, summary FROM projects ORDER BY sort_order",
-    )
-    .fetch_all(pool)
-    .await?;
-
-    let stacks = sqlx::query_as::<_, ProjectStackRow>(
-        "SELECT project_id, stack FROM project_stacks ORDER BY project_id, sort_order",
-    )
-    .fetch_all(pool)
-    .await?;
-
-    let project_links = sqlx::query_as::<_, ProjectLinkRow>(
-        "SELECT project_id, label, href
-FROM project_links
-ORDER BY project_id, sort_order",
-    )
-    .fetch_all(pool)
-    .await?;
-
-    let working_style = sqlx::query_as::<_, FocusAreaRow>(
-        "SELECT label, detail FROM focus_areas ORDER BY sort_order",
-    )
-    .fetch_all(pool)
-    .await?;
-
-    let mut stacks_by_project = BTreeMap::<i64, Vec<String>>::new();
-    for row in stacks {
-        stacks_by_project
-            .entry(row.project_id)
-            .or_default()
-            .push(row.stack);
-    }
-
-    let mut links_by_project = BTreeMap::<i64, Vec<ProjectLink>>::new();
-    for row in project_links {
-        links_by_project
-            .entry(row.project_id)
-            .or_default()
-            .push(ProjectLink {
-                label: row.label,
-                href: row.href,
-            });
-    }
-
-    Ok(PortfolioContent {
-        profile: Profile {
-            name: profile.name,
-            title: profile.title,
-            summary: profile.summary,
-            about: profile.about,
-            email: profile.email,
-            links: links
-                .into_iter()
-                .map(|row| SocialLink {
-                    label: row.label,
-                    href: row.href,
-                    rel: row.rel,
-                })
-                .collect(),
+pub const PROFILE: Profile = Profile {
+    name: "Kristofers Solo",
+    title: "Rust-focused software developer building reliable web systems and developer tools.",
+    summary: "I build practical software with an emphasis on Rust, typed interfaces, maintainable web systems and tooling that makes day-to-day development simpler.",
+    about: "I focus on Rust and web systems where correctness, maintainability and clear operational behavior matter. My preferred work is close to the boundary between product needs and engineering infrastructure: APIs, server-rendered applications, developer tools and deployment surfaces that stay understandable over time.",
+    email: "mailto:dev@kristofers.xyz",
+    links: &[
+        SocialLink {
+            label: "Codeberg",
+            href: "https://codeberg.org/kristoferssolo",
+            rel: "me noopener noreferrer",
         },
-        projects: projects
-            .into_iter()
-            .map(|row| Project {
-                name: row.name,
-                summary: row.summary,
-                stack: stacks_by_project.remove(&row.id).unwrap_or_default(),
-                links: links_by_project.remove(&row.id).unwrap_or_default(),
-            })
-            .collect(),
-        working_style: working_style
-            .into_iter()
-            .map(|row| FocusArea {
-                label: row.label,
-                detail: row.detail,
-            })
-            .collect(),
-    })
+        SocialLink {
+            label: "GitHub",
+            href: "https://github.com/kristoferssolo",
+            rel: "me noopener noreferrer",
+        },
+        SocialLink {
+            label: "Mastodon",
+            href: "https://fosstodon.org/@kristofers_solo",
+            rel: "me noopener noreferrer",
+        },
+        SocialLink {
+            label: "Email",
+            href: "mailto:dev@kristofers.xyz",
+            rel: "noopener noreferrer",
+        },
+    ],
+};
+
+pub const PROJECTS: &[Project] = &[
+    Project {
+        name: "kristofers.xyz",
+        summary: "A terminal-styled personal portfolio built with Rust, Leptos, Axum and server-side rendering.",
+        stack: &["Rust", "Leptos", "Axum", "Tailwind"],
+        links: &[
+            ProjectLink {
+                label: "Codeberg",
+                href: "https://codeberg.org/kristoferssolo",
+            },
+            ProjectLink {
+                label: "GitHub",
+                href: "https://github.com/kristoferssolo",
+            },
+        ],
+    },
+    Project {
+        name: "Rust Web Services",
+        summary: "Backend and service work focused on typed APIs, clear operational boundaries and maintainable deployment surfaces.",
+        stack: &["Rust", "Axum", "PostgreSQL", "Docker"],
+        links: &[],
+    },
+    Project {
+        name: "Developer Tooling",
+        summary: "CLI and automation work that keeps development workflows fast, explicit and easy to reason about.",
+        stack: &["Rust", "CLI", "Automation"],
+        links: &[],
+    },
+];
+
+pub const WORKING_STYLE: &[FocusArea] = &[
+    FocusArea {
+        label: "Rust web services",
+        detail: "Backend systems with explicit data flow and predictable runtime behavior.",
+    },
+    FocusArea {
+        label: "Typed interfaces",
+        detail: "Small contracts that make invalid states harder to express.",
+    },
+    FocusArea {
+        label: "Pragmatic testing",
+        detail: "Coverage aimed at behavior, integrations and regression-prone edges.",
+    },
+    FocusArea {
+        label: "Maintainable deployment surfaces",
+        detail: "Operational choices that are easy to inspect, document and repeat.",
+    },
+];
+
+pub const PORTFOLIO: PortfolioContent = PortfolioContent {
+    profile: PROFILE,
+    projects: PROJECTS,
+    working_style: WORKING_STYLE,
+};
+
+#[cfg(test)]
+mod tests {
+    use super::{PORTFOLIO, PROJECTS};
+
+    #[test]
+    fn portfolio_contains_root_identity_and_project() {
+        assert_eq!(PORTFOLIO.profile.name, "Kristofers Solo");
+        assert_eq!(
+            PROJECTS.first().map(|project| project.name),
+            Some("kristofers.xyz")
+        );
+    }
 }

@@ -42,9 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 # Copy binaries and assets
 COPY --from=builder /app/target/release/kristofersxyz /app/
 COPY --from=builder /app/target/site /app/site
-COPY --from=builder /app/config /app/config
 
-ENV APP_ENVIRONMENT=production
 ENV LEPTOS_SITE_ROOT=/app/site
 ENV LEPTOS_SITE_ADDR=0.0.0.0:3000
 

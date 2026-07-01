@@ -1,21 +1,10 @@
-use crate::app::content::{FocusArea, PortfolioContent, Profile, Project, get_portfolio_content};
+use crate::app::content::{FocusArea, PORTFOLIO, PortfolioContent, Profile, Project};
 use leptos::prelude::*;
 
 #[component]
 pub fn HomePage() -> impl IntoView {
-    let portfolio = Resource::new(|| (), |()| async { get_portfolio_content().await });
-
     view! {
-        <Suspense fallback=TerminalLoadingPage>
-            {move || Suspend::new(async move {
-                portfolio
-                    .await
-                    .map_or_else(
-                        |_| view! { <TerminalErrorPage /> }.into_any(),
-                        |content| view! { <PortfolioPage content /> }.into_any(),
-                    )
-            })}
-        </Suspense>
+        <PortfolioPage content=&PORTFOLIO />
     }
 }
 
@@ -41,7 +30,7 @@ pub fn NotFoundPage() -> impl IntoView {
 }
 
 #[component]
-fn PortfolioPage(content: PortfolioContent) -> impl IntoView {
+fn PortfolioPage(content: &'static PortfolioContent) -> impl IntoView {
     let PortfolioContent {
         profile,
         projects,
@@ -68,17 +57,17 @@ fn PortfolioPage(content: PortfolioContent) -> impl IntoView {
                 <section id="top" class="py-16 sm:py-24">
                     <p class="text-sm text-[#6ea3bd]">"$ whoami"</p>
                     <h1 class="mt-4 text-4xl leading-tight text-[#eef2f7] sm:text-6xl">
-                        {profile.name.clone()}
+                        {profile.name}
                     </h1>
                     <p class="mt-6 max-w-3xl text-lg leading-8 text-[#c7d0da]">
-                        {profile.title.clone()}
+                        {profile.title}
                     </p>
                     <div class="mt-8 max-w-3xl text-base leading-8 text-[#9da9b8]">
                         <span class="text-[#f3c677]">"summary: "</span>
-                        <span>{profile.summary.clone()}</span>
+                        <span>{profile.summary}</span>
                     </div>
                     <div class="mt-10 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-                        <ProfileLinks profile=profile.clone() />
+                        <ProfileLinks profile=*profile />
                     </div>
                 </section>
 
@@ -87,57 +76,30 @@ fn PortfolioPage(content: PortfolioContent) -> impl IntoView {
                     <h2 class="mt-3 text-2xl text-[#eef2f7]">"Selected Work"</h2>
                     <div class="mt-8 space-y-5">
                         {projects
-                            .into_iter()
-                            .map(|project| view! { <TerminalProject project /> })
+                            .iter()
+                            .map(|project| view! { <TerminalProject project=*project /> })
                             .collect_view()}
                     </div>
                 </section>
 
                 <section id="about" class="grid gap-6 py-12 md:grid-cols-[180px_1fr]">
                     <h2 class="text-xl text-[#eef2f7]">"about.md"</h2>
-                    <p class="leading-8 text-[#c7d0da]">{profile.about.clone()}</p>
+                    <p class="leading-8 text-[#c7d0da]">{profile.about}</p>
                 </section>
 
                 <section class="py-12">
                     <p class="text-sm text-[#6ea3bd]">"$ cat working-style.txt"</p>
                     <ul class="mt-6 space-y-3">
                         {working_style
-                            .into_iter()
-                            .map(|focus| view! { <FocusAreaRow focus /> })
+                            .iter()
+                            .map(|focus| view! { <FocusAreaRow focus=*focus /> })
                             .collect_view()}
                     </ul>
                 </section>
 
                 <footer id="contact" class="py-8">
-                    <TerminalFooterLinks profile />
+                    <TerminalFooterLinks profile=*profile />
                 </footer>
-            </div>
-        </main>
-    }
-}
-
-#[component]
-fn TerminalLoadingPage() -> impl IntoView {
-    view! {
-        <main class="grid min-h-screen place-items-center bg-[#0b0d10] px-5 font-mono text-[#d8dee9]">
-            <div class="max-w-md">
-                <p class="text-sm text-[#6ea3bd]">"$ psql"</p>
-                <p class="mt-3 text-[#9da9b8]">"Loading portfolio content…"</p>
-            </div>
-        </main>
-    }
-}
-
-#[component]
-fn TerminalErrorPage() -> impl IntoView {
-    view! {
-        <main class="grid min-h-screen place-items-center bg-[#0b0d10] px-5 font-mono text-[#d8dee9]">
-            <div class="max-w-md">
-                <p class="text-sm text-[#6ea3bd]">"$ psql"</p>
-                <h1 class="mt-3 text-2xl text-[#eef2f7]">"Content unavailable."</h1>
-                <p class="mt-3 text-[#9da9b8]">
-                    "The portfolio database is empty or could not be read."
-                </p>
             </div>
         </main>
     }
@@ -148,7 +110,7 @@ fn ProfileLinks(profile: Profile) -> impl IntoView {
     view! {
         {profile
             .links
-            .into_iter()
+            .iter()
             .map(|link| {
                 view! {
                     <a
@@ -170,9 +132,9 @@ fn TerminalProject(project: Project) -> impl IntoView {
         <article class="grid gap-3 border-b border-[#20262d] pb-5 last:border-b-0">
             <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <span class="text-[#6ea3bd]">"+"</span>
-                <h3 class="text-lg text-[#eef2f7]">{project.name.clone()}</h3>
+                <h3 class="text-lg text-[#eef2f7]">{project.name}</h3>
             </div>
-            <p class="pl-5 leading-7 text-[#b7c1cc]">{project.summary.clone()}</p>
+            <p class="pl-5 leading-7 text-[#b7c1cc]">{project.summary}</p>
             <div class="space-y-3 pl-5">
                 <p class="text-xs text-[#7f8b99]">
                     {project
@@ -181,7 +143,7 @@ fn TerminalProject(project: Project) -> impl IntoView {
                         .enumerate()
                         .map(|(index, tag)| {
                             if index + 1 == project.stack.len() {
-                                tag.clone()
+                                (*tag).to_owned()
                             } else {
                                 format!("{tag} · ")
                             }
@@ -194,7 +156,7 @@ fn TerminalProject(project: Project) -> impl IntoView {
                             <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
                                 {project
                                     .links
-                                    .into_iter()
+                                    .iter()
                                     .map(|link| {
                                         view! {
                                             <a
@@ -227,7 +189,7 @@ fn FocusAreaRow(focus: FocusArea) -> impl IntoView {
 
 #[component]
 fn TerminalFooterLinks(profile: Profile) -> impl IntoView {
-    let email_href = profile.email.clone();
+    let email_href = profile.email;
     let email_label = email_href.trim_start_matches("mailto:").to_owned();
 
     view! {
@@ -238,7 +200,7 @@ fn TerminalFooterLinks(profile: Profile) -> impl IntoView {
             </a>
             {profile
                 .links
-                .into_iter()
+                .iter()
                 .filter(|link| link.label != "Email")
                 .map(|link| {
                     view! {

@@ -57,33 +57,6 @@ clean:
 setup:
     cargo install cargo-nextest sccache
 
-# Add a new migration
-[group("db")]
-migrate-add NAME:
-    sqlx migrate add {{NAME}}
-
-# Run database migrations
-[group("db")]
-migrate:
-    sqlx migrate run
-
-# Revert the last database migration
-[group("db")]
-migrate-revert:
-    sqlx migrate revert
-
-# Reset the database
-[group("db")]
-db-reset:
-    sqlx database drop -y
-    sqlx database create
-    just migrate
-
-# Run PostgreSQL through Podman Compose
-[group("db")]
-db-up:
-    podman compose up db -d
-
 # Serve the release build
 serve: build
     ./target/server/release/server
