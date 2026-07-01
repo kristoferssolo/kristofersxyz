@@ -24,13 +24,13 @@ sqlx = { version = "0.9", features = [
   "migrate",
 ], optional = true }
 serde = { version = "1.0", features = ["derive"] }
-config = { version = "0.15", default-features = false, features = ["toml"] }
-dotenvy = "0.15"
+config = { version = "0.15", default-features = false, features = ["toml"], optional = true }
+dotenvy = { version = "0.15", optional = true }
 thiserror = "2.0"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }
-tracing-bunyan-formatter = "0.3"
-tracing-log = "0.2"
+tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"], optional = true }
+tracing-bunyan-formatter = { version = "0.3", optional = true }
+tracing-log = { version = "0.2", optional = true }
 
 [features]
 hydrate = ["leptos/hydrate", "dep:console_error_panic_hook", "dep:wasm-bindgen"]
@@ -40,8 +40,13 @@ ssr = [
   "leptos_router/ssr",
   "dep:axum",
   "dep:leptos_axum",
+  "dep:config",
+  "dep:dotenvy",
   "dep:sqlx",
   "dep:tokio",
+  "dep:tracing-bunyan-formatter",
+  "dep:tracing-log",
+  "dep:tracing-subscriber",
 ]
 
 [dev-dependencies]
@@ -95,9 +100,6 @@ end2end-dir = "end2end"
 
 #  The browserlist query used for optimizing the CSS.
 browserquery = "defaults"
-
-# The environment Leptos will run in, usually either "DEV" or "PROD"
-env = "DEV"
 
 # The features to use when compiling the bin target
 #
