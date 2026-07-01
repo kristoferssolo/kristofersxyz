@@ -20,7 +20,7 @@ build:
 
 # Run all checks (fmt, clippy, docs, test)
 [group("dev")]
-check: fmt clippy docs test
+check: fmt clippy sqruff docs test
 
 # Run the development server
 [group("run")]
@@ -36,6 +36,11 @@ fmt:
 [group("dev")]
 clippy:
     cargo clippy --all-targets --all-features -- -D warnings
+
+# Run sqruff
+[group("dev")]
+sqruff:
+    sqruff lint migrations/* --parsing-errors
 
 # Build documentation
 [group("dev")]
@@ -72,7 +77,7 @@ ci:
 
 # Add a new migration
 [group("db")]
-migrate-add NAME:
+migrate-create NAME:
     sqlx migrate add {{NAME}}
 
 # Run database migrations
@@ -91,3 +96,10 @@ db-reset:
     sqlx database drop -y
     sqlx database create
     just migrate
+
+# Seed local portfolio content
+[group("db")]
+seed:
+    sqlx database create
+    just migrate
+    sqlite3 data/portfolio.db < seeds/portfolio.sql
