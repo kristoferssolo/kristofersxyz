@@ -1,42 +1,32 @@
 #[cfg(feature = "ssr")]
 #[allow(clippy::unwrap_used)]
 #[tokio::main]
-async fn main() -> Result<(), StartupError> {
-    use axum::Router;
+async fn main() -> Result<(), kristofersxyz::errors::ApplicationError> {
     use kristofersxyz::{
-        app::{App, shell},
-        startup,
+        configuration::Settings,
+        startup::{App, Application},
+        telemetry::{get_subscriber, init_subscriber},
     };
     use leptos::logging::log;
-    use leptos::prelude::*;
-    use leptos_axum::{LeptosRoutes, file_and_error_handler, generate_route_list};
 
     dotenvy::dotenv().ok();
 
+    let subscriber = get_subscriber("kristofersxyz", "info", std::io::stdout);
+    init_subscriber(subscriber);
+
     let settings = Settings::from_env()?;
-    let app = startup::build_app(settings).await?;
 
-    let conf = get_configuration(None).unwrap();
-    let addr = conf.leptos_options.site_addr;
-    let leptos_options = conf.leptos_options;
-    // Generate the list of routes in your Leptos App
-    let routes = generate_route_list(App);
+    let app = App::new(&settings).await?;
 
-    let app = Router::new()
-        .leptos_routes(&leptos_options, routes, {
-            let leptos_options = leptos_options.clone();
-            move || shell(leptos_options.clone())
-        })
-        .fallback(file_and_error_handler(shell))
-        .with_state(leptos_options);
+    let addr = app.leptos_options.site_addr;
+    let application = Application::build(app).await?;
+    log!("listening on http://{}", &addr);
 
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`
-    log!("listening on http://{}", &addr);
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    axum::serve(listener, app.into_make_service())
-        .await
-        .unwrap();
+    application.run_until_stopped().await?;
+
+    Ok(())
 }
 
 #[cfg(not(feature = "ssr"))]

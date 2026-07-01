@@ -5,8 +5,13 @@ pub mod app;
 pub mod configuration;
 #[cfg(feature = "ssr")]
 pub mod db;
+pub mod errors;
+#[cfg(feature = "ssr")]
+pub mod router;
 #[cfg(feature = "ssr")]
 pub mod startup;
+#[cfg(feature = "ssr")]
+pub mod telemetry;
 
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]
