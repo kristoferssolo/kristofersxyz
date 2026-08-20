@@ -1,7 +1,13 @@
+//! The portfolio as static data.
+//!
+//! Everything the views render comes from [`portfolio_content`]. Views never
+//! reach for the consts below, so when this content moves to SQLite the
+//! function becomes an async loader and the page components keep their shape.
+
 pub struct PortfolioContent {
     pub profile: Profile,
     pub projects: &'static [Project],
-    pub working_style: &'static [FocusArea],
+    pub contact: Contact,
 }
 
 #[derive(Clone, Copy)]
@@ -10,6 +16,9 @@ pub struct Profile {
     pub title: &'static str,
     pub summary: &'static str,
     pub about: &'static str,
+    pub stack: &'static [&'static str],
+    /// Shown as a short list under the about text.
+    pub working_style: &'static [FocusArea],
     pub email: &'static str,
     pub links: &'static [SocialLink],
 }
@@ -41,11 +50,26 @@ pub struct FocusArea {
     pub detail: &'static str,
 }
 
-pub const PROFILE: Profile = Profile {
+/// The contact entry. Mail only: no form, and therefore no spam surface.
+#[derive(Clone, Copy)]
+pub struct Contact {
+    pub name: &'static str,
+    pub body: &'static str,
+}
+
+/// The single seam every view reads content through.
+#[must_use]
+pub const fn portfolio_content() -> PortfolioContent {
+    PORTFOLIO
+}
+
+const PROFILE: Profile = Profile {
     name: "Kristofers Solo",
     title: "Rust-focused software developer building reliable web systems and developer tools.",
     summary: "I build practical software with an emphasis on Rust, typed interfaces, maintainable web systems and tooling that makes day-to-day development simpler.",
     about: "I focus on Rust and web systems where correctness, maintainability and clear operational behavior matter. My preferred work is close to the boundary between product needs and engineering infrastructure: APIs, server-rendered applications, developer tools and deployment surfaces that stay understandable over time.",
+    stack: &["Rust", "Leptos", "Axum", "Tailwind"],
+    working_style: WORKING_STYLE,
     email: "mailto:dev@kristofers.xyz",
     links: &[
         SocialLink {
@@ -71,37 +95,38 @@ pub const PROFILE: Profile = Profile {
     ],
 };
 
-pub const PROJECTS: &[Project] = &[
+/// Entry names double as slugs, so they stay lowercase and URL safe.
+const PROJECTS: &[Project] = &[
     Project {
-        name: "kristofers.xyz",
-        summary: "A terminal-styled personal portfolio built with Rust, Leptos, Axum and server-side rendering.",
-        stack: &["Rust", "Leptos", "Axum", "Tailwind"],
-        links: &[
-            ProjectLink {
-                label: "Codeberg",
-                href: "https://codeberg.org/kristoferssolo",
-            },
-            ProjectLink {
-                label: "GitHub",
-                href: "https://github.com/kristoferssolo",
-            },
-        ],
+        name: "guenther",
+        summary: "Telegram bot that takes a social media link and sends the media back inline, so a shared post plays in the chat instead of opening a browser.",
+        stack: &["Rust", "Telegram", "yt-dlp"],
+        links: &[ProjectLink {
+            label: "GitHub",
+            href: "https://github.com/kristoferssolo/guenther",
+        }],
     },
     Project {
-        name: "Rust Web Services",
-        summary: "Backend and service work focused on typed APIs, clear operational boundaries and maintainable deployment surfaces.",
-        stack: &["Rust", "Axum", "PostgreSQL", "Docker"],
-        links: &[],
+        name: "traxor",
+        summary: "Terminal UI for managing Transmission torrents: queue, inspect and control transfers without leaving the shell.",
+        stack: &["Rust", "ratatui", "Transmission RPC"],
+        links: &[ProjectLink {
+            label: "Codeberg",
+            href: "https://codeberg.org/kristoferssolo/traxor",
+        }],
     },
     Project {
-        name: "Developer Tooling",
-        summary: "CLI and automation work that keeps development workflows fast, explicit and easy to reason about.",
-        stack: &["Rust", "CLI", "Automation"],
-        links: &[],
+        name: "cipher-workshop",
+        summary: "Rust workspace implementing cipher algorithms, AES-128 and CBC among them, exposed through both a CLI and a web interface.",
+        stack: &["Rust", "AES-128", "CLI", "WebAssembly"],
+        links: &[ProjectLink {
+            label: "GitHub",
+            href: "https://github.com/kristoferssolo/cipher-workshop",
+        }],
     },
 ];
 
-pub const WORKING_STYLE: &[FocusArea] = &[
+const WORKING_STYLE: &[FocusArea] = &[
     FocusArea {
         label: "Rust web services",
         detail: "Backend systems with explicit data flow and predictable runtime behavior.",
@@ -120,22 +145,50 @@ pub const WORKING_STYLE: &[FocusArea] = &[
     },
 ];
 
-pub const PORTFOLIO: PortfolioContent = PortfolioContent {
+const CONTACT: Contact = Contact {
+    name: "Write to me",
+    body: "Mail is the fastest route. Repositories and posts sit behind the links below.",
+};
+
+const PORTFOLIO: PortfolioContent = PortfolioContent {
     profile: PROFILE,
     projects: PROJECTS,
-    working_style: WORKING_STYLE,
+    contact: CONTACT,
 };
 
 #[cfg(test)]
 mod tests {
-    use super::{PORTFOLIO, PROJECTS};
+    use super::*;
 
     #[test]
-    fn portfolio_contains_root_identity_and_project() {
-        assert_eq!(PORTFOLIO.profile.name, "Kristofers Solo");
+    fn portfolio_leads_with_the_profile_and_the_first_project() {
+        let content = portfolio_content();
+        assert_eq!(content.profile.name, "Kristofers Solo");
         assert_eq!(
-            PROJECTS.first().map(|project| project.name),
-            Some("kristofers.xyz")
+            content.projects.first().map(|project| project.name),
+            Some("guenther")
         );
+    }
+
+    /// The buffer is five lines: profile, three projects, contact.
+    #[test]
+    fn portfolio_holds_three_projects() {
+        assert_eq!(portfolio_content().projects.len(), 3);
+    }
+
+    /// Names double as URL slugs, so a capital or a space here would show up
+    /// as a broken hash fragment.
+    #[test]
+    fn project_names_are_slug_safe() {
+        for project in portfolio_content().projects {
+            assert!(
+                project
+                    .name
+                    .chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-'),
+                "{} is not slug safe",
+                project.name
+            );
+        }
     }
 }

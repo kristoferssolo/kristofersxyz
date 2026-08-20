@@ -1,5 +1,7 @@
 use super::AMBER;
-use crate::app::content::{PORTFOLIO, PortfolioContent, ProjectLink, SocialLink};
+use crate::app::content::{
+    FocusArea, PortfolioContent, Profile, ProjectLink, SocialLink, portfolio_content,
+};
 use leptos::{ev, prelude::*, wasm_bindgen::JsCast, web_sys};
 
 /// Below this width the buffer list and content pane stack, so a selection has
@@ -17,10 +19,9 @@ struct Link {
 /// so the mail entry shows something you can read rather than the word "Email".
 #[derive(Clone, Copy)]
 enum Links {
-    None,
     Social(&'static [SocialLink]),
     Project(&'static [ProjectLink]),
-    Contact,
+    Contact(Profile),
 }
 
 impl Links {
@@ -32,7 +33,6 @@ impl Links {
         };
 
         match self {
-            Self::None => Vec::new(),
             Self::Social(links) => links.iter().map(social).collect(),
             Self::Project(links) => links
                 .iter()
@@ -42,8 +42,7 @@ impl Links {
                     rel: "noopener noreferrer",
                 })
                 .collect(),
-            Self::Contact => {
-                let profile = PORTFOLIO.profile;
+            Self::Contact(profile) => {
                 let address = Link {
                     label: profile.email.trim_start_matches("mailto:"),
                     href: profile.email,
@@ -71,6 +70,8 @@ struct Entry {
     /// Shown above the body. Only the profile carries one.
     lead: Option<&'static str>,
     body: &'static str,
+    /// Working style lines under the body. Only the profile carries any.
+    focus: &'static [FocusArea],
     meta: &'static [&'static str],
     links: Links,
 }
@@ -113,7 +114,7 @@ fn reveal_content() {
 #[component]
 #[expect(clippy::too_many_lines, reason = "the view! markup is one block")]
 pub fn HomePage() -> impl IntoView {
-    let entries = entries(&PORTFOLIO);
+    let entries = entries(&portfolio_content());
     let total = entries.len();
     let last = total - 1;
     let groups = group_by_section(&entries);
@@ -271,6 +272,27 @@ pub fn HomePage() -> impl IntoView {
                         <p class="mt-5 font-sans text-[16px] leading-[1.7] text-[#aab2bb] sm:text-[17px]">
                             {move || current().body}
                         </p>
+                        {move || {
+                            let focus = current().focus;
+                            (!focus.is_empty())
+                                .then(|| {
+                                    view! {
+                                        <ul class="mt-5 space-y-1 text-[13px]">
+                                            {focus
+                                                .iter()
+                                                .map(|area| {
+                                                    view! {
+                                                        <li class="flex flex-wrap gap-x-[1ch]">
+                                                            <span class="text-white">{area.label}</span>
+                                                            <span class="text-[#6c757f]">{area.detail}</span>
+                                                        </li>
+                                                    }
+                                                })
+                                                .collect_view()}
+                                        </ul>
+                                    }
+                                })
+                        }}
                         <p class="mt-6 text-[12px] tracking-[0.08em] text-[#6c757f]">
                             {move || current().meta.join("  ·  ")}
                         </p>
@@ -351,7 +373,8 @@ fn entries(content: &PortfolioContent) -> Vec<Entry> {
         name: profile.name,
         lead: Some(profile.title),
         body: profile.about,
-        meta: &["Rust", "Leptos", "Axum", "Tailwind"],
+        focus: profile.working_style,
+        meta: profile.stack,
         links: Links::Social(profile.links),
     }];
 
@@ -360,26 +383,19 @@ fn entries(content: &PortfolioContent) -> Vec<Entry> {
         name: project.name,
         lead: None,
         body: project.summary,
+        focus: &[],
         meta: project.stack,
         links: Links::Project(project.links),
     }));
 
-    entries.extend(content.working_style.iter().map(|focus| Entry {
-        section: "practice",
-        name: focus.label,
-        lead: None,
-        body: focus.detail,
-        meta: &[],
-        links: Links::None,
-    }));
-
     entries.push(Entry {
         section: "contact",
-        name: "Write to me",
+        name: content.contact.name,
         lead: None,
-        body: "Mail is the fastest route. Repositories and posts sit behind the links below.",
+        body: content.contact.body,
+        focus: &[],
         meta: &[],
-        links: Links::Contact,
+        links: Links::Contact(profile),
     });
 
     entries

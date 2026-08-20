@@ -1,5 +1,5 @@
 use crate::app::{
-    content::PROFILE,
+    content::portfolio_content,
     pages::{HomePage, NotFoundPage},
 };
 use leptos::prelude::*;
@@ -38,7 +38,7 @@ pub fn App() -> impl IntoView {
         <Stylesheet id="fonts" href=FONTS />
         <Stylesheet id="leptos" href="/pkg/kristofersxyz.css" />
         <Title text="Kristofers Solo" />
-        <Meta name="description" content=PROFILE.summary />
+        <Meta name="description" content=portfolio_content().profile.summary />
         <Router>
             <Routes fallback=|| view! { <NotFoundPage /> }.into_view()>
                 <Route path=path!("/") view=HomePage />
