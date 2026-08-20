@@ -1,220 +1,441 @@
-use crate::app::content::{FocusArea, PORTFOLIO, PortfolioContent, Profile, Project};
-use leptos::prelude::*;
+use crate::app::content::{PORTFOLIO, PortfolioContent, ProjectLink, SocialLink};
+use leptos::{ev, prelude::*, wasm_bindgen::JsCast, web_sys};
 
+/// Statusline amber, the only colour on the site besides greys.
+const AMBER: &str = "#e2a340";
+
+/// Below this width the buffer list and content pane stack, so a selection has
+/// to pull the view down to the content. Matches Tailwind's `md` breakpoint.
+const STACK_BELOW_PX: f64 = 768.0;
+
+/// A link as it is rendered: visible label, destination, relationship.
+struct Link {
+    label: &'static str,
+    href: &'static str,
+    rel: &'static str,
+}
+
+/// Where an entry's links come from. `Contact` leads with the address itself
+/// so the mail entry shows something you can read rather than the word "Email".
+#[derive(Clone, Copy)]
+enum Links {
+    None,
+    Social(&'static [SocialLink]),
+    Project(&'static [ProjectLink]),
+    Contact,
+}
+
+impl Links {
+    fn resolve(self) -> Vec<Link> {
+        let social = |link: &SocialLink| Link {
+            label: link.label,
+            href: link.href,
+            rel: link.rel,
+        };
+
+        match self {
+            Self::None => Vec::new(),
+            Self::Social(links) => links.iter().map(social).collect(),
+            Self::Project(links) => links
+                .iter()
+                .map(|link| Link {
+                    label: link.label,
+                    href: link.href,
+                    rel: "noopener noreferrer",
+                })
+                .collect(),
+            Self::Contact => {
+                let profile = PORTFOLIO.profile;
+                let address = Link {
+                    label: profile.email.trim_start_matches("mailto:"),
+                    href: profile.email,
+                    rel: "noopener noreferrer",
+                };
+                std::iter::once(address)
+                    .chain(
+                        profile
+                            .links
+                            .iter()
+                            .filter(|link| link.label != "Email")
+                            .map(social),
+                    )
+                    .collect()
+            }
+        }
+    }
+}
+
+/// One navigable line in the buffer.
+#[derive(Clone, Copy)]
+struct Entry {
+    section: &'static str,
+    name: &'static str,
+    /// Shown above the body. Only the profile carries one.
+    lead: Option<&'static str>,
+    body: &'static str,
+    meta: &'static [&'static str],
+    links: Links,
+}
+
+/// Moves keyboard focus onto the buffer option at `index`, so screen readers
+/// announce the row the vim keys just moved to. No-op during SSR, where there
+/// is no document.
+fn focus_option(index: usize) {
+    if let Some(element) = document().get_element_by_id(&format!("buffer-{index}"))
+        && let Ok(element) = element.dyn_into::<web_sys::HtmlElement>()
+    {
+        let _ = element.focus();
+    }
+}
+
+/// True when the viewport is narrow enough that the panes stack vertically.
+fn viewport_is_stacked() -> bool {
+    web_sys::window()
+        .and_then(|window| window.inner_width().ok())
+        .and_then(|width| width.as_f64())
+        .is_some_and(|width| width < STACK_BELOW_PX)
+}
+
+/// On the stacked phone layout the content sits below the whole list, so a
+/// selection has to bring it into view. Instant scroll: no motion to undo for
+/// reduced-motion readers. A no-op on desktop, where both panes are visible,
+/// and during SSR, where there is no document.
+fn reveal_content() {
+    if viewport_is_stacked()
+        && let Some(section) = document().get_element_by_id("buffer-content")
+    {
+        section.scroll_into_view();
+    }
+}
+
+/// The portfolio as a modal editor. The buffer list moves with `j`/`k`, `g`/`G`
+/// and the number keys; the statusline reports position; and the page sits
+/// inside one viewport so navigation replaces scrolling. On a stacked phone
+/// layout, selecting a buffer pulls the view down to its content.
 #[component]
+#[expect(clippy::too_many_lines, reason = "the view! markup is one block")]
 pub fn HomePage() -> impl IntoView {
-    view! {
-        <PortfolioPage content=&PORTFOLIO />
-    }
-}
+    let entries = entries(&PORTFOLIO);
+    let total = entries.len();
+    let last = total - 1;
+    let groups = group_by_section(&entries);
+    let stored = StoredValue::new(entries);
+    let (active, set_active) = signal(0usize);
 
-#[component]
-pub fn NotFoundPage() -> impl IntoView {
-    view! {
-        <main class="grid min-h-screen place-items-center bg-[#0b0d10] px-5 font-mono text-[#d8dee9]">
-            <section class="max-w-md">
-                <p class="text-sm text-[#6ea3bd]">"$ cd /"</p>
-                <h1 class="mt-3 text-2xl text-[#eef2f7]">"Page not found."</h1>
-                <p class="mt-3 text-[#9da9b8]">
-                    "This portfolio currently lives at the root URL only."
-                </p>
-                <a
-                    class="mt-5 inline-block text-[#8db7cc] no-underline hover:text-[#f3c677]"
-                    href="/"
-                >
-                    "Return home"
-                </a>
-            </section>
-        </main>
-    }
-}
+    // Every selection path funnels through here: update the row, optionally move
+    // DOM focus onto it for screen readers, then reveal the content on mobile.
+    let select = move |index: usize, focus: bool| {
+        set_active.set(index);
+        if focus {
+            focus_option(index);
+        }
+        reveal_content();
+    };
 
-#[component]
-fn PortfolioPage(content: &'static PortfolioContent) -> impl IntoView {
-    let PortfolioContent {
-        profile,
-        projects,
-        working_style,
-    } = content;
-
-    view! {
-        <main class="relative min-h-screen overflow-hidden bg-[#0b0d10] font-mono text-[#d8dee9]">
-            <div
-                class="pointer-events-none absolute inset-0 opacity-30"
-                style="background-image: linear-gradient(rgba(130, 149, 167, 0.08) 1px, transparent 1px); background-size: 100% 1.6rem;"
-            ></div>
-            <div
-                class="pointer-events-none absolute inset-0 opacity-50"
-                style="background: radial-gradient(circle at top right, rgba(83, 161, 191, 0.16), transparent 32%), radial-gradient(circle at left center, rgba(191, 155, 83, 0.12), transparent 28%);"
-            ></div>
-            <div class="relative mx-auto max-w-5xl px-5 py-6 sm:px-7">
-                <header class="flex flex-wrap items-center justify-between gap-4 pb-4 text-sm text-[#8f9baa]">
-                    <a class="text-[#c8d1dc] no-underline" href="#top">
-                        "~/kristoferssolo/portfolio"
-                    </a>
-                </header>
-
-                <section id="top" class="py-16 sm:py-24">
-                    <p class="text-sm text-[#6ea3bd]">"$ whoami"</p>
-                    <h1 class="mt-4 text-4xl leading-tight text-[#eef2f7] sm:text-6xl">
-                        {profile.name}
-                    </h1>
-                    <p class="mt-6 max-w-3xl text-lg leading-8 text-[#c7d0da]">
-                        {profile.title}
-                    </p>
-                    <div class="mt-8 max-w-3xl text-base leading-8 text-[#9da9b8]">
-                        <span class="text-[#f3c677]">"summary: "</span>
-                        <span>{profile.summary}</span>
-                    </div>
-                    <div class="mt-10 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-                        <ProfileLinks profile=*profile />
-                    </div>
-                </section>
-
-                <section id="projects" class="py-12">
-                    <p class="text-sm text-[#6ea3bd]">"$ ls selected-work"</p>
-                    <h2 class="mt-3 text-2xl text-[#eef2f7]">"Selected Work"</h2>
-                    <div class="mt-8 space-y-5">
-                        {projects
-                            .iter()
-                            .map(|project| view! { <TerminalProject project=*project /> })
-                            .collect_view()}
-                    </div>
-                </section>
-
-                <section id="about" class="grid gap-6 py-12 md:grid-cols-[180px_1fr]">
-                    <h2 class="text-xl text-[#eef2f7]">"about.md"</h2>
-                    <p class="leading-8 text-[#c7d0da]">{profile.about}</p>
-                </section>
-
-                <section class="py-12">
-                    <p class="text-sm text-[#6ea3bd]">"$ cat working-style.txt"</p>
-                    <ul class="mt-6 space-y-3">
-                        {working_style
-                            .iter()
-                            .map(|focus| view! { <FocusAreaRow focus=*focus /> })
-                            .collect_view()}
-                    </ul>
-                </section>
-
-                <footer id="contact" class="py-8">
-                    <TerminalFooterLinks profile=*profile />
-                </footer>
-            </div>
-        </main>
-    }
-}
-
-#[component]
-fn ProfileLinks(profile: Profile) -> impl IntoView {
-    view! {
-        {profile
-            .links
-            .iter()
-            .map(|link| {
-                view! {
-                    <a
-                        class="text-[#8db7cc] no-underline hover:text-[#f3c677]"
-                        href=link.href
-                        rel=link.rel
-                    >
-                        {link.label}
-                    </a>
+    // Vim-style keys, bound globally so they work wherever the reader's focus
+    // sits. Selecting a row also moves DOM focus onto it for screen readers.
+    Effect::new(move |_| {
+        let handle = window_event_listener(ev::keydown, move |event| {
+            if event.ctrl_key() || event.meta_key() || event.alt_key() {
+                return;
+            }
+            let current = active.get_untracked();
+            let next = match event.key().as_str() {
+                "j" | "ArrowDown" => (current + 1).min(last),
+                "k" | "ArrowUp" => current.saturating_sub(1),
+                "g" => 0,
+                "G" => last,
+                digit @ ("1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9") => {
+                    match digit.parse::<usize>() {
+                        Ok(n) if n <= total => n - 1,
+                        _ => return,
+                    }
                 }
-            })
-            .collect_view()}
-    }
-}
+                _ => return,
+            };
+            event.prevent_default();
+            select(next, true);
+        });
+        on_cleanup(move || handle.remove());
+    });
 
-#[component]
-fn TerminalProject(project: Project) -> impl IntoView {
+    let current = move || stored.with_value(|entries| entries[active.get()]);
+
     view! {
-        <article class="grid gap-3 border-b border-[#20262d] pb-5 last:border-b-0">
-            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span class="text-[#6ea3bd]">"+"</span>
-                <h3 class="text-lg text-[#eef2f7]">{project.name}</h3>
-            </div>
-            <p class="pl-5 leading-7 text-[#b7c1cc]">{project.summary}</p>
-            <div class="space-y-3 pl-5">
-                <p class="text-xs text-[#7f8b99]">
-                    {project
-                        .stack
-                        .iter()
-                        .enumerate()
-                        .map(|(index, tag)| {
-                            if index + 1 == project.stack.len() {
-                                (*tag).to_owned()
-                            } else {
-                                format!("{tag} · ")
+        <main class="flex min-h-dvh flex-col bg-black font-mono text-[#d4d7db] md:h-dvh md:overflow-hidden">
+            <div class="grid min-h-0 flex-1 md:grid-cols-[minmax(260px,340px)_minmax(0,1fr)]">
+                <div
+                    role="listbox"
+                    aria-label="Buffers"
+                    class="min-h-0 overflow-y-auto border-b border-[#1e2126] py-3 text-[13px] md:border-r md:border-b-0"
+                >
+                    {groups
+                        .into_iter()
+                        .map(|(section, rows)| {
+                            view! {
+                                <div role="group" aria-label=section class="mt-4 first:mt-0">
+                                    <p
+                                        aria-hidden="true"
+                                        class="mb-1 pl-[7ch] text-[10px] tracking-[0.24em] text-[#4c525a] uppercase"
+                                    >
+                                        {section}
+                                    </p>
+                                    {rows
+                                        .into_iter()
+                                        .map(|(i, name)| {
+                                            let is_active = move || active.get() == i;
+                                            let marker = move || {
+                                                if is_active() {
+                                                    format!("color:{AMBER}")
+                                                } else {
+                                                    "color:transparent".to_owned()
+                                                }
+                                            };
+                                            let number = move || {
+                                                if is_active() {
+                                                    format!("color:{AMBER}")
+                                                } else {
+                                                    "color:#3c424a".to_owned()
+                                                }
+                                            };
+                                            view! {
+                                                <button
+                                                    type="button"
+                                                    role="option"
+                                                    id=format!("buffer-{i}")
+                                                    aria-selected=move || {
+                                                        if is_active() { "true" } else { "false" }
+                                                    }
+                                                    tabindex=move || if is_active() { 0 } else { -1 }
+                                                    on:click=move |_| select(i, false)
+                                                    class="flex w-full items-baseline gap-[1ch] px-3 py-[3px] text-left hover:bg-[#101317]"
+                                                    class=("bg-[#14181d]", is_active)
+                                                >
+                                                    <span
+                                                        aria-hidden="true"
+                                                        class="w-[1ch] shrink-0"
+                                                        style=marker
+                                                    >
+                                                        "\u{258e}"
+                                                    </span>
+                                                    <span
+                                                        aria-hidden="true"
+                                                        class="w-[3ch] shrink-0 text-right tabular-nums"
+                                                        style=number
+                                                    >
+                                                        {move || {
+                                                            if is_active() {
+                                                                (i + 1).to_string()
+                                                            } else {
+                                                                active.get().abs_diff(i).to_string()
+                                                            }
+                                                        }}
+                                                    </span>
+                                                    <span
+                                                        class="truncate"
+                                                        class=("text-white", is_active)
+                                                        class=("text-[#8b939d]", move || !is_active())
+                                                    >
+                                                        {name}
+                                                    </span>
+                                                </button>
+                                            }
+                                        })
+                                        .collect_view()}
+                                </div>
                             }
                         })
-                        .collect::<String>()}
-                </p>
-                {(!project.links.is_empty())
-                    .then(|| {
-                        view! {
-                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                                {project
+                        .collect_view()}
+                </div>
+
+                <section
+                    id="buffer-content"
+                    class="min-h-0 overflow-y-auto px-5 py-8 sm:px-10 md:px-14 md:py-14"
+                >
+                    <div class="max-w-[62ch]">
+                        <p class="text-[11px] tracking-[0.24em] text-[#4c525a] uppercase">
+                            {move || current().section}
+                        </p>
+                        <h1 class="mt-3 font-sans text-[clamp(1.75rem,4.5vw,2.75rem)] leading-[1.1] font-semibold text-white">
+                            {move || current().name}
+                        </h1>
+                        {move || {
+                            current()
+                                .lead
+                                .map(|lead| {
+                                    view! {
+                                        <p class="mt-4 font-sans text-[17px] leading-[1.5] text-white sm:text-[19px]">
+                                            {lead}
+                                        </p>
+                                    }
+                                })
+                        }}
+                        <p class="mt-5 font-sans text-[16px] leading-[1.7] text-[#aab2bb] sm:text-[17px]">
+                            {move || current().body}
+                        </p>
+                        <p class="mt-6 text-[12px] tracking-[0.08em] text-[#6c757f]">
+                            {move || current().meta.join("  ·  ")}
+                        </p>
+                        <div class="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-[13px]">
+                            {move || {
+                                current()
                                     .links
-                                    .iter()
+                                    .resolve()
+                                    .into_iter()
                                     .map(|link| {
                                         view! {
                                             <a
-                                                class="text-[#8db7cc] no-underline hover:text-[#f3c677]"
+                                                class="text-white underline decoration-[#3c424a] underline-offset-[5px] hover:decoration-[#e2a340]"
                                                 href=link.href
-                                                rel="noopener noreferrer"
+                                                rel=link.rel
                                             >
                                                 {link.label}
                                             </a>
                                         }
                                     })
-                                    .collect_view()}
-                            </div>
-                        }
-                    })}
+                                    .collect_view()
+                            }}
+                        </div>
+                    </div>
+
+                    <div class="mt-14 max-w-[62ch] border-t border-[#1e2126] pt-4">
+                        {move || {
+                            let next = (active.get() + 1).min(last);
+                            let name = stored.with_value(|entries| entries[next].name);
+                            (next != active.get())
+                                .then(|| {
+                                    view! {
+                                        <button
+                                            type="button"
+                                            on:click=move |_| select(next, true)
+                                            class="flex w-full items-baseline gap-[2ch] text-left text-[12px] text-[#6c757f] hover:text-white"
+                                        >
+                                            <span class="text-[#e2a340]">
+                                                <span class="hidden md:inline">"j"</span>
+                                                <span aria-hidden="true" class="md:hidden">"\u{2193}"</span>
+                                            </span>
+                                            <span>{name}</span>
+                                        </button>
+                                    }
+                                })
+                        }}
+                    </div>
+                </section>
             </div>
-        </article>
+
+            <footer class="flex shrink-0 items-stretch text-[12px] text-[#8b939d]" style="background:#0d1013">
+                <span
+                    class="px-3 py-1 font-semibold text-black"
+                    style=format!("background:{AMBER}")
+                >
+                    "NORMAL"
+                </span>
+                <span class="truncate px-3 py-1 text-white">"kristofers.xyz"</span>
+                <span class="ml-auto px-3 py-1 tabular-nums">
+                    {move || format!("{}:{total}", active.get() + 1)}
+                </span>
+                <span class="hidden px-3 py-1 md:inline">"j k to move"</span>
+                <span class="px-3 py-1 tabular-nums">
+                    {move || format!("{}%", (active.get() + 1) * 100 / total)}
+                </span>
+            </footer>
+        </main>
     }
 }
 
+/// Unknown paths, reported the way the editor would report a missing file.
 #[component]
-fn FocusAreaRow(focus: FocusArea) -> impl IntoView {
+pub fn NotFoundPage() -> impl IntoView {
     view! {
-        <li class="grid gap-1 md:grid-cols-[220px_1fr]">
-            <strong class="text-[#f3c677]">{focus.label}</strong>
-            <span class="text-[#aeb8c4]">{focus.detail}</span>
-        </li>
-    }
-}
-
-#[component]
-fn TerminalFooterLinks(profile: Profile) -> impl IntoView {
-    let email_href = profile.email;
-    let email_label = email_href.trim_start_matches("mailto:").to_owned();
-
-    view! {
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#8f9baa]">
-            <span class="text-[#6ea3bd]">"$ open"</span>
-            <a class="text-[#8db7cc] no-underline hover:text-[#f3c677]" href=email_href>
-                {email_label}
-            </a>
-            {profile
-                .links
-                .iter()
-                .filter(|link| link.label != "Email")
-                .map(|link| {
-                    view! {
+        <main class="flex min-h-dvh flex-col bg-black font-mono text-[#d4d7db]">
+            <div class="flex flex-1 items-center px-5 sm:px-10 md:px-14">
+                <div class="max-w-[62ch]">
+                    <p class="text-[11px] tracking-[0.24em] text-[#4c525a] uppercase">"E484"</p>
+                    <h1 class="mt-3 font-sans text-[clamp(1.75rem,4.5vw,2.75rem)] leading-[1.1] font-semibold text-white">
+                        "Can't open file"
+                    </h1>
+                    <p class="mt-5 font-sans text-[16px] leading-[1.7] text-[#aab2bb] sm:text-[17px]">
+                        "There is nothing at this path. The portfolio lives at the root."
+                    </p>
+                    <div class="mt-6 text-[13px]">
                         <a
-                            class="text-[#8db7cc] no-underline hover:text-[#f3c677]"
-                            href=link.href
-                            rel=link.rel
+                            class="text-white underline decoration-[#3c424a] underline-offset-[5px] hover:decoration-[#e2a340]"
+                            href="/"
                         >
-                            {link.label}
+                            "kristofers.xyz"
                         </a>
-                    }
-                })
-                .collect_view()}
-            <span class="text-[#6b7480]">"© 2026 Kristofers Solo"</span>
-        </div>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="flex shrink-0 items-stretch text-[12px] text-[#8b939d]" style="background:#0d1013">
+                <span
+                    class="px-3 py-1 font-semibold text-black"
+                    style=format!("background:{AMBER}")
+                >
+                    "NORMAL"
+                </span>
+                <span class="truncate px-3 py-1 text-white">"[No Name]"</span>
+                <span class="ml-auto px-3 py-1 tabular-nums">"0:0"</span>
+            </footer>
+        </main>
     }
+}
+
+/// Flattens the portfolio into the buffer's line list. Takes the content by
+/// reference so the source can later be a database query rather than the
+/// static [`PORTFOLIO`].
+fn entries(content: &PortfolioContent) -> Vec<Entry> {
+    let profile = content.profile;
+    let mut entries = vec![Entry {
+        section: "profile",
+        name: profile.name,
+        lead: Some(profile.title),
+        body: profile.about,
+        meta: &["Rust", "Leptos", "Axum", "Tailwind"],
+        links: Links::Social(profile.links),
+    }];
+
+    entries.extend(content.projects.iter().map(|project| Entry {
+        section: "work",
+        name: project.name,
+        lead: None,
+        body: project.summary,
+        meta: project.stack,
+        links: Links::Project(project.links),
+    }));
+
+    entries.extend(content.working_style.iter().map(|focus| Entry {
+        section: "practice",
+        name: focus.label,
+        lead: None,
+        body: focus.detail,
+        meta: &[],
+        links: Links::None,
+    }));
+
+    entries.push(Entry {
+        section: "contact",
+        name: "Write to me",
+        lead: None,
+        body: "Mail is the fastest route. Repositories and posts sit behind the links below.",
+        meta: &[],
+        links: Links::Contact,
+    });
+
+    entries
+}
+
+/// Groups entry indices under their section heading, preserving order, so the
+/// listbox can render one `group` per section. Sections are contiguous in
+/// [`entries`], so a fold over adjacent rows is enough.
+fn group_by_section(entries: &[Entry]) -> Vec<(&'static str, Vec<(usize, &'static str)>)> {
+    let mut groups: Vec<(&'static str, Vec<(usize, &'static str)>)> = Vec::new();
+    for (i, entry) in entries.iter().enumerate() {
+        match groups.last_mut() {
+            Some((section, rows)) if *section == entry.section => rows.push((i, entry.name)),
+            _ => groups.push((entry.section, vec![(i, entry.name)])),
+        }
+    }
+    groups
 }

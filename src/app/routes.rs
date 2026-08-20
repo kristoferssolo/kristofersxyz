@@ -1,10 +1,15 @@
-use crate::app::pages::{HomePage, NotFoundPage};
+use crate::app::{
+    content::PROFILE,
+    pages::{HomePage, NotFoundPage},
+};
 use leptos::prelude::*;
 use leptos_meta::{Meta, MetaTags, Stylesheet, Title, provide_meta_context};
 use leptos_router::{
     components::{Route, Router, Routes},
     path,
 };
+
+const FONTS: &str = "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap";
 
 #[must_use]
 pub fn shell(options: LeptosOptions) -> impl IntoView {
@@ -30,12 +35,10 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     view! {
+        <Stylesheet id="fonts" href=FONTS />
         <Stylesheet id="leptos" href="/pkg/kristofersxyz.css" />
         <Title text="Kristofers Solo" />
-        <Meta
-            name="description"
-            content="Personal portfolio of Kristofers Solo, a Rust-focused software developer."
-        />
+        <Meta name="description" content=PROFILE.summary />
         <Router>
             <Routes fallback=|| view! { <NotFoundPage /> }.into_view()>
                 <Route path=path!("/") view=HomePage />
