@@ -3,7 +3,7 @@ use crate::app::{
     pages::{HomePage, NotFoundPage},
 };
 use leptos::prelude::*;
-use leptos_meta::{Meta, MetaTags, Stylesheet, Title, provide_meta_context};
+use leptos_meta::{Link, Meta, MetaTags, Stylesheet, Title, provide_meta_context};
 use leptos_router::{
     components::{Route, Router, Routes},
     path,
@@ -30,6 +30,24 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
     }
 }
 
+/// Title, description, canonical URL and Open Graph tags. One route, so one
+/// set of tags; per page metadata arrives with the first real subpage.
+#[component]
+fn SiteMeta() -> impl IntoView {
+    let site = portfolio_content().site;
+
+    view! {
+        <Title text=site.title />
+        <Meta name="description" content=site.description />
+        <Link rel="canonical" href=site.url />
+        <Meta property="og:type" content="website" />
+        <Meta property="og:url" content=site.url />
+        <Meta property="og:title" content=site.title />
+        <Meta property="og:description" content=site.description />
+        <Meta property="og:image" content=site.og_image />
+    }
+}
+
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();
@@ -37,8 +55,7 @@ pub fn App() -> impl IntoView {
     view! {
         <Stylesheet id="fonts" href=FONTS />
         <Stylesheet id="leptos" href="/pkg/kristofersxyz.css" />
-        <Title text="Kristofers Solo" />
-        <Meta name="description" content=portfolio_content().profile.summary />
+        <SiteMeta />
         <Router>
             <Routes fallback=|| view! { <NotFoundPage /> }.into_view()>
                 <Route path=path!("/") view=HomePage />

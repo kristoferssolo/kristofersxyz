@@ -5,9 +5,23 @@
 //! function becomes an async loader and the page components keep their shape.
 
 pub struct PortfolioContent {
+    pub site: Site,
     pub profile: Profile,
     pub projects: &'static [Project],
     pub contact: Contact,
+}
+
+/// Site level metadata. Title and description are never optional, because a
+/// missing one is what search results and link previews show as a blank.
+#[derive(Clone, Copy)]
+pub struct Site {
+    pub url: &'static str,
+    pub title: &'static str,
+    /// The meta and Open Graph description. Reuses the profile summary, so the
+    /// search snippet and the page never drift apart.
+    pub description: &'static str,
+    /// Absolute, because Open Graph consumers do not resolve relative paths.
+    pub og_image: &'static str,
 }
 
 #[derive(Clone, Copy)]
@@ -62,6 +76,13 @@ pub struct Contact {
 pub const fn portfolio_content() -> PortfolioContent {
     PORTFOLIO
 }
+
+const SITE: Site = Site {
+    url: "https://kristofers.xyz/",
+    title: "Kristofers Solo, Rust software developer",
+    description: PROFILE.summary,
+    og_image: "https://kristofers.xyz/og.png",
+};
 
 const PROFILE: Profile = Profile {
     name: "Kristofers Solo",
@@ -151,6 +172,7 @@ const CONTACT: Contact = Contact {
 };
 
 const PORTFOLIO: PortfolioContent = PortfolioContent {
+    site: SITE,
     profile: PROFILE,
     projects: PROJECTS,
     contact: CONTACT,
@@ -174,6 +196,18 @@ mod tests {
     #[test]
     fn portfolio_holds_three_projects() {
         assert_eq!(portfolio_content().projects.len(), 3);
+    }
+
+    /// Link previews truncate past roughly 160 characters, and a cut sentence
+    /// is what the preview then shows.
+    #[test]
+    fn the_meta_description_fits_a_search_result() {
+        let description = portfolio_content().site.description;
+        assert!(
+            description.len() <= 160,
+            "{} characters is too long",
+            description.len()
+        );
     }
 
     /// Names double as URL slugs, so a capital or a space here would show up
