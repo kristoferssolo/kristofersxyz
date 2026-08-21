@@ -1,182 +1,224 @@
-//! The portfolio as static data.
+//! The portfolio content model.
 //!
-//! Everything the views render comes from [`portfolio_content`]. Views never
-//! reach for the consts below, so when this content moves to SQLite the
-//! function becomes an async loader and the page components keep their shape.
+//! [`PortfolioContent`] is the shape every view renders. It is owned and
+//! serializable, so it can cross the server-to-client boundary as a Leptos
+//! resource and be built from database rows. Views read it through
+//! [`portfolio_content`]; the database is the source of truth, and this
+//! function is the fixture the reducer tests and the current page still read
+//! until the loader is wired in.
 
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PortfolioContent {
     pub site: Site,
     pub profile: Profile,
-    pub projects: &'static [Project],
+    pub projects: Vec<Project>,
     pub contact: Contact,
 }
 
 /// Site level metadata. Title and description are never optional, because a
 /// missing one is what search results and link previews show as a blank.
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Site {
-    pub url: &'static str,
-    pub title: &'static str,
+    pub url: String,
+    pub title: String,
     /// The meta and Open Graph description. Reuses the profile summary, so the
     /// search snippet and the page never drift apart.
-    pub description: &'static str,
+    pub description: String,
     /// Absolute, because Open Graph consumers do not resolve relative paths.
-    pub og_image: &'static str,
+    pub og_image: String,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Profile {
-    pub name: &'static str,
-    pub title: &'static str,
-    pub summary: &'static str,
-    pub about: &'static str,
-    pub stack: &'static [&'static str],
+    pub name: String,
+    pub title: String,
+    pub summary: String,
+    pub about: String,
+    pub stack: Vec<String>,
     /// Shown as a short list under the about text.
-    pub working_style: &'static [FocusArea],
-    pub email: &'static str,
-    pub links: &'static [SocialLink],
+    pub working_style: Vec<FocusArea>,
+    pub email: String,
+    pub links: Vec<SocialLink>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SocialLink {
-    pub label: &'static str,
-    pub href: &'static str,
-    pub rel: &'static str,
+    pub label: String,
+    pub href: String,
+    pub rel: String,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Project {
-    pub name: &'static str,
-    pub summary: &'static str,
-    pub stack: &'static [&'static str],
-    pub links: &'static [ProjectLink],
+    pub name: String,
+    pub summary: String,
+    pub stack: Vec<String>,
+    pub links: Vec<ProjectLink>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProjectLink {
-    pub label: &'static str,
-    pub href: &'static str,
+    pub label: String,
+    pub href: String,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FocusArea {
-    pub label: &'static str,
-    pub detail: &'static str,
+    pub label: String,
+    pub detail: String,
 }
 
 /// The contact entry. Mail only: no form, and therefore no spam surface.
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Contact {
-    pub name: &'static str,
-    pub body: &'static str,
+    pub name: String,
+    pub body: String,
 }
 
 /// The single seam every view reads content through.
 #[must_use]
-pub const fn portfolio_content() -> PortfolioContent {
-    PORTFOLIO
+pub fn portfolio_content() -> PortfolioContent {
+    let profile = Profile {
+        name: "Kristofers Solo".to_owned(),
+        title: "Rust-focused software developer building reliable web systems and developer tools."
+            .to_owned(),
+        summary: "I build practical software with an emphasis on Rust, typed interfaces, \
+                  maintainable web systems and tooling that makes day-to-day development simpler."
+            .to_owned(),
+        about: "I focus on Rust and web systems where correctness, maintainability and clear \
+                operational behavior matter. My preferred work is close to the boundary between \
+                product needs and engineering infrastructure: APIs, server-rendered applications, \
+                developer tools and deployment surfaces that stay understandable over time."
+            .to_owned(),
+        stack: stack(&["Rust", "Leptos", "Axum", "Tailwind"]),
+        working_style: working_style(),
+        email: "mailto:dev@kristofers.xyz".to_owned(),
+        links: vec![
+            social(
+                "Codeberg",
+                "https://codeberg.org/kristoferssolo",
+                "me noopener noreferrer",
+            ),
+            social(
+                "GitHub",
+                "https://github.com/kristoferssolo",
+                "me noopener noreferrer",
+            ),
+            social(
+                "Mastodon",
+                "https://fosstodon.org/@kristofers_solo",
+                "me noopener noreferrer",
+            ),
+            social("Email", "mailto:dev@kristofers.xyz", "noopener noreferrer"),
+        ],
+    };
+
+    let site = Site {
+        url: "https://kristofers.xyz/".to_owned(),
+        title: "Kristofers Solo, Rust software developer".to_owned(),
+        description: profile.summary.clone(),
+        og_image: "https://kristofers.xyz/og.png".to_owned(),
+    };
+
+    PortfolioContent {
+        site,
+        profile,
+        projects: projects(),
+        contact: Contact {
+            name: "Write to me".to_owned(),
+            body: "Mail is the fastest route. Repositories and posts sit behind the links below."
+                .to_owned(),
+        },
+    }
 }
 
-const SITE: Site = Site {
-    url: "https://kristofers.xyz/",
-    title: "Kristofers Solo, Rust software developer",
-    description: PROFILE.summary,
-    og_image: "https://kristofers.xyz/og.png",
-};
+fn social(label: &str, href: &str, rel: &str) -> SocialLink {
+    SocialLink {
+        label: label.to_owned(),
+        href: href.to_owned(),
+        rel: rel.to_owned(),
+    }
+}
 
-const PROFILE: Profile = Profile {
-    name: "Kristofers Solo",
-    title: "Rust-focused software developer building reliable web systems and developer tools.",
-    summary: "I build practical software with an emphasis on Rust, typed interfaces, maintainable web systems and tooling that makes day-to-day development simpler.",
-    about: "I focus on Rust and web systems where correctness, maintainability and clear operational behavior matter. My preferred work is close to the boundary between product needs and engineering infrastructure: APIs, server-rendered applications, developer tools and deployment surfaces that stay understandable over time.",
-    stack: &["Rust", "Leptos", "Axum", "Tailwind"],
-    working_style: WORKING_STYLE,
-    email: "mailto:dev@kristofers.xyz",
-    links: &[
-        SocialLink {
-            label: "Codeberg",
-            href: "https://codeberg.org/kristoferssolo",
-            rel: "me noopener noreferrer",
-        },
-        SocialLink {
-            label: "GitHub",
-            href: "https://github.com/kristoferssolo",
-            rel: "me noopener noreferrer",
-        },
-        SocialLink {
-            label: "Mastodon",
-            href: "https://fosstodon.org/@kristofers_solo",
-            rel: "me noopener noreferrer",
-        },
-        SocialLink {
-            label: "Email",
-            href: "mailto:dev@kristofers.xyz",
-            rel: "noopener noreferrer",
-        },
-    ],
-};
+fn project_link(label: &str, href: &str) -> ProjectLink {
+    ProjectLink {
+        label: label.to_owned(),
+        href: href.to_owned(),
+    }
+}
+
+fn focus(label: &str, detail: &str) -> FocusArea {
+    FocusArea {
+        label: label.to_owned(),
+        detail: detail.to_owned(),
+    }
+}
+
+fn stack(items: &[&str]) -> Vec<String> {
+    items.iter().copied().map(str::to_owned).collect()
+}
 
 /// Entry names double as slugs, so they stay lowercase and URL safe.
-const PROJECTS: &[Project] = &[
-    Project {
-        name: "guenther",
-        summary: "Telegram bot that takes a social media link and sends the media back inline, so a shared post plays in the chat instead of opening a browser.",
-        stack: &["Rust", "Telegram", "yt-dlp"],
-        links: &[ProjectLink {
-            label: "GitHub",
-            href: "https://github.com/kristoferssolo/guenther",
-        }],
-    },
-    Project {
-        name: "traxor",
-        summary: "Terminal UI for managing Transmission torrents: queue, inspect and control transfers without leaving the shell.",
-        stack: &["Rust", "ratatui", "Transmission RPC"],
-        links: &[ProjectLink {
-            label: "Codeberg",
-            href: "https://codeberg.org/kristoferssolo/traxor",
-        }],
-    },
-    Project {
-        name: "cipher-workshop",
-        summary: "Rust workspace implementing cipher algorithms, AES-128 and CBC among them, exposed through both a CLI and a web interface.",
-        stack: &["Rust", "AES-128", "CLI", "WebAssembly"],
-        links: &[ProjectLink {
-            label: "GitHub",
-            href: "https://github.com/kristoferssolo/cipher-workshop",
-        }],
-    },
-];
+fn projects() -> Vec<Project> {
+    vec![
+        Project {
+            name: "guenther".to_owned(),
+            summary: "Telegram bot that takes a social media link and sends the media back \
+                      inline, so a shared post plays in the chat instead of opening a browser."
+                .to_owned(),
+            stack: stack(&["Rust", "Telegram", "yt-dlp"]),
+            links: vec![project_link(
+                "GitHub",
+                "https://github.com/kristoferssolo/guenther",
+            )],
+        },
+        Project {
+            name: "traxor".to_owned(),
+            summary: "Terminal UI for managing Transmission torrents: queue, inspect and control \
+                      transfers without leaving the shell."
+                .to_owned(),
+            stack: stack(&["Rust", "ratatui", "Transmission RPC"]),
+            links: vec![project_link(
+                "Codeberg",
+                "https://codeberg.org/kristoferssolo/traxor",
+            )],
+        },
+        Project {
+            name: "cipher-workshop".to_owned(),
+            summary: "Rust workspace implementing cipher algorithms, AES-128 and CBC among them, \
+                      exposed through both a CLI and a web interface."
+                .to_owned(),
+            stack: stack(&["Rust", "AES-128", "CLI", "WebAssembly"]),
+            links: vec![project_link(
+                "GitHub",
+                "https://github.com/kristoferssolo/cipher-workshop",
+            )],
+        },
+    ]
+}
 
-const WORKING_STYLE: &[FocusArea] = &[
-    FocusArea {
-        label: "Rust web services",
-        detail: "Backend systems with explicit data flow and predictable runtime behavior.",
-    },
-    FocusArea {
-        label: "Typed interfaces",
-        detail: "Small contracts that make invalid states harder to express.",
-    },
-    FocusArea {
-        label: "Pragmatic testing",
-        detail: "Coverage aimed at behavior, integrations and regression-prone edges.",
-    },
-    FocusArea {
-        label: "Maintainable deployment surfaces",
-        detail: "Operational choices that are easy to inspect, document and repeat.",
-    },
-];
-
-const CONTACT: Contact = Contact {
-    name: "Write to me",
-    body: "Mail is the fastest route. Repositories and posts sit behind the links below.",
-};
-
-const PORTFOLIO: PortfolioContent = PortfolioContent {
-    site: SITE,
-    profile: PROFILE,
-    projects: PROJECTS,
-    contact: CONTACT,
-};
+fn working_style() -> Vec<FocusArea> {
+    vec![
+        focus(
+            "Rust web services",
+            "Backend systems with explicit data flow and predictable runtime behavior.",
+        ),
+        focus(
+            "Typed interfaces",
+            "Small contracts that make invalid states harder to express.",
+        ),
+        focus(
+            "Pragmatic testing",
+            "Coverage aimed at behavior, integrations and regression-prone edges.",
+        ),
+        focus(
+            "Maintainable deployment surfaces",
+            "Operational choices that are easy to inspect, document and repeat.",
+        ),
+    ]
+}
 
 #[cfg(test)]
 mod tests {
@@ -187,7 +229,10 @@ mod tests {
         let content = portfolio_content();
         assert_eq!(content.profile.name, "Kristofers Solo");
         assert_eq!(
-            content.projects.first().map(|project| project.name),
+            content
+                .projects
+                .first()
+                .map(|project| project.name.as_str()),
             Some("guenther")
         );
     }

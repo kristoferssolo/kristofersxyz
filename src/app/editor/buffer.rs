@@ -142,35 +142,39 @@ impl Buffer {
     /// source can later be a database query.
     #[must_use]
     pub fn from_content(content: &PortfolioContent) -> Self {
-        let profile = content.profile;
+        let profile = &content.profile;
 
+        let mut profile_text = vec![profile.title.as_str(), profile.about.as_str()];
+        profile_text.extend(profile.stack.iter().map(String::as_str));
         let mut entries = vec![BufferEntry::new(
             EntryId::Profile,
             SectionId::Profile,
-            profile.name,
+            &profile.name,
             None,
-            &[&[profile.title, profile.about], profile.stack].concat(),
+            &profile_text,
         )];
 
         entries.extend(content.projects.iter().map(|project| {
+            let mut text = vec![project.summary.as_str()];
+            text.extend(project.stack.iter().map(String::as_str));
             BufferEntry::new(
-                EntryId::Project(project.name.to_owned()),
+                EntryId::Project(project.name.clone()),
                 SectionId::Work,
-                project.name,
+                &project.name,
                 project
                     .links
                     .first()
-                    .map(|link| Destination::External(link.href.to_owned())),
-                &[&[project.summary], project.stack].concat(),
+                    .map(|link| Destination::External(link.href.clone())),
+                &text,
             )
         }));
 
         entries.push(BufferEntry::new(
             EntryId::Contact,
             SectionId::Contact,
-            content.contact.name,
+            &content.contact.name,
             None,
-            &[content.contact.body, profile.email],
+            &[content.contact.body.as_str(), profile.email.as_str()],
         ));
 
         Self { entries }

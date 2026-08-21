@@ -22,49 +22,49 @@ const STACK_BELOW_PX: f64 = 768.0;
 
 /// A link as it is rendered: visible label, destination, relationship.
 struct Link {
-    label: &'static str,
-    href: &'static str,
-    rel: &'static str,
+    label: String,
+    href: String,
+    rel: String,
 }
 
 /// Where an entry's links come from. `Contact` leads with the address itself
 /// so the mail entry shows something you can read rather than the word "Email".
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 enum Links {
-    Social(&'static [SocialLink]),
-    Project(&'static [ProjectLink]),
+    Social(Vec<SocialLink>),
+    Project(Vec<ProjectLink>),
     Contact(Profile),
 }
 
 impl Links {
     fn resolve(self) -> Vec<Link> {
-        let social = |link: &SocialLink| Link {
+        let social = |link: SocialLink| Link {
             label: link.label,
             href: link.href,
             rel: link.rel,
         };
 
         match self {
-            Self::Social(links) => links.iter().map(social).collect(),
+            Self::Social(links) => links.into_iter().map(social).collect(),
             Self::Project(links) => links
-                .iter()
+                .into_iter()
                 .map(|link| Link {
                     label: link.label,
                     href: link.href,
-                    rel: "noopener noreferrer",
+                    rel: "noopener noreferrer".to_owned(),
                 })
                 .collect(),
             Self::Contact(profile) => {
                 let address = Link {
-                    label: profile.email.trim_start_matches("mailto:"),
-                    href: profile.email,
-                    rel: "noopener noreferrer",
+                    label: profile.email.trim_start_matches("mailto:").to_owned(),
+                    href: profile.email.clone(),
+                    rel: "noopener noreferrer".to_owned(),
                 };
                 std::iter::once(address)
                     .chain(
                         profile
                             .links
-                            .iter()
+                            .into_iter()
                             .filter(|link| link.label != "Email")
                             .map(social),
                     )
@@ -78,7 +78,7 @@ impl Links {
 /// link selects; the CV download has none, because it leaves the page.
 #[derive(Clone)]
 struct Action {
-    label: &'static str,
+    label: String,
     href: String,
     target: Option<EntryId>,
     /// Filename for the download attribute. Only the CV carries one.
@@ -92,13 +92,13 @@ struct Action {
 struct Entry {
     id: EntryId,
     section: SectionId,
-    name: &'static str,
+    name: String,
     /// Shown above the body. Only the profile carries one.
-    lead: Option<&'static str>,
-    body: &'static str,
+    lead: Option<String>,
+    body: String,
     /// Working style lines under the body. Only the profile carries any.
-    focus: &'static [FocusArea],
-    meta: &'static [&'static str],
+    focus: Vec<FocusArea>,
+    meta: Vec<String>,
     links: Links,
 }
 
@@ -404,7 +404,7 @@ pub fn HomePage() -> impl IntoView {
                                     view! {
                                         <dl class="mt-5 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-[2ch] gap-y-[5px] text-[13px]">
                                             {focus
-                                                .iter()
+                                                .into_iter()
                                                 .map(|area| {
                                                     // One root per item: `contents` keeps the
                                                     // pair in the parent grid without adding a
@@ -478,7 +478,7 @@ pub fn HomePage() -> impl IntoView {
                         <div class="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-[13px]">
                             {move || {
                                 current()
-                                    .map_or(Links::Project(&[]), |entry| entry.links)
+                                    .map_or(Links::Project(Vec::new()), |entry| entry.links)
                                     .resolve()
                                     .into_iter()
                                     .map(|link| {
@@ -509,7 +509,7 @@ pub fn HomePage() -> impl IntoView {
                                     entries
                                         .iter()
                                         .find(|entry| entry.id == next)
-                                        .map(|entry| entry.name)
+                                        .map(|entry| entry.name.clone())
                                 })?;
                             Some(
                                 view! {
@@ -593,38 +593,38 @@ fn command_line(prompt: &'static str, text: &str) -> impl IntoView {
 /// Flattens the portfolio into the buffer's line list, in the same order and
 /// under the same ids as the editor's own [`Buffer`].
 fn entries(content: &PortfolioContent) -> Vec<Entry> {
-    let profile = content.profile;
+    let profile = &content.profile;
     let mut entries = vec![Entry {
         id: EntryId::Profile,
         section: SectionId::Profile,
-        name: profile.name,
-        lead: Some(profile.title),
-        body: profile.about,
-        focus: profile.working_style,
-        meta: profile.stack,
-        links: Links::Social(profile.links),
+        name: profile.name.clone(),
+        lead: Some(profile.title.clone()),
+        body: profile.about.clone(),
+        focus: profile.working_style.clone(),
+        meta: profile.stack.clone(),
+        links: Links::Social(profile.links.clone()),
     }];
 
     entries.extend(content.projects.iter().map(|project| Entry {
-        id: EntryId::Project(project.name.to_owned()),
+        id: EntryId::Project(project.name.clone()),
         section: SectionId::Work,
-        name: project.name,
+        name: project.name.clone(),
         lead: None,
-        body: project.summary,
-        focus: &[],
-        meta: project.stack,
-        links: Links::Project(project.links),
+        body: project.summary.clone(),
+        focus: Vec::new(),
+        meta: project.stack.clone(),
+        links: Links::Project(project.links.clone()),
     }));
 
     entries.push(Entry {
         id: EntryId::Contact,
         section: SectionId::Contact,
-        name: content.contact.name,
+        name: content.contact.name.clone(),
         lead: None,
-        body: content.contact.body,
-        focus: &[],
-        meta: &[],
-        links: Links::Contact(profile),
+        body: content.contact.body.clone(),
+        focus: Vec::new(),
+        meta: Vec::new(),
+        links: Links::Contact(profile.clone()),
     });
 
     entries
@@ -639,8 +639,8 @@ fn actions(entries: &[Entry]) -> Vec<Action> {
             .find(|entry| entry.section == section)
             .map(|entry| entry.id.clone())
     };
-    let go = |label, entry: EntryId| Action {
-        label,
+    let go = |label: &str, entry: EntryId| Action {
+        label: label.to_owned(),
         href: format!("#{}", entry.fragment()),
         target: Some(entry),
         download: None,
@@ -650,7 +650,7 @@ fn actions(entries: &[Entry]) -> Vec<Action> {
         .map(|entry| go("View work", entry))
         .into_iter()
         .chain(std::iter::once(Action {
-            label: "Download CV",
+            label: "Download CV".to_owned(),
             href: "/cv.pdf".to_owned(),
             target: None,
             download: Some("kristofers-solo-cv.pdf"),
@@ -662,11 +662,11 @@ fn actions(entries: &[Entry]) -> Vec<Action> {
 /// Groups entry ids under their section, preserving order, so the listbox can
 /// render one `group` per section. Sections are contiguous in [`entries`], so
 /// a fold over adjacent rows is enough.
-fn group_by_section(entries: &[Entry]) -> Vec<(SectionId, Vec<(EntryId, &'static str)>)> {
-    let mut groups: Vec<(SectionId, Vec<(EntryId, &'static str)>)> = Vec::new();
+fn group_by_section(entries: &[Entry]) -> Vec<(SectionId, Vec<(EntryId, String)>)> {
+    let mut groups: Vec<(SectionId, Vec<(EntryId, String)>)> = Vec::new();
 
     for entry in entries {
-        let row = (entry.id.clone(), entry.name);
+        let row = (entry.id.clone(), entry.name.clone());
         match groups.last_mut() {
             Some((section, rows)) if *section == entry.section => rows.push(row),
             _ => groups.push((entry.section, vec![row])),

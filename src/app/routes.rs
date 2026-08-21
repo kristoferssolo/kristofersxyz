@@ -37,9 +37,9 @@ fn SiteMeta() -> impl IntoView {
     let site = portfolio_content().site;
 
     view! {
-        <Title text=site.title />
-        <Meta name="description" content=site.description />
-        <Link rel="canonical" href=site.url />
+        <Title text=site.title.clone() />
+        <Meta name="description" content=site.description.clone() />
+        <Link rel="canonical" href=site.url.clone() />
         <Meta property="og:type" content="website" />
         <Meta property="og:url" content=site.url />
         <Meta property="og:title" content=site.title />
