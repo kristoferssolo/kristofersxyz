@@ -1,3 +1,5 @@
+pub mod portfolio;
+
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 
 pub type DbPool = SqlitePool;

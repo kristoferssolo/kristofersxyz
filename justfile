@@ -97,7 +97,7 @@ db-reset:
     sqlx database create
     just migrate
 
-# Seed local portfolio content. seeds/ is gitignored, so this is local only
+# Load the versioned portfolio content into the local database
 [group("db")]
 seed:
     sqlx database create
