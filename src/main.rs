@@ -1,5 +1,4 @@
 #[cfg(feature = "ssr")]
-#[allow(clippy::unwrap_used)]
 #[tokio::main]
 async fn main() -> Result<(), kristofersxyz::errors::ApplicationError> {
     use kristofersxyz::{
@@ -22,8 +21,6 @@ async fn main() -> Result<(), kristofersxyz::errors::ApplicationError> {
     let application = Application::build(app).await?;
     log!("listening on http://{}", &addr);
 
-    // run our app with hyper
-    // `axum::Server` is a re-export of `hyper::Server`
     application.run_until_stopped().await?;
 
     Ok(())
