@@ -66,6 +66,11 @@ setup:
 serve: build
     ./target/server/release/server
 
+# Serve the static design mocks
+[group("run")]
+mocks:
+    python3 -m http.server 3002 --directory mocks
+
 # Run end-to-end tests
 end2end:
     cd end2end && npx playwright test

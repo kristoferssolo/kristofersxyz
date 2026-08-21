@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mock: mobile stacked</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="mock.css">
+<style>
+/* Below md the panes stack and the vim layer is off: no statusline, no
+   command row, no which-key panel, no global key handling. What stays is a
+   visible search control, placed where the on-screen keyboard will not
+   cover it. The frame below is mock chrome, so this reviews on a desktop. */
+
+body { height: auto; overflow: auto; display: block; background: #0a0a0a; }
+
+.frame {
+  width: 390px;
+  height: 844px;
+  margin: 32px auto;
+  overflow-y: auto;
+  background: #000;
+  border: 1px solid #2b3037;
+  border-radius: 28px;
+}
+
+.mobile-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #000;
+  border-bottom: 1px solid var(--line);
+  padding: 14px 16px 0;
+}
+
+.mobile-head .top { display: flex; align-items: baseline; justify-content: space-between; font-size: 13px; }
+.mobile-head .top .site { color: var(--white); }
+.mobile-head .top button {
+  font: inherit;
+  color: var(--amber);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.mobile-search {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  margin: 12px -16px 0;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  font-size: 15px;
+  color: var(--white);
+}
+
+.frame .buffers { border-right: 0; border-bottom: 1px solid var(--line); }
+.frame .content { padding: 28px 16px 48px; }
+.frame .lead { font-size: 17px; }
+.frame .body { font-size: 16px; }
+.frame h1 { font-size: 1.75rem; }
+.frame .row { padding: 7px 16px; }
+.frame .section { margin-left: 16px; }
+.frame .next { margin-top: 40px; }
+/* No key hints: there is no keyboard to hint at. */
+.frame .hint { display: none; }
+.frame .next .key { display: none; }
+.frame .next::before { content: "\2193"; color: var(--amber); }
+</style>
+</head>
+<body>
+<div class="frame">
+  <header class="mobile-head">
+    <div class="top">
+      <span class="site">kristofers.xyz</span>
+      <button type="button">Search</button>
+    </div>
+    <div class="mobile-search"><span>transmission</span><span class="caret"></span></div>
+  </header>
+
+  <nav class="buffers">
+    <div class="group"><p class="section">profile</p>
+      <a class="row on" href="#"><span class="marker">▎</span><span class="num">1</span><span class="name">Kristofers Solo</span></a>
+    </div>
+    <div class="group"><p class="section">work</p>
+      <a class="row" href="#"><span class="marker">▎</span><span class="num">2</span><span class="name">guenther</span></a>
+      <a class="row" href="#"><span class="marker">▎</span><span class="num">3</span><span class="name">traxor</span></a>
+      <a class="row" href="#"><span class="marker">▎</span><span class="num">4</span><span class="name">cipher-workshop</span></a>
+    </div>
+    <div class="group"><p class="section">contact</p>
+      <a class="row" href="#"><span class="marker">▎</span><span class="num">5</span><span class="name">Write to me</span></a>
+    </div>
+  </nav>
+
+  <main class="content">
+    <article class="pane">
+      <p class="kicker">profile</p>
+      <h1>Kristofers Solo</h1>
+      <p class="lead">Rust-focused software developer building reliable web systems and developer tools.</p>
+      <p class="body">I focus on Rust and web systems where correctness, maintainability and clear operational behavior matter. My preferred work is close to the boundary between product needs and engineering infrastructure: APIs, server-rendered applications, developer tools and deployment surfaces that stay understandable over time.</p>
+      <ul class="focus">
+        <li><b>Rust web services</b> <span>Backend systems with explicit data flow and predictable runtime behavior.</span></li>
+        <li><b>Typed interfaces</b> <span>Small contracts that make invalid states harder to express.</span></li>
+        <li><b>Pragmatic testing</b> <span>Coverage aimed at behavior, integrations and regression-prone edges.</span></li>
+        <li><b>Maintainable deployment surfaces</b> <span>Operational choices that are easy to inspect, document and repeat.</span></li>
+      </ul>
+      <p class="meta">Rust &nbsp;·&nbsp; Leptos &nbsp;·&nbsp; Axum &nbsp;·&nbsp; Tailwind</p>
+      <div class="actions">
+        <a href="#work-guenther">View work</a>
+        <a href="/cv.pdf">Download CV</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <div class="links">
+        <a href="#">Codeberg</a><a href="#">GitHub</a><a href="#">Mastodon</a><a href="#">Email</a>
+      </div>
+    </article>
+    <div class="next"><span>guenther</span></div>
+  </main>
+</div>
+</body>
+</html>
