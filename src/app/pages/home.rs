@@ -110,15 +110,6 @@ struct Notice {
     message: String,
 }
 
-/// The commit the running binary was built from, supplied by the environment
-/// at compile time. Absent when nothing set it, in which case the statusline
-/// omits the segment rather than showing a placeholder.
-fn commit() -> Option<&'static str> {
-    option_env!("GIT_COMMIT")
-        .map(str::trim)
-        .filter(|hash| !hash.is_empty())
-}
-
 /// Moves keyboard focus onto an entry's row, so screen readers announce the
 /// row the vim keys just moved to. The rows suppress the global focus ring: a
 /// roving `tabindex` means the only focusable row is the selected one, which
@@ -572,14 +563,6 @@ pub fn HomePage() -> impl IntoView {
                                     <span class="flex items-center px-3 tabular-nums">
                                         {move || format!("{}%", position() * 100 / total)}
                                     </span>
-                                    {commit()
-                                        .map(|hash| {
-                                            view! {
-                                                <span class="hidden items-center px-3 md:flex">
-                                                    {hash}
-                                                </span>
-                                            }
-                                        })}
                                 </span>
                             </div>
                         }

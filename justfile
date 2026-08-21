@@ -1,10 +1,6 @@
 export RUSTC_WRAPPER :=  env("RUSTC_WRAPPER", "sccache")
 export RUST_LOG := env("RUST_LOG", "kristofersxyz=debug")
 
-# The commit the statusline reports. Empty outside a repository, which the
-# page treats as "no hash" rather than showing a placeholder.
-export GIT_COMMIT := `git rev-parse --short HEAD 2>/dev/null || true`
-
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
 # List available recipes
