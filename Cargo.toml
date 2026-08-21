@@ -52,7 +52,6 @@ ssr = [
 [dev-dependencies]
 claims = "0.8"
 rstest = "0.26"
-tempfile = "3.27"
 
 [lints.clippy]
 nursery = "warn"
