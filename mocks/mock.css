@@ -190,62 +190,52 @@ h1 {
 .next .key { color: var(--amber); }
 .next:hover { color: var(--white); }
 
-/* Statusline and command row --------------------------------------------- */
+/* Statusline and command line -------------------------------------------
+
+   One row at the bottom, flush with the viewport edge. At rest it is the
+   statusline; invoking : or / replaces it in place, same height, so the
+   content pane never reflows. */
+
+.statusline,
+.cmdline {
+  flex-shrink: 0;
+  height: 28px;
+  font-size: 12px;
+}
 
 .statusline {
-  flex-shrink: 0;
   display: flex;
-  align-items: stretch;
-  font-size: 12px;
   color: #8b939d;
   background: var(--status);
 }
 
-.statusline .mode {
-  padding: 4px 12px;
-  font-weight: 600;
-  color: #000;
-  background: var(--amber);
-}
-.statusline .path { padding: 4px 12px; color: var(--white); }
-.statusline .right { margin-left: auto; display: flex; }
-.statusline .right span { padding: 4px 12px; font-variant-numeric: tabular-nums; }
+.statusline > * { display: flex; align-items: center; padding: 0 12px; }
 
-/* Reserved at rest, the equivalent of cmdheight=1, so opening search never
-   reflows the content pane. */
-.cmdrow {
-  flex-shrink: 0;
-  height: 26px;
+.statusline .mode { font-weight: 600; color: #000; background: var(--amber); }
+.statusline .path { color: var(--white); }
+.statusline .right { margin-left: auto; padding: 0; }
+.statusline .right span { padding: 0 12px; font-variant-numeric: tabular-nums; }
+
+.cmdline {
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  gap: 1ch;
+  padding: 0 10px;
+  border: 1px solid #2b3037;
+  border-radius: 6px;
+  background: #0b0e11;
   font-size: 13px;
   color: var(--white);
 }
+
+.cmdline .prompt { color: var(--amber); }
 
 .caret {
   display: inline-block;
   width: 1ch;
   height: 15px;
-  margin-left: 1px;
   background: var(--white);
   vertical-align: -2px;
-}
-
-/* Command popup ---------------------------------------------------------- */
-
-.popup {
-  position: fixed;
-  top: 72px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60ch;
-  padding: 8px 12px;
-  border: 1px solid #2b3037;
-  border-radius: 8px;
-  background: #0b0e11;
-  font-size: 14px;
-  color: var(--white);
 }
 
 /* Help panel ------------------------------------------------------------- */
