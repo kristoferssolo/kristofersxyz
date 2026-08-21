@@ -1,4 +1,5 @@
-mod content;
+pub mod content;
+pub mod editor;
 mod pages;
 mod routes;
 
