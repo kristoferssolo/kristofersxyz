@@ -73,6 +73,11 @@ a { color: inherit; text-decoration: none; }
 .row:hover { background: var(--hover); }
 .row.on { background: var(--sel); }
 
+/* No focus ring on the rows. Only the selected row is tabbable, and it
+   already reads as selected; a ring on top draws a line across the pane on
+   every j. */
+.row:focus-visible { outline: none; }
+
 .marker { width: 1ch; flex-shrink: 0; color: transparent; }
 .row.on .marker { color: var(--amber); }
 

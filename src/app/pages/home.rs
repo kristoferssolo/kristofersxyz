@@ -88,8 +88,12 @@ struct Entry {
 }
 
 /// Moves keyboard focus onto the buffer option at `index`, so screen readers
-/// announce the row the vim keys just moved to. No-op during SSR, where there
-/// is no document.
+/// announce the row the vim keys just moved to. The rows suppress the global
+/// focus ring: a roving `tabindex` means the only focusable row is the
+/// selected one, which already reads as selected through the amber marker,
+/// the number and the tinted background. A ring on top of that draws a line
+/// across the pane on every `j`. No-op during SSR, where there is no
+/// document.
 fn focus_option(index: usize) {
     if let Some(element) = document().get_element_by_id(&format!("buffer-{index}"))
         && let Ok(element) = element.dyn_into::<web_sys::HtmlElement>()
@@ -219,7 +223,7 @@ pub fn HomePage() -> impl IntoView {
                                                     }
                                                     tabindex=move || if is_active() { 0 } else { -1 }
                                                     on:click=move |_| select(i, false)
-                                                    class="flex w-full items-baseline gap-[1ch] px-3 py-[3px] text-left hover:bg-[#101317]"
+                                                    class="flex w-full items-baseline gap-[1ch] px-3 py-[3px] text-left hover:bg-[#101317] focus-visible:outline-none"
                                                     class=("bg-[#14181d]", is_active)
                                                 >
                                                     <span
