@@ -7,6 +7,7 @@ use crate::{
 use axum::extract::FromRef;
 use leptos::{config::errors::LeptosConfigError, prelude::*};
 use tokio::{net::TcpListener, task::JoinHandle};
+use tracing::info;
 
 #[derive(Debug, thiserror::Error)]
 pub enum StartupError {
@@ -19,7 +20,9 @@ pub enum StartupError {
 
 #[derive(Debug, Clone)]
 pub struct App {
-    pub pool: DbPool,
+    /// `None` when no database is configured. Nothing reads the pool yet; the
+    /// seam is here for the SQLite content phase.
+    pub pool: Option<DbPool>,
     pub leptos_options: LeptosOptions,
 }
 
@@ -32,14 +35,21 @@ pub struct Application {
 }
 
 impl App {
-    /// Builds the shared application state.
+    /// Builds the shared application state. Without `DATABASE_URL` the site
+    /// still boots and serves its static content; a configured database that
+    /// refuses the connection is an error, because it was asked for.
     ///
     /// # Errors
     ///
-    /// Returns [`StartupError`] if the database connection or Leptos
-    /// configuration cannot be initialized.
+    /// Returns [`StartupError`] if a configured database cannot be reached or
+    /// the Leptos configuration cannot be initialized.
     pub async fn new(settings: &Settings) -> Result<Self, StartupError> {
-        let pool = db::connect(&settings.database.url).await?;
+        let pool = if let Some(database) = &settings.database {
+            Some(db::connect(&database.url).await?)
+        } else {
+            info!("no DATABASE_URL configured, serving static content");
+            None
+        };
         let leptos_options = get_configuration(None)?.leptos_options;
         Ok(Self {
             pool,

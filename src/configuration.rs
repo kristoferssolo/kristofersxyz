@@ -3,8 +3,8 @@ use std::env;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ConfigurationError {
-    #[error("missing environment variable {name}")]
-    MissingEnvironmentVariable {
+    #[error("environment variable {name} is not valid unicode")]
+    InvalidEnvironmentVariable {
         name: &'static str,
         #[source]
         source: env::VarError,
@@ -13,7 +13,10 @@ pub enum ConfigurationError {
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Settings {
-    pub database: DatabaseSettings,
+    /// `None` when `DATABASE_URL` is unset. The site renders static content, so
+    /// booting without a database is a supported configuration rather than an
+    /// error. The SQLite phase is what makes it required.
+    pub database: Option<DatabaseSettings>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -26,8 +29,8 @@ impl Settings {
     ///
     /// # Errors
     ///
-    /// Returns [`ConfigurationError`] when a required environment variable is
-    /// missing or invalid.
+    /// Returns [`ConfigurationError`] when an environment variable is set to a
+    /// value that cannot be read.
     pub fn from_env() -> Result<Self, ConfigurationError> {
         let database = DatabaseSettings::from_env()?;
         Ok(Self { database })
@@ -35,13 +38,17 @@ impl Settings {
 }
 
 impl DatabaseSettings {
-    fn from_env() -> Result<Self, ConfigurationError> {
-        let url = env::var("DATABASE_URL").map_err(|source| {
-            ConfigurationError::MissingEnvironmentVariable {
+    /// `Ok(None)` when `DATABASE_URL` is unset. Only a value that is present
+    /// and unreadable is an error: an operator who set the variable meant to
+    /// use a database, so failing loudly beats silently serving without one.
+    fn from_env() -> Result<Option<Self>, ConfigurationError> {
+        match env::var("DATABASE_URL") {
+            Ok(url) => Ok(Some(Self { url })),
+            Err(env::VarError::NotPresent) => Ok(None),
+            Err(source) => Err(ConfigurationError::InvalidEnvironmentVariable {
                 name: "DATABASE_URL",
                 source,
-            }
-        })?;
-        Ok(Self { url })
+            }),
+        }
     }
 }
