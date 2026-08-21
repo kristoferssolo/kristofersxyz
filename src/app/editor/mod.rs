@@ -4,106 +4,22 @@
 //! The Leptos adapter normalizes the browser event into a [`KeyInput`], calls
 //! [`reduce`], and applies the resulting [`Effect`]s. The whole [`EditorState`]
 //! lives here; none of it is half managed by the view.
+//!
+//! `state` holds the data model, `normal` and `line` hold the reduction for
+//! each mode, and `buffer`, `command` and `key` hold the vocabulary the
+//! reducer reads.
 
 mod buffer;
 mod command;
 mod key;
+mod line;
+mod normal;
+mod state;
 
 pub use buffer::{Buffer, BufferEntry, Destination, EntryId, SearchHit, SectionId, Selection};
 pub use command::Command;
 pub use key::{Key, KeyInput};
-
-use std::fmt::{self, Display, Formatter};
-
-/// Which keys mean what right now.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Mode {
-    Normal,
-    /// Command line text, without the leading colon.
-    Command(String),
-    /// Search query, without the leading slash.
-    Search(String),
-}
-
-/// Everything the editor knows.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct EditorState {
-    pub mode: Mode,
-    pub active: Selection,
-    /// The which-key panel.
-    pub help: bool,
-    /// The buffer list pane. `Ctrl+B` closes it, `:only` semantics.
-    pub buffers: bool,
-}
-
-impl EditorState {
-    /// Normal mode on `active`, help closed and the buffer list open.
-    #[must_use]
-    pub const fn new(active: Selection) -> Self {
-        Self {
-            mode: Mode::Normal,
-            active,
-            help: false,
-            buffers: true,
-        }
-    }
-}
-
-/// The full message set. Vim codes where vim has them, plain language where
-/// it does not: inventing a code for a case vim lacks is where the bit would
-/// become a lie.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Notification {
-    NotAnEditorCommand(String),
-    PatternNotFound(String),
-    SearchWrapped,
-    NothingToOpen,
-}
-
-impl Display for Notification {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::NotAnEditorCommand(input) => write!(f, "E492: Not an editor command: {input}"),
-            Self::PatternNotFound(query) => write!(f, "E486: Pattern not found: {query}"),
-            Self::SearchWrapped => f.write_str("search hit BOTTOM, continuing at TOP"),
-            Self::NothingToOpen => f.write_str("Nothing to open here"),
-        }
-    }
-}
-
-/// Something the adapter has to do to the world. Timing lives out there too:
-/// the reducer emits [`Effect::Notify`], the adapter schedules its removal.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Effect {
-    /// Bring the entry's content into view.
-    ScrollTo(EntryId),
-    /// Open a repository, in a new tab.
-    Navigate(Destination),
-    /// Replace whatever notification is showing.
-    Notify(Notification),
-    /// Clear the notification now, rather than waiting for its timer.
-    Dismiss,
-    /// Return keyboard focus to the page, after the command line closes.
-    FocusPage,
-}
-
-/// The result of one key press.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Transition {
-    pub state: EditorState,
-    pub effects: Vec<Effect>,
-}
-
-impl Transition {
-    const fn new(state: EditorState, effects: Vec<Effect>) -> Self {
-        Self { state, effects }
-    }
-
-    /// What an unbound key produces: nothing at all.
-    fn unchanged(state: &EditorState) -> Self {
-        Self::new(state.clone(), Vec::new())
-    }
-}
+pub use state::{EditorState, Effect, Mode, Notification, Transition};
 
 /// Applies one key press. Pure: the same state, input and buffer always give
 /// the same transition.
@@ -114,9 +30,9 @@ pub fn reduce(state: &EditorState, input: KeyInput, buffer: &Buffer) -> Transiti
     }
 
     match &state.mode {
-        Mode::Normal => normal(state, input, buffer),
-        Mode::Command(text) => line(state, input, buffer, text, Line::Command),
-        Mode::Search(query) => line(state, input, buffer, query, Line::Search),
+        Mode::Normal => normal::reduce(state, input, buffer),
+        Mode::Command(text) => line::command(state, input, buffer, text),
+        Mode::Search(query) => line::search(state, input, buffer, query),
     }
 }
 
@@ -140,216 +56,6 @@ pub fn select(state: &EditorState, entry: &EntryId, buffer: &Buffer) -> Transiti
         },
         vec![scrolled],
     )
-}
-
-fn normal(state: &EditorState, input: KeyInput, buffer: &Buffer) -> Transition {
-    if input.ctrl {
-        return match input.key {
-            // Captured deliberately: because native find is gone, search has
-            // to cover all text, which it does.
-            Key::Char('f' | 'F') => enter_mode(state, Mode::Search(String::new())),
-            Key::Char('b' | 'B') => Transition::new(
-                EditorState {
-                    buffers: !state.buffers,
-                    ..state.clone()
-                },
-                Vec::new(),
-            ),
-            _ => Transition::unchanged(state),
-        };
-    }
-
-    // `j` and `k` reopen a hidden buffer list, so moving never strands anyone
-    // in a pane they cannot navigate out of.
-    let select = |selection: Option<Selection>, reveal: bool| {
-        let Some(active) = selection else {
-            return Transition::unchanged(state);
-        };
-        let scrolled = Effect::ScrollTo(active.entry.clone());
-        Transition::new(
-            EditorState {
-                active,
-                buffers: state.buffers || reveal,
-                ..state.clone()
-            },
-            vec![scrolled],
-        )
-    };
-
-    let current = &state.active.entry;
-
-    match input.key {
-        Key::Char('j') | Key::ArrowDown => select(buffer.next(current), true),
-        Key::Char('k') | Key::ArrowUp => select(buffer.previous(current), true),
-        Key::Char('J') => select(buffer.next_section(current), false),
-        Key::Char('K') => select(buffer.previous_section(current), false),
-        Key::Char('g') => select(buffer.first(), false),
-        Key::Char('G') => select(buffer.last(), false),
-        Key::Char(digit @ '1'..='9') => {
-            select(buffer.by_number(digit as usize - '0' as usize), false)
-        }
-        Key::Enter => open(state, buffer),
-        Key::Char('/') => enter_mode(state, Mode::Search(String::new())),
-        Key::Char(':') => enter_mode(state, Mode::Command(String::new())),
-        Key::Char('?') => Transition::new(
-            EditorState {
-                help: true,
-                ..state.clone()
-            },
-            Vec::new(),
-        ),
-        Key::Escape => Transition::new(
-            EditorState {
-                help: false,
-                ..state.clone()
-            },
-            vec![Effect::Dismiss],
-        ),
-        _ => Transition::unchanged(state),
-    }
-}
-
-/// Which line is open. Both edit the same way and differ only on Enter.
-#[derive(Clone, Copy)]
-enum Line {
-    Command,
-    Search,
-}
-
-impl Line {
-    const fn mode(self, text: String) -> Mode {
-        match self {
-            Self::Command => Mode::Command(text),
-            Self::Search => Mode::Search(text),
-        }
-    }
-}
-
-fn line(
-    state: &EditorState,
-    input: KeyInput,
-    buffer: &Buffer,
-    text: &str,
-    which: Line,
-) -> Transition {
-    if input.ctrl {
-        return Transition::unchanged(state);
-    }
-
-    let rewrite = |text: String| {
-        Transition::new(
-            EditorState {
-                mode: which.mode(text),
-                ..state.clone()
-            },
-            Vec::new(),
-        )
-    };
-
-    match input.key {
-        Key::Escape => cancel(state),
-        Key::Backspace => {
-            let mut next = text.to_owned();
-            // Backspace on an empty line leaves the mode, the way vim does.
-            next.pop()
-                .map_or_else(|| cancel(state), |_| rewrite(next.clone()))
-        }
-        Key::Char(character) => rewrite(format!("{text}{character}")),
-        Key::Enter => match which {
-            Line::Command => run(state, buffer, text),
-            Line::Search => jump(state, buffer, text),
-        },
-        _ => Transition::unchanged(state),
-    }
-}
-
-/// Leaves the line with the selection exactly where it was.
-fn cancel(state: &EditorState) -> Transition {
-    Transition::new(
-        EditorState {
-            mode: Mode::Normal,
-            ..state.clone()
-        },
-        vec![Effect::FocusPage],
-    )
-}
-
-fn enter_mode(state: &EditorState, mode: Mode) -> Transition {
-    Transition::new(
-        EditorState {
-            mode,
-            ..state.clone()
-        },
-        Vec::new(),
-    )
-}
-
-/// `Enter` in Normal mode. Profile and Contact have nowhere to go.
-fn open(state: &EditorState, buffer: &Buffer) -> Transition {
-    let effect = buffer
-        .get(&state.active.entry)
-        .and_then(|entry| entry.destination.clone())
-        .map_or_else(
-            || Effect::Notify(Notification::NothingToOpen),
-            Effect::Navigate,
-        );
-
-    Transition::new(state.clone(), vec![effect])
-}
-
-fn run(state: &EditorState, buffer: &Buffer, text: &str) -> Transition {
-    let mut next = EditorState {
-        mode: Mode::Normal,
-        ..state.clone()
-    };
-    let mut effects = vec![Effect::FocusPage];
-
-    let selected = match Command::parse(text) {
-        Ok(Command::Help) => {
-            next.help = true;
-            None
-        }
-        Ok(Command::Work) => buffer.first_of_section(SectionId::Work),
-        Ok(Command::Contact) => buffer.first_of_section(SectionId::Contact),
-        Err(notification) => {
-            effects.push(Effect::Notify(notification));
-            None
-        }
-    };
-
-    if let Some(active) = selected {
-        effects.push(Effect::ScrollTo(active.entry.clone()));
-        next.active = active;
-    }
-
-    Transition::new(next, effects)
-}
-
-fn jump(state: &EditorState, buffer: &Buffer, query: &str) -> Transition {
-    if query.trim().is_empty() {
-        return cancel(state);
-    }
-
-    let mut next = EditorState {
-        mode: Mode::Normal,
-        ..state.clone()
-    };
-    let mut effects = vec![Effect::FocusPage];
-
-    match buffer.search(&state.active.entry, query) {
-        Some(hit) => {
-            effects.push(Effect::ScrollTo(hit.selection.entry.clone()));
-            if hit.wrapped {
-                effects.push(Effect::Notify(Notification::SearchWrapped));
-            }
-            next.active = hit.selection;
-        }
-        None => effects.push(Effect::Notify(Notification::PatternNotFound(
-            query.trim().to_owned(),
-        ))),
-    }
-
-    Transition::new(next, effects)
 }
 
 #[cfg(test)]
@@ -653,13 +359,13 @@ mod tests {
 
     #[rstest]
     #[case(
-        Notification::NotAnEditorCommand("wrok".to_owned()),
-        "E492: Not an editor command: wrok"
-    )]
+            Notification::NotAnEditorCommand("wrok".to_owned()),
+            "E492: Not an editor command: wrok"
+        )]
     #[case(
-        Notification::PatternNotFound("kubernetes".to_owned()),
-        "E486: Pattern not found: kubernetes"
-    )]
+            Notification::PatternNotFound("kubernetes".to_owned()),
+            "E486: Pattern not found: kubernetes"
+        )]
     #[case(Notification::SearchWrapped, "search hit BOTTOM, continuing at TOP")]
     #[case(Notification::NothingToOpen, "Nothing to open here")]
     fn notifications_read_the_way_vim_reports_them(
