@@ -62,6 +62,17 @@ impl Links {
     }
 }
 
+/// One item in the profile pane's action row. `target` is the buffer entry the
+/// link selects; the CV download has none, because it leaves the page.
+#[derive(Clone)]
+struct Action {
+    label: &'static str,
+    href: String,
+    target: Option<usize>,
+    /// Filename for the download attribute. Only the CV carries one.
+    download: Option<&'static str>,
+}
+
 /// One navigable line in the buffer.
 #[derive(Clone, Copy)]
 struct Entry {
@@ -118,6 +129,7 @@ pub fn HomePage() -> impl IntoView {
     let total = entries.len();
     let last = total - 1;
     let groups = group_by_section(&entries);
+    let actions = StoredValue::new(actions(&entries));
     let stored = StoredValue::new(entries);
     let (active, set_active) = signal(0usize);
 
@@ -296,6 +308,47 @@ pub fn HomePage() -> impl IntoView {
                         <p class="mt-6 text-[12px] tracking-[0.08em] text-[#6c757f]">
                             {move || current().meta.join("  ·  ")}
                         </p>
+                        {move || {
+                            (current().section == "profile")
+                                .then(|| {
+                                    view! {
+                                        <div class="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-[13px]">
+                                            {actions
+                                                .get_value()
+                                                .into_iter()
+                                                .map(|action| {
+                                                    let target = action.target;
+                                                    view! {
+                                                        <a
+                                                            class="text-white underline decoration-[#3c424a] underline-offset-[5px] hover:decoration-[#e2a340]"
+                                                            href=action.href
+                                                            download=action.download
+                                                            on:click=move |_| {
+                                                                if let Some(index) = target {
+                                                                    select(index, false);
+                                                                }
+                                                            }
+                                                        >
+                                                            {action.label}
+                                                            {target
+                                                                .map(|index| {
+                                                                    view! {
+                                                                        <span
+                                                                            aria-hidden="true"
+                                                                            class="ml-[1ch] hidden text-[#4c525a] no-underline md:inline"
+                                                                        >
+                                                                            {format!("[{}]", index + 1)}
+                                                                        </span>
+                                                                    }
+                                                                })}
+                                                        </a>
+                                                    }
+                                                })
+                                                .collect_view()}
+                                        </div>
+                                    }
+                                })
+                        }}
                         <div class="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-[13px]">
                             {move || {
                                 current()
@@ -401,6 +454,39 @@ fn entries(content: &PortfolioContent) -> Vec<Entry> {
     entries
 }
 
+/// The addressable fragment for an entry: `#profile`, `#work-guenther`,
+/// `#contact`. Project names double as slugs.
+fn hash_id(entry: &Entry) -> String {
+    match entry.section {
+        "work" => format!("work-{}", entry.name),
+        section => section.to_owned(),
+    }
+}
+
+/// The profile pane's explicit next steps, for a reader who never discovers
+/// the vim layer. Ordered by what a hiring reader wants first.
+fn actions(entries: &[Entry]) -> Vec<Action> {
+    let find = |section| entries.iter().position(|entry| entry.section == section);
+    let select = |label, target: usize| Action {
+        label,
+        href: format!("#{}", hash_id(&entries[target])),
+        target: Some(target),
+        download: None,
+    };
+
+    find("work")
+        .map(|index| select("View work", index))
+        .into_iter()
+        .chain(std::iter::once(Action {
+            label: "Download CV",
+            href: "/cv.pdf".to_owned(),
+            target: None,
+            download: Some("kristofers-solo-cv.pdf"),
+        }))
+        .chain(find("contact").map(|index| select("Contact", index)))
+        .collect()
+}
+
 /// Groups entry indices under their section heading, preserving order, so the
 /// listbox can render one `group` per section. Sections are contiguous in
 /// [`entries`], so a fold over adjacent rows is enough.
@@ -413,4 +499,56 @@ fn group_by_section(entries: &[Entry]) -> Vec<(&'static str, Vec<(usize, &'stati
         }
     }
     groups
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use claims::{assert_none, assert_some_eq};
+
+    #[test]
+    fn the_buffer_is_the_profile_three_projects_and_contact() {
+        let entries = entries(&portfolio_content());
+        let sections = entries
+            .iter()
+            .map(|entry| entry.section)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            sections,
+            ["profile", "work", "work", "work", "contact"],
+            "the buffer is five lines in section order"
+        );
+    }
+
+    #[test]
+    fn hash_ids_address_every_entry() {
+        let entries = entries(&portfolio_content());
+        let ids = entries.iter().map(hash_id).collect::<Vec<_>>();
+        assert_eq!(
+            ids,
+            [
+                "profile",
+                "work-guenther",
+                "work-traxor",
+                "work-cipher-workshop",
+                "contact",
+            ]
+        );
+    }
+
+    #[test]
+    fn the_action_row_points_at_work_the_cv_and_contact() {
+        let entries = entries(&portfolio_content());
+        let actions = actions(&entries);
+
+        let hrefs = actions
+            .iter()
+            .map(|action| action.href.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(hrefs, ["#work-guenther", "/cv.pdf", "#contact"]);
+
+        assert_some_eq!(actions[0].target, 1);
+        assert_none!(actions[1].target, "the CV leaves the page");
+        assert_some_eq!(actions[2].target, 4);
+    }
 }
