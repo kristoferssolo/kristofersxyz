@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS project (
 );
 
 CREATE TABLE IF NOT EXISTS project_stack (
-    project_id INTEGER NOT NULL REFERENCES project (id) ON DELETE CASCADE,
+    project_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     stack TEXT NOT NULL,
     sort_order INTEGER NOT NULL,
     PRIMARY KEY (project_id, sort_order),
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS project_stack (
 );
 
 CREATE TABLE IF NOT EXISTS project_link (
-    project_id INTEGER NOT NULL REFERENCES project (id) ON DELETE CASCADE,
+    project_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     label TEXT NOT NULL,
     href TEXT NOT NULL,
     sort_order INTEGER NOT NULL,
