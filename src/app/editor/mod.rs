@@ -120,6 +120,28 @@ pub fn reduce(state: &EditorState, input: KeyInput, buffer: &Buffer) -> Transiti
     }
 }
 
+/// Selects an entry by id, rather than by key press.
+///
+/// The two paths that need it are a click on a row or an action link, and a
+/// hash fragment on load. Closes any open line, the way clicking away from
+/// vim's command line does.
+#[must_use]
+pub fn select(state: &EditorState, entry: &EntryId, buffer: &Buffer) -> Transition {
+    let Some(active) = buffer.get(entry).map(BufferEntry::selection) else {
+        return Transition::unchanged(state);
+    };
+
+    let scrolled = Effect::ScrollTo(active.entry.clone());
+    Transition::new(
+        EditorState {
+            mode: Mode::Normal,
+            active,
+            ..state.clone()
+        },
+        vec![scrolled],
+    )
+}
+
 fn normal(state: &EditorState, input: KeyInput, buffer: &Buffer) -> Transition {
     if input.ctrl {
         return match input.key {
@@ -659,6 +681,20 @@ mod tests {
                 .map(|selection| selection.entry),
             entry
         );
+    }
+
+    #[test]
+    fn selecting_by_id_closes_an_open_line() {
+        let open = line_with(EntryId::Profile, ':', "wo");
+        let transition = select(&open, &EntryId::Contact, &buffer());
+
+        assert_eq!(transition.state.mode, Mode::Normal);
+        assert_eq!(transition.state.active.entry, EntryId::Contact);
+    }
+
+    #[test]
+    fn the_buffer_opens_on_the_default_selection() {
+        assert_some_eq!(buffer().first(), Selection::default());
     }
 
     #[test]

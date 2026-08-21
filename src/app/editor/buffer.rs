@@ -62,6 +62,17 @@ pub struct Selection {
     pub entry: EntryId,
 }
 
+impl Default for Selection {
+    /// The profile entry. The buffer always opens with it, so a page that
+    /// cannot read the buffer still has somewhere real to start.
+    fn default() -> Self {
+        Self {
+            section: SectionId::Profile,
+            entry: EntryId::Profile,
+        }
+    }
+}
+
 /// One navigable line.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BufferEntry {
