@@ -1,10 +1,14 @@
 use super::AMBER;
 use leptos::prelude::*;
+use leptos_meta::Title;
 
 /// Unknown paths, reported the way the editor would report a missing file.
 #[component]
 pub fn NotFoundPage() -> impl IntoView {
     view! {
+        // Overrides the site title from `SiteMeta`, which would otherwise
+        // announce this page as the homepage in the tab and to crawlers.
+        <Title text="E484: Can't open file" />
         <main class="flex min-h-dvh flex-col bg-black font-mono text-[#d4d7db]">
             <div class="flex flex-1 items-center px-5 sm:px-10 md:px-14">
                 <div class="max-w-[62ch]">
