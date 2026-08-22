@@ -1,6 +1,5 @@
 mod action_links;
 mod browser;
-mod buffer_list;
 mod command_line;
 mod content_pane;
 mod entry_details;
@@ -12,12 +11,13 @@ mod status_line;
 mod view_model;
 
 use self::{
-    buffer_list::BufferList, content_pane::ContentPane, notice_view::NoticeView,
-    status_line::StatusLine, view_model::HomeViewModel,
+    content_pane::ContentPane, notice_view::NoticeView, status_line::StatusLine,
+    view_model::HomeViewModel,
 };
 use crate::app::{
     content::PortfolioContent,
     editor::{Key, KeyInput},
+    layout::Sidebar,
 };
 use leptos::prelude::Effect as ReactiveEffect;
 use leptos::{ev, prelude::*};
@@ -29,6 +29,8 @@ pub fn HomePage() -> impl IntoView {
     let content = expect_context::<PortfolioContent>();
     let view_model = HomeViewModel::new(&content);
     provide_context(view_model);
+    let active = Signal::derive(move || view_model.state.get().active.entry);
+    let on_select = Callback::new(move |entry| view_model.pick(&entry));
 
     // Bound globally so the keys work wherever the reader's focus sits.
     ReactiveEffect::new(move |_| {
@@ -58,7 +60,7 @@ pub fn HomePage() -> impl IntoView {
         <main class="flex min-h-dvh flex-col bg-black font-mono text-[#d4d7db] md:h-dvh md:overflow-hidden">
             <NoticeView />
             <div class="grid min-h-0 flex-1 md:grid-cols-[minmax(260px,340px)_minmax(0,1fr)]">
-                <BufferList />
+                <Sidebar active on_select />
                 <ContentPane />
             </div>
             <StatusLine />

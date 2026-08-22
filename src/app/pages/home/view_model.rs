@@ -1,6 +1,6 @@
 use super::{
     browser::{focus_row, navigate, reveal_content},
-    model::{Action, Entry, EntryGroup, Notice, actions, entries, group_by_section},
+    model::{Action, Entry, Notice, actions, entries},
 };
 use crate::app::{
     content::PortfolioContent,
@@ -21,7 +21,6 @@ pub(super) struct HomeViewModel {
     notice: RwSignal<Option<Notice>>,
     entries: StoredValue<Vec<Entry>>,
     actions: StoredValue<Vec<Action>>,
-    groups: StoredValue<Vec<EntryGroup>>,
     buffer: StoredValue<Buffer>,
     issued: StoredValue<u64>,
     total: usize,
@@ -37,7 +36,6 @@ impl HomeViewModel {
             state: RwSignal::new(EditorState::new(start)),
             notice: RwSignal::new(None),
             actions: StoredValue::new(actions(&entries)),
-            groups: StoredValue::new(group_by_section(&entries)),
             entries: StoredValue::new(entries),
             total: buffer.len(),
             buffer: StoredValue::new(buffer),
@@ -98,10 +96,6 @@ impl HomeViewModel {
 
     pub(super) const fn total(self) -> usize {
         self.total
-    }
-
-    pub(super) fn groups(self) -> Vec<EntryGroup> {
-        self.groups.get_value()
     }
 
     pub(super) fn actions(self) -> Vec<Action> {

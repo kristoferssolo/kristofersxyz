@@ -1,7 +1,7 @@
 use super::site_meta::SiteMeta;
 #[cfg(feature = "hydrate")]
 use crate::app::content::PortfolioContent;
-use crate::app::pages::{HomePage, NotFoundPage};
+use crate::app::pages::{HomePage, NotFoundPage, ProjectPage};
 use leptos::prelude::*;
 #[cfg(feature = "hydrate")]
 use leptos::serde_json;
@@ -43,10 +43,11 @@ pub fn App() -> impl IntoView {
     view! {
         <Stylesheet id="fonts" href=FONTS />
         <Stylesheet id="leptos" href="/pkg/kristofersxyz.css" />
-        <SiteMeta />
         <Router>
+            <SiteMeta />
             <Routes fallback=|| view! { <NotFoundPage /> }.into_view()>
                 <Route path=path!("/") view=HomePage />
+                <Route path=path!("/work/:slug") view=ProjectPage />
             </Routes>
         </Router>
     }

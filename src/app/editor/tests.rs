@@ -163,13 +163,13 @@ fn ctrl_b_hides_the_buffer_list_and_j_brings_it_back() {
 }
 
 #[test]
-fn enter_opens_a_project_repository() {
+fn enter_opens_a_project_detail() {
     let transition = press(&on(project("traxor")), Key::Enter);
 
     assert_eq!(
         transition.effects,
-        vec![Effect::Navigate(Destination::External(
-            "https://codeberg.org/kristoferssolo/traxor".to_owned()
+        vec![Effect::Navigate(Destination::Internal(
+            "/work/traxor".to_owned()
         ))]
     );
 }

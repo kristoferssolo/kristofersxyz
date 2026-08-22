@@ -92,8 +92,6 @@ pub(super) struct Notice {
     pub(super) message: String,
 }
 
-pub(super) type EntryGroup = (SectionId, Vec<(EntryId, String)>);
-
 /// Flattens the portfolio into the buffer's line list, in the same order and
 /// under the same ids as the editor's own [`Buffer`].
 pub(super) fn entries(content: &PortfolioContent) -> Vec<Entry> {
@@ -163,21 +161,6 @@ pub(super) fn actions(entries: &[Entry]) -> Vec<Action> {
         .collect()
 }
 
-/// Groups entry ids under their section, preserving order.
-pub(super) fn group_by_section(entries: &[Entry]) -> Vec<EntryGroup> {
-    let mut groups: Vec<EntryGroup> = Vec::new();
-
-    for entry in entries {
-        let row = (entry.id.clone(), entry.name.clone());
-        match groups.last_mut() {
-            Some((section, rows)) if *section == entry.section => rows.push(row),
-            _ => groups.push((entry.section, vec![row])),
-        }
-    }
-
-    groups
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -218,23 +201,6 @@ mod tests {
             .map(|entry| entry.name);
 
         assert_some_eq!(rendered, "Reader-facing title".to_owned());
-    }
-
-    #[test]
-    fn sections_group_in_order() {
-        let sections = group_by_section(&entries(&portfolio_content()))
-            .into_iter()
-            .map(|(section, rows)| (section, rows.len()))
-            .collect::<Vec<_>>();
-
-        assert_eq!(
-            sections,
-            [
-                (SectionId::Profile, 1),
-                (SectionId::Work, 3),
-                (SectionId::Contact, 1),
-            ]
-        );
     }
 
     #[test]

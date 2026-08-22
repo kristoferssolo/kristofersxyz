@@ -1,0 +1,166 @@
+use crate::app::{
+    content::PortfolioContent,
+    editor::{EntryId, SectionId},
+};
+use leptos::prelude::*;
+use leptos_router::components::A;
+
+#[derive(Clone)]
+struct NavigationEntry {
+    id: EntryId,
+    name: String,
+    href: String,
+}
+
+/// Persistent portfolio navigation. On wide screens it occupies the same
+/// place a site header would, while the selected page scrolls beside it.
+#[component]
+pub(crate) fn Sidebar(
+    #[prop(into)] active: Signal<EntryId>,
+    #[prop(optional)] on_select: Option<Callback<EntryId>>,
+) -> impl IntoView {
+    let content = expect_context::<PortfolioContent>();
+    let groups = navigation(&content);
+
+    view! {
+        <nav
+            aria-label="Portfolio"
+            class="border-b border-[#1e2126] py-3 text-[13px] md:sticky md:top-0 md:h-dvh md:overflow-y-auto md:border-r md:border-b-0"
+        >
+            {groups
+                .into_iter()
+                .map(|(section, entries)| {
+                    view! {
+                        <div class="mt-4 first:mt-0">
+                            <p
+                                class="mb-1 pl-[7ch] text-[10px] tracking-[0.24em] text-[#4c525a] uppercase"
+                            >
+                                {section.label()}
+                            </p>
+                            {entries
+                                .into_iter()
+                                .enumerate()
+                                .map(|(index, entry)| {
+                                    let id = entry.id.clone();
+                                    let selected_id = entry.id.clone();
+                                    let is_active = Memo::new(move |_| active.get() == selected_id);
+
+                                    view! {
+                                        <A
+                                            href=entry.href
+                                            attr:id=format!("buffer-{}", entry.id.fragment())
+                                            attr:aria-current=move || {
+                                                is_active.get().then_some("page")
+                                            }
+                                            on:click=move |_| {
+                                                if let Some(callback) = on_select
+                                                    && !matches!(id, EntryId::Project(_))
+                                                {
+                                                    callback.run(id.clone());
+                                                }
+                                            }
+                                            attr:class=move || {
+                                                if is_active.get() {
+                                                    "flex w-full items-baseline gap-[1ch] bg-[#14181d] px-3 py-[3px] text-left hover:bg-[#101317] focus-visible:outline-none"
+                                                } else {
+                                                    "flex w-full items-baseline gap-[1ch] px-3 py-[3px] text-left hover:bg-[#101317] focus-visible:outline-none"
+                                                }
+                                            }
+                                        >
+                                            <span
+                                                aria-hidden="true"
+                                                class=move || {
+                                                    if is_active.get() {
+                                                        "w-[1ch] shrink-0 text-[#e2a340]"
+                                                    } else {
+                                                        "w-[1ch] shrink-0 text-transparent"
+                                                    }
+                                                }
+                                            >
+                                                "\u{258e}"
+                                            </span>
+                                            <span
+                                                aria-hidden="true"
+                                                class=move || {
+                                                    if is_active.get() {
+                                                        "w-[3ch] shrink-0 text-right text-[#e2a340] tabular-nums"
+                                                    } else {
+                                                        "w-[3ch] shrink-0 text-right text-[#3c424a] tabular-nums"
+                                                    }
+                                                }
+                                            >
+                                                {index + 1}
+                                            </span>
+                                            <span
+                                                class=move || {
+                                                    if is_active.get() {
+                                                        "truncate text-white"
+                                                    } else {
+                                                        "truncate text-[#8b939d]"
+                                                    }
+                                                }
+                                            >
+                                                {entry.name}
+                                            </span>
+                                        </A>
+                                    }
+                                })
+                                .collect_view()}
+                        </div>
+                    }
+                })
+                .collect_view()}
+        </nav>
+    }
+}
+
+fn navigation(content: &PortfolioContent) -> Vec<(SectionId, Vec<NavigationEntry>)> {
+    vec![
+        (
+            SectionId::Profile,
+            vec![NavigationEntry {
+                id: EntryId::Profile,
+                name: content.profile.name.clone(),
+                href: "/#profile".to_owned(),
+            }],
+        ),
+        (
+            SectionId::Work,
+            content
+                .projects
+                .iter()
+                .map(|project| NavigationEntry {
+                    id: EntryId::Project(project.slug.clone()),
+                    name: project.title.clone(),
+                    href: project.path(),
+                })
+                .collect(),
+        ),
+        (
+            SectionId::Contact,
+            vec![NavigationEntry {
+                id: EntryId::Contact,
+                name: content.contact.name.clone(),
+                href: "/#contact".to_owned(),
+            }],
+        ),
+    ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::content::portfolio_content;
+
+    #[test]
+    fn projects_link_to_their_detail_routes() {
+        let links = navigation(&portfolio_content())
+            .into_iter()
+            .flat_map(|(_, entries)| entries)
+            .map(|entry| entry.href)
+            .collect::<Vec<_>>();
+
+        assert!(links.contains(&"/work/guenther".to_owned()));
+        assert!(links.contains(&"/work/traxor".to_owned()));
+    }
+}

@@ -51,6 +51,8 @@ impl EntryId {
 /// pages; the enum is the seam for `/work/:slug` when it returns.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Destination {
+    /// A route inside the portfolio.
+    Internal(String),
     /// A repository or demo, opened in a new tab.
     External(String),
 }
@@ -161,10 +163,7 @@ impl Buffer {
                 EntryId::Project(project.slug.clone()),
                 SectionId::Work,
                 &project.title,
-                project
-                    .links
-                    .first()
-                    .map(|link| Destination::External(link.href.clone())),
+                Some(Destination::Internal(project.path())),
                 &text,
             )
         }));

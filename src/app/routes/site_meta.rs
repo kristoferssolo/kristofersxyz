@@ -1,21 +1,47 @@
 use crate::app::content::PortfolioContent;
 use leptos::prelude::*;
 use leptos_meta::{Link, Meta, Title};
+use leptos_router::hooks::use_location;
 
-/// Title, description, canonical URL and Open Graph tags. One route, so one
-/// set of tags; per page metadata arrives with the first real subpage.
+/// Route-aware title, description, canonical URL, and Open Graph tags.
 #[component]
 pub(super) fn SiteMeta() -> impl IntoView {
-    let site = expect_context::<PortfolioContent>().site;
+    let content = expect_context::<PortfolioContent>();
+    let pathname = use_location().pathname;
 
-    view! {
-        <Title text=site.title.clone() />
-        <Meta name="description" content=site.description.clone() />
-        <Link rel="canonical" href=site.url.clone() />
-        <Meta property="og:type" content="website" />
-        <Meta property="og:url" content=site.url />
-        <Meta property="og:title" content=site.title />
-        <Meta property="og:description" content=site.description />
-        <Meta property="og:image" content=site.og_image />
+    move || {
+        let path = pathname.get();
+        let project = content
+            .projects
+            .iter()
+            .find(|project| project.path() == path);
+        let title = project.map_or_else(
+            || content.site.title.clone(),
+            |project| format!("{} | Kristofers Solo", project.title),
+        );
+        let description = project.map_or_else(
+            || content.site.description.clone(),
+            |project| project.summary.clone(),
+        );
+        let url = project.map_or_else(
+            || content.site.url.clone(),
+            |project| format!("{}work/{}", content.site.url, project.slug),
+        );
+        let page_type = if project.is_some() {
+            "article"
+        } else {
+            "website"
+        };
+
+        view! {
+            <Title text=title.clone() />
+            <Meta name="description" content=description.clone() />
+            <Link rel="canonical" href=url.clone() />
+            <Meta property="og:type" content=page_type />
+            <Meta property="og:url" content=url />
+            <Meta property="og:title" content=title />
+            <Meta property="og:description" content=description />
+            <Meta property="og:image" content=content.site.og_image.clone() />
+        }
     }
 }

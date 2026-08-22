@@ -1,0 +1,50 @@
+//! Rendering for portfolio-authored Markdown.
+
+use crate::domain::ProjectDescription;
+use pulldown_cmark::{Event, Options, Parser, html};
+
+/// Renders a project description to HTML.
+///
+/// Raw HTML is discarded. Images, links, code blocks, tables, and normal
+/// `CommonMark` prose remain available to the CMS author.
+#[must_use]
+pub fn render(description: &ProjectDescription) -> String {
+    let options = Options::ENABLE_TABLES
+        | Options::ENABLE_FOOTNOTES
+        | Options::ENABLE_STRIKETHROUGH
+        | Options::ENABLE_TASKLISTS;
+    let events = Parser::new_ext(description.as_str(), options)
+        .filter(|event| !matches!(event, Event::Html(_) | Event::InlineHtml(_)));
+    let mut output = String::new();
+    html::push_html(&mut output, events);
+    output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn description(markdown: &str) -> ProjectDescription {
+        markdown
+            .parse()
+            .unwrap_or_else(|error| panic!("invalid test project description: {error}"))
+    }
+
+    #[test]
+    fn renders_project_markdown() {
+        let html = render(&description("## System\n\n`Telegram` to **Rust**."));
+
+        assert!(html.contains("<h2>System</h2>"));
+        assert!(html.contains("<code>Telegram</code>"));
+        assert!(html.contains("<strong>Rust</strong>"));
+    }
+
+    #[test]
+    fn discards_raw_html() {
+        let html = render(&description("before<script>alert('x')</script>after"));
+
+        assert!(!html.contains("<script>"));
+        assert!(html.contains("before"));
+        assert!(html.contains("after"));
+    }
+}

@@ -30,11 +30,20 @@ pub(super) fn reveal_content() {
     }
 }
 
-/// Opens a repository in a new tab.
+/// Navigates inside the portfolio or opens an external destination in a new
+/// tab.
 pub(super) fn navigate(destination: &Destination) {
-    let Destination::External(url) = destination;
-    if let Some(window) = web_sys::window() {
-        let _ = window.open_with_url_and_target(url, "_blank");
+    let Some(window) = web_sys::window() else {
+        return;
+    };
+
+    match destination {
+        Destination::Internal(path) => {
+            let _ = window.location().set_href(path);
+        }
+        Destination::External(url) => {
+            let _ = window.open_with_url_and_target(url, "_blank");
+        }
     }
 }
 
