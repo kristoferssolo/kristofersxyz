@@ -35,7 +35,7 @@ pub async fn load(pool: &DbPool) -> Result<PortfolioContent, sqlx::Error> {
     .fetch_one(pool)
     .await?;
 
-    let stack =
+    let technologies =
         sqlx::query_scalar::<_, String>("SELECT item FROM profile_stack ORDER BY sort_order")
             .fetch_all(pool)
             .await?;
@@ -68,7 +68,7 @@ pub async fn load(pool: &DbPool) -> Result<PortfolioContent, sqlx::Error> {
             title: profile.title,
             summary: profile.summary,
             about: profile.about,
-            stack,
+            technologies,
             working_style: working_style
                 .into_iter()
                 .map(|row| FocusArea {

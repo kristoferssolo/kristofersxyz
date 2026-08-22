@@ -1,5 +1,5 @@
 use super::*;
-use crate::app::content::portfolio_content;
+use crate::app::content::{ProjectSlug, portfolio_content};
 use claims::{assert_err_eq, assert_none, assert_ok_eq, assert_some_eq};
 use rstest::rstest;
 
@@ -8,7 +8,10 @@ fn buffer() -> Buffer {
 }
 
 fn project(slug: &str) -> EntryId {
-    EntryId::Project(slug.to_owned())
+    EntryId::Project(
+        slug.parse::<ProjectSlug>()
+            .unwrap_or_else(|error| panic!("invalid test project slug: {error}")),
+    )
 }
 
 /// Normal mode, sitting on `entry`.

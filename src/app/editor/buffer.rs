@@ -4,7 +4,7 @@
 //! row in the current collection", which goes wrong the moment content is
 //! reordered; [`EntryId::Project`] means the same project wherever it sits.
 
-use crate::app::content::PortfolioContent;
+use crate::app::content::{PortfolioContent, ProjectSlug};
 
 /// A section heading in the buffer list.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -31,7 +31,7 @@ impl SectionId {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EntryId {
     Profile,
-    Project(String),
+    Project(ProjectSlug),
     Contact,
 }
 
@@ -145,7 +145,7 @@ impl Buffer {
         let profile = &content.profile;
 
         let mut profile_text = vec![profile.title.as_str(), profile.about.as_str()];
-        profile_text.extend(profile.stack.iter().map(String::as_str));
+        profile_text.extend(profile.technologies.iter().map(String::as_str));
         let mut entries = vec![BufferEntry::new(
             EntryId::Profile,
             SectionId::Profile,
@@ -156,11 +156,11 @@ impl Buffer {
 
         entries.extend(content.projects.iter().map(|project| {
             let mut text = vec![project.summary.as_str()];
-            text.extend(project.stack.iter().map(String::as_str));
+            text.extend(project.technologies.iter().map(String::as_str));
             BufferEntry::new(
-                EntryId::Project(project.name.clone()),
+                EntryId::Project(project.slug.clone()),
                 SectionId::Work,
-                &project.name,
+                &project.title,
                 project
                     .links
                     .first()

@@ -6,13 +6,14 @@
 //! of truth; the static `portfolio_content` below is only a test fixture, and
 //! the db loader tests assert the two never drift.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
+use std::{fmt, str::FromStr};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PortfolioContent {
     pub site: Site,
     pub profile: Profile,
-    pub projects: Vec<Project>,
+    pub projects: Vec<ProjectSummary>,
     pub contact: Contact,
 }
 
@@ -35,7 +36,7 @@ pub struct Profile {
     pub title: String,
     pub summary: String,
     pub about: String,
-    pub stack: Vec<String>,
+    pub technologies: Vec<String>,
     /// Shown as a short list under the about text.
     pub working_style: Vec<FocusArea>,
     pub email: String,
@@ -49,11 +50,76 @@ pub struct SocialLink {
     pub rel: String,
 }
 
+/// Stable, URL-safe identity for a Project.
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize)]
+#[serde(transparent)]
+pub struct ProjectSlug(String);
+
+impl ProjectSlug {
+    /// Returns the validated slug as text.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for ProjectSlug {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+impl FromStr for ProjectSlug {
+    type Err = ProjectSlugError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let first = value.chars().next().ok_or(ProjectSlugError::Empty)?;
+        let last = value.chars().next_back().ok_or(ProjectSlugError::Empty)?;
+        if !first.is_ascii_lowercase() && !first.is_ascii_digit()
+            || !last.is_ascii_lowercase() && !last.is_ascii_digit()
+        {
+            return Err(ProjectSlugError::InvalidEdge);
+        }
+
+        if let Some(character) = value.chars().find(|character| {
+            !character.is_ascii_lowercase() && !character.is_ascii_digit() && *character != '-'
+        }) {
+            return Err(ProjectSlugError::InvalidCharacter { character });
+        }
+
+        Ok(Self(value.to_owned()))
+    }
+}
+
+impl<'de> Deserialize<'de> for ProjectSlug {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        String::deserialize(deserializer)?
+            .parse()
+            .map_err(de::Error::custom)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, thiserror::Error)]
+pub enum ProjectSlugError {
+    #[error("a project slug cannot be empty")]
+    Empty,
+    #[error("a project slug must start and end with a lowercase letter or digit")]
+    InvalidEdge,
+    #[error("a project slug cannot contain '{character}'")]
+    InvalidCharacter { character: char },
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Project {
-    pub name: String,
+pub struct ProjectSummary {
+    /// Stable identity used in URLs and editor state.
+    pub slug: ProjectSlug,
+    /// Reader-facing name, independent from the stable slug.
+    pub title: String,
     pub summary: String,
-    pub stack: Vec<String>,
+    pub technologies: Vec<String>,
     pub links: Vec<ProjectLink>,
 }
 
@@ -131,7 +197,7 @@ mod fixture {
                 product needs and engineering infrastructure: APIs, server-rendered applications, \
                 developer tools and deployment surfaces that stay understandable over time."
                 .to_owned(),
-            stack: stack(&["Rust", "Leptos", "Axum", "Tailwind"]),
+            technologies: technologies(&["Rust", "Leptos", "Axum", "Tailwind"]),
             working_style: working_style(),
             email: "mailto:dev@kristofers.xyz".to_owned(),
             links: vec![
@@ -196,43 +262,51 @@ mod fixture {
         }
     }
 
-    fn stack(items: &[&str]) -> Vec<String> {
+    fn technologies(items: &[&str]) -> Vec<String> {
         items.iter().copied().map(str::to_owned).collect()
     }
 
-    /// Entry names double as slugs, so they stay lowercase and URL safe.
-    fn projects() -> Vec<Project> {
+    fn project_slug(value: &str) -> ProjectSlug {
+        value
+            .parse()
+            .unwrap_or_else(|error| panic!("invalid fixture project slug: {error}"))
+    }
+
+    fn projects() -> Vec<ProjectSummary> {
         vec![
-            Project {
-                name: "guenther".to_owned(),
+            ProjectSummary {
+                slug: project_slug("guenther"),
+                title: "guenther".to_owned(),
                 summary: "Telegram bot that takes a social media link and sends the media back \
                       inline, so a shared post plays in the chat instead of opening a browser."
                     .to_owned(),
-                stack: stack(&["Rust", "Telegram", "yt-dlp"]),
+                technologies: technologies(&["Rust", "Telegram", "yt-dlp"]),
                 links: vec![project_link(
                     "GitHub",
                     "https://github.com/kristoferssolo/guenther",
                 )],
             },
-            Project {
-                name: "traxor".to_owned(),
+            ProjectSummary {
+                slug: project_slug("traxor"),
+                title: "traxor".to_owned(),
                 summary:
                     "Terminal UI for managing Transmission torrents: queue, inspect and control \
                       transfers without leaving the shell."
                         .to_owned(),
-                stack: stack(&["Rust", "ratatui", "Transmission RPC"]),
+                technologies: technologies(&["Rust", "ratatui", "Transmission RPC"]),
                 links: vec![project_link(
                     "Codeberg",
                     "https://codeberg.org/kristoferssolo/traxor",
                 )],
             },
-            Project {
-                name: "cipher-workshop".to_owned(),
+            ProjectSummary {
+                slug: project_slug("cipher-workshop"),
+                title: "cipher-workshop".to_owned(),
                 summary:
                     "Rust workspace implementing cipher algorithms, AES-128 and CBC among them, \
                       exposed through both a CLI and a web interface."
                         .to_owned(),
-                stack: stack(&["Rust", "AES-128", "CLI", "WebAssembly"]),
+                technologies: technologies(&["Rust", "AES-128", "CLI", "WebAssembly"]),
                 links: vec![project_link(
                     "GitHub",
                     "https://github.com/kristoferssolo/cipher-workshop",
@@ -275,7 +349,7 @@ mod tests {
             content
                 .projects
                 .first()
-                .map(|project| project.name.as_str()),
+                .map(|project| project.slug.as_str()),
             Some("guenther")
         );
     }
@@ -298,19 +372,20 @@ mod tests {
         );
     }
 
-    /// Names double as URL slugs, so a capital or a space here would show up
-    /// as a broken hash fragment.
     #[test]
-    fn project_names_are_slug_safe() {
-        for project in portfolio_content().projects {
-            assert!(
-                project
-                    .name
-                    .chars()
-                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-'),
-                "{} is not slug safe",
-                project.name
-            );
+    fn project_slugs_accept_url_safe_text() {
+        use claims::assert_ok;
+
+        assert_ok!("guenther".parse::<ProjectSlug>());
+        assert_ok!("cipher-workshop-2".parse::<ProjectSlug>());
+    }
+
+    #[test]
+    fn project_slugs_reject_invalid_text() {
+        use claims::assert_err;
+
+        for value in ["", "Guenther", "project page", "-project", "project-"] {
+            assert_err!(value.parse::<ProjectSlug>());
         }
     }
 }

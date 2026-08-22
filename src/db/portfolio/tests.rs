@@ -13,7 +13,7 @@ async fn the_seed_loads_into_the_content_model() {
     );
     assert_eq!(content.profile.name, "Kristofers Solo");
     assert_eq!(
-        content.profile.stack,
+        content.profile.technologies,
         ["Rust", "Leptos", "Axum", "Tailwind"]
     );
     assert_eq!(content.profile.working_style.len(), 4);
@@ -22,7 +22,7 @@ async fn the_seed_loads_into_the_content_model() {
 }
 
 #[tokio::test]
-async fn projects_keep_their_order_stacks_and_links() {
+async fn projects_keep_their_order_technologies_and_links() {
     let content = load(&seeded_pool().await)
         .await
         .expect("load the seeded portfolio");
@@ -30,12 +30,15 @@ async fn projects_keep_their_order_stacks_and_links() {
     let names = content
         .projects
         .iter()
-        .map(|project| project.name.as_str())
+        .map(|project| project.slug.as_str())
         .collect::<Vec<_>>();
     assert_eq!(names, ["guenther", "traxor", "cipher-workshop"]);
 
     let cipher = &content.projects[2];
-    assert_eq!(cipher.stack, ["Rust", "AES-128", "CLI", "WebAssembly"]);
+    assert_eq!(
+        cipher.technologies,
+        ["Rust", "AES-128", "CLI", "WebAssembly"]
+    );
     assert_eq!(cipher.links.len(), 1);
     assert_eq!(cipher.links[0].label, "GitHub");
     assert_eq!(
@@ -58,8 +61,9 @@ async fn the_seed_matches_the_static_fixture() {
     assert_eq!(loaded.profile.about, fixture.profile.about);
     assert_eq!(loaded.projects.len(), fixture.projects.len());
     for (loaded, fixture) in loaded.projects.iter().zip(&fixture.projects) {
-        assert_eq!(loaded.name, fixture.name);
+        assert_eq!(loaded.slug, fixture.slug);
+        assert_eq!(loaded.title, fixture.title);
         assert_eq!(loaded.summary, fixture.summary);
-        assert_eq!(loaded.stack, fixture.stack);
+        assert_eq!(loaded.technologies, fixture.technologies);
     }
 }

@@ -102,18 +102,18 @@ pub(super) fn entries(content: &PortfolioContent) -> Vec<Entry> {
         lead: Some(profile.title.clone()),
         body: profile.about.clone(),
         focus: profile.working_style.clone(),
-        meta: profile.stack.clone(),
+        meta: profile.technologies.clone(),
         links: Links::Social(profile.links.clone()),
     }];
 
     entries.extend(content.projects.iter().map(|project| Entry {
-        id: EntryId::Project(project.name.clone()),
+        id: EntryId::Project(project.slug.clone()),
         section: SectionId::Work,
-        name: project.name.clone(),
+        name: project.title.clone(),
         lead: None,
         body: project.summary.clone(),
         focus: Vec::new(),
-        meta: project.stack.clone(),
+        meta: project.technologies.clone(),
         links: Links::Project(project.links.clone()),
     }));
 
@@ -178,8 +178,14 @@ pub(super) fn group_by_section(entries: &[Entry]) -> Vec<EntryGroup> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::content::portfolio_content;
+    use crate::app::content::{ProjectSlug, portfolio_content};
     use claims::{assert_none, assert_some_eq};
+
+    fn project_slug(value: &str) -> ProjectSlug {
+        value
+            .parse()
+            .unwrap_or_else(|error| panic!("invalid test project slug: {error}"))
+    }
 
     #[test]
     fn the_rendered_entries_match_the_editor_buffer() {
@@ -195,6 +201,20 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(rendered, editor);
+    }
+
+    #[test]
+    fn a_project_uses_its_slug_for_identity_and_title_for_display() {
+        let mut content = portfolio_content();
+        content.projects[0].slug = project_slug("stable-slug");
+        content.projects[0].title = "Reader-facing title".to_owned();
+
+        let rendered = entries(&content)
+            .into_iter()
+            .find(|entry| entry.id == EntryId::Project(project_slug("stable-slug")))
+            .map(|entry| entry.name);
+
+        assert_some_eq!(rendered, "Reader-facing title".to_owned());
     }
 
     #[test]
@@ -225,7 +245,7 @@ mod tests {
         assert_eq!(hrefs, ["#work-guenther", "/cv.pdf", "#contact"]);
         assert_some_eq!(
             actions[0].target.clone(),
-            EntryId::Project("guenther".to_owned())
+            EntryId::Project(project_slug("guenther"))
         );
         assert_none!(actions[1].target.clone(), "the CV leaves the page");
         assert_some_eq!(actions[2].target.clone(), EntryId::Contact);
