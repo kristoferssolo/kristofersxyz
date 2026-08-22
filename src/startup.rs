@@ -1,18 +1,19 @@
 use crate::{
-    configuration::Settings,
-    db::{self, DbPool},
-    errors::ApplicationError,
+    app::content::PortfolioContent, configuration::Settings, db, errors::ApplicationError,
     router::route,
 };
 use axum::extract::FromRef;
 use leptos::{config::errors::LeptosConfigError, prelude::*};
+use sqlx::migrate::MigrateError;
 use tokio::{net::TcpListener, task::JoinHandle};
-use tracing::info;
 
 #[derive(Debug, thiserror::Error)]
 pub enum StartupError {
-    #[error("failed to connect to database")]
-    DatabaseConnection(#[from] sqlx::Error),
+    #[error("failed to connect to or query the database")]
+    Database(#[from] sqlx::Error),
+
+    #[error("failed to run migrations")]
+    Migration(#[from] MigrateError),
 
     #[error("failed to load Leptos configuration")]
     LeptosConfiguration(#[from] LeptosConfigError),
@@ -20,9 +21,11 @@ pub enum StartupError {
 
 #[derive(Debug, Clone)]
 pub struct App {
-    /// `None` when no database is configured. Nothing reads the pool yet; the
-    /// seam is here for the SQLite content phase.
-    pub pool: Option<DbPool>,
+    /// The portfolio, loaded once at boot. The database is the source of truth,
+    /// but no request queries it: every response reads this cached copy, which
+    /// is also serialized into the page so the client hydrates from the same
+    /// values.
+    pub content: PortfolioContent,
     pub leptos_options: LeptosOptions,
 }
 
@@ -35,24 +38,28 @@ pub struct Application {
 }
 
 impl App {
-    /// Builds the shared application state. Without `DATABASE_URL` the site
-    /// still boots and serves its static content; a configured database that
-    /// refuses the connection is an error, because it was asked for.
+    /// Builds the shared application state: connect, migrate the schema into
+    /// place, then load the portfolio. The pool is dropped once the content is
+    /// read, since nothing queries per request.
     ///
     /// # Errors
     ///
-    /// Returns [`StartupError`] if a configured database cannot be reached or
-    /// the Leptos configuration cannot be initialized.
+    /// Returns [`StartupError`] if the database cannot be reached, a migration
+    /// fails, the content cannot be loaded, or the Leptos configuration cannot
+    /// be initialized.
     pub async fn new(settings: &Settings) -> Result<Self, StartupError> {
-        let pool = if let Some(database) = &settings.database {
-            Some(db::connect(&database.url).await?)
-        } else {
-            info!("no DATABASE_URL configured, serving static content");
-            None
-        };
+        let pool = db::connect(&settings.database.url).await?;
+        db::migrate(&pool).await?;
+        let content = db::portfolio::load(&pool).await?;
+
+        // The shell serializes this copy into each page; `App` reads its own
+        // from the server global during SSR, since router context does not
+        // reach it.
+        crate::app::content::store_server_content(content.clone());
+
         let leptos_options = get_configuration(None)?.leptos_options;
         Ok(Self {
-            pool,
+            content,
             leptos_options,
         })
     }

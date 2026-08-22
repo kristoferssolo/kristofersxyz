@@ -1,6 +1,6 @@
 use super::AMBER;
 use crate::app::{
-    content::{FocusArea, PortfolioContent, Profile, ProjectLink, SocialLink, portfolio_content},
+    content::{FocusArea, PortfolioContent, Profile, ProjectLink, SocialLink},
     editor::{
         Buffer, Destination, EditorState, Effect, EntryId, Key, KeyInput, Mode, Notification,
         SectionId, Transition, reduce, select,
@@ -163,7 +163,7 @@ fn navigate(destination: &Destination) {
 #[component]
 #[expect(clippy::too_many_lines, reason = "the view! markup is one block")]
 pub fn HomePage() -> impl IntoView {
-    let content = portfolio_content();
+    let content = expect_context::<PortfolioContent>();
     let rows = entries(&content);
     let groups = group_by_section(&rows);
     let editor = Buffer::from_content(&content);
@@ -679,6 +679,7 @@ fn group_by_section(entries: &[Entry]) -> Vec<(SectionId, Vec<(EntryId, String)>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::app::content::portfolio_content;
     use claims::{assert_none, assert_some_eq};
 
     /// The content pane and the editor read the same entries in the same

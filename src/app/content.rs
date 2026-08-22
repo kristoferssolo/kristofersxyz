@@ -1,11 +1,10 @@
 //! The portfolio content model.
 //!
 //! [`PortfolioContent`] is the shape every view renders. It is owned and
-//! serializable, so it can cross the server-to-client boundary as a Leptos
-//! resource and be built from database rows. Views read it through
-//! [`portfolio_content`]; the database is the source of truth, and this
-//! function is the fixture the reducer tests and the current page still read
-//! until the loader is wired in.
+//! serializable, so the database loader can build it and the server can embed
+//! it in the page for the client to hydrate from. The database is the source
+//! of truth; the static `portfolio_content` below is only a test fixture, and
+//! the db loader tests assert the two never drift.
 
 use serde::{Deserialize, Serialize};
 
@@ -77,147 +76,191 @@ pub struct Contact {
     pub body: String,
 }
 
-/// The single seam every view reads content through.
-#[must_use]
-pub fn portfolio_content() -> PortfolioContent {
-    let profile = Profile {
-        name: "Kristofers Solo".to_owned(),
-        title: "Rust-focused software developer building reliable web systems and developer tools."
-            .to_owned(),
-        summary: "I build practical software with an emphasis on Rust, typed interfaces, \
+/// The server's copy of the loaded portfolio. `App` reads it here during SSR:
+/// Leptos context from the router does not reach the shell-level component
+/// tree, so the boot-loaded singleton is stored here instead.
+#[cfg(feature = "ssr")]
+mod server {
+    use super::PortfolioContent;
+    use std::sync::OnceLock;
+
+    static CONTENT: OnceLock<PortfolioContent> = OnceLock::new();
+
+    /// Stores the loaded portfolio. Startup calls this once, before serving.
+    pub fn store(content: PortfolioContent) {
+        let _ = CONTENT.set(content);
+    }
+
+    /// The loaded portfolio.
+    ///
+    /// # Panics
+    ///
+    /// Panics if called before [`store`], which startup always calls first.
+    #[must_use]
+    pub fn content() -> PortfolioContent {
+        CONTENT
+            .get()
+            .expect("portfolio content is set at startup")
+            .clone()
+    }
+}
+
+#[cfg(feature = "ssr")]
+pub use server::{content as server_content, store as store_server_content};
+
+/// The static portfolio the reducer and page tests build their buffers from.
+/// The running app loads the same content from the database instead.
+#[cfg(test)]
+pub(crate) use fixture::portfolio_content;
+
+#[cfg(test)]
+mod fixture {
+    use super::*;
+
+    pub fn portfolio_content() -> PortfolioContent {
+        let profile = Profile {
+            name: "Kristofers Solo".to_owned(),
+            title:
+                "Rust-focused software developer building reliable web systems and developer tools."
+                    .to_owned(),
+            summary: "I build practical software with an emphasis on Rust, typed interfaces, \
                   maintainable web systems and tooling that makes day-to-day development simpler."
-            .to_owned(),
-        about: "I focus on Rust and web systems where correctness, maintainability and clear \
+                .to_owned(),
+            about: "I focus on Rust and web systems where correctness, maintainability and clear \
                 operational behavior matter. My preferred work is close to the boundary between \
                 product needs and engineering infrastructure: APIs, server-rendered applications, \
                 developer tools and deployment surfaces that stay understandable over time."
-            .to_owned(),
-        stack: stack(&["Rust", "Leptos", "Axum", "Tailwind"]),
-        working_style: working_style(),
-        email: "mailto:dev@kristofers.xyz".to_owned(),
-        links: vec![
-            social(
-                "Codeberg",
-                "https://codeberg.org/kristoferssolo",
-                "me noopener noreferrer",
-            ),
-            social(
-                "GitHub",
-                "https://github.com/kristoferssolo",
-                "me noopener noreferrer",
-            ),
-            social(
-                "Mastodon",
-                "https://fosstodon.org/@kristofers_solo",
-                "me noopener noreferrer",
-            ),
-            social("Email", "mailto:dev@kristofers.xyz", "noopener noreferrer"),
-        ],
-    };
-
-    let site = Site {
-        url: "https://kristofers.xyz/".to_owned(),
-        title: "Kristofers Solo, Rust software developer".to_owned(),
-        description: profile.summary.clone(),
-        og_image: "https://kristofers.xyz/og.png".to_owned(),
-    };
-
-    PortfolioContent {
-        site,
-        profile,
-        projects: projects(),
-        contact: Contact {
-            name: "Write to me".to_owned(),
-            body: "Mail is the fastest route. Repositories and posts sit behind the links below."
                 .to_owned(),
-        },
+            stack: stack(&["Rust", "Leptos", "Axum", "Tailwind"]),
+            working_style: working_style(),
+            email: "mailto:dev@kristofers.xyz".to_owned(),
+            links: vec![
+                social(
+                    "Codeberg",
+                    "https://codeberg.org/kristoferssolo",
+                    "me noopener noreferrer",
+                ),
+                social(
+                    "GitHub",
+                    "https://github.com/kristoferssolo",
+                    "me noopener noreferrer",
+                ),
+                social(
+                    "Mastodon",
+                    "https://fosstodon.org/@kristofers_solo",
+                    "me noopener noreferrer",
+                ),
+                social("Email", "mailto:dev@kristofers.xyz", "noopener noreferrer"),
+            ],
+        };
+
+        let site = Site {
+            url: "https://kristofers.xyz/".to_owned(),
+            title: "Kristofers Solo, Rust software developer".to_owned(),
+            description: profile.summary.clone(),
+            og_image: "https://kristofers.xyz/og.png".to_owned(),
+        };
+
+        PortfolioContent {
+            site,
+            profile,
+            projects: projects(),
+            contact: Contact {
+                name: "Write to me".to_owned(),
+                body:
+                    "Mail is the fastest route. Repositories and posts sit behind the links below."
+                        .to_owned(),
+            },
+        }
     }
-}
 
-fn social(label: &str, href: &str, rel: &str) -> SocialLink {
-    SocialLink {
-        label: label.to_owned(),
-        href: href.to_owned(),
-        rel: rel.to_owned(),
+    fn social(label: &str, href: &str, rel: &str) -> SocialLink {
+        SocialLink {
+            label: label.to_owned(),
+            href: href.to_owned(),
+            rel: rel.to_owned(),
+        }
     }
-}
 
-fn project_link(label: &str, href: &str) -> ProjectLink {
-    ProjectLink {
-        label: label.to_owned(),
-        href: href.to_owned(),
+    fn project_link(label: &str, href: &str) -> ProjectLink {
+        ProjectLink {
+            label: label.to_owned(),
+            href: href.to_owned(),
+        }
     }
-}
 
-fn focus(label: &str, detail: &str) -> FocusArea {
-    FocusArea {
-        label: label.to_owned(),
-        detail: detail.to_owned(),
+    fn focus(label: &str, detail: &str) -> FocusArea {
+        FocusArea {
+            label: label.to_owned(),
+            detail: detail.to_owned(),
+        }
     }
-}
 
-fn stack(items: &[&str]) -> Vec<String> {
-    items.iter().copied().map(str::to_owned).collect()
-}
+    fn stack(items: &[&str]) -> Vec<String> {
+        items.iter().copied().map(str::to_owned).collect()
+    }
 
-/// Entry names double as slugs, so they stay lowercase and URL safe.
-fn projects() -> Vec<Project> {
-    vec![
-        Project {
-            name: "guenther".to_owned(),
-            summary: "Telegram bot that takes a social media link and sends the media back \
+    /// Entry names double as slugs, so they stay lowercase and URL safe.
+    fn projects() -> Vec<Project> {
+        vec![
+            Project {
+                name: "guenther".to_owned(),
+                summary: "Telegram bot that takes a social media link and sends the media back \
                       inline, so a shared post plays in the chat instead of opening a browser."
-                .to_owned(),
-            stack: stack(&["Rust", "Telegram", "yt-dlp"]),
-            links: vec![project_link(
-                "GitHub",
-                "https://github.com/kristoferssolo/guenther",
-            )],
-        },
-        Project {
-            name: "traxor".to_owned(),
-            summary: "Terminal UI for managing Transmission torrents: queue, inspect and control \
+                    .to_owned(),
+                stack: stack(&["Rust", "Telegram", "yt-dlp"]),
+                links: vec![project_link(
+                    "GitHub",
+                    "https://github.com/kristoferssolo/guenther",
+                )],
+            },
+            Project {
+                name: "traxor".to_owned(),
+                summary:
+                    "Terminal UI for managing Transmission torrents: queue, inspect and control \
                       transfers without leaving the shell."
-                .to_owned(),
-            stack: stack(&["Rust", "ratatui", "Transmission RPC"]),
-            links: vec![project_link(
-                "Codeberg",
-                "https://codeberg.org/kristoferssolo/traxor",
-            )],
-        },
-        Project {
-            name: "cipher-workshop".to_owned(),
-            summary: "Rust workspace implementing cipher algorithms, AES-128 and CBC among them, \
+                        .to_owned(),
+                stack: stack(&["Rust", "ratatui", "Transmission RPC"]),
+                links: vec![project_link(
+                    "Codeberg",
+                    "https://codeberg.org/kristoferssolo/traxor",
+                )],
+            },
+            Project {
+                name: "cipher-workshop".to_owned(),
+                summary:
+                    "Rust workspace implementing cipher algorithms, AES-128 and CBC among them, \
                       exposed through both a CLI and a web interface."
-                .to_owned(),
-            stack: stack(&["Rust", "AES-128", "CLI", "WebAssembly"]),
-            links: vec![project_link(
-                "GitHub",
-                "https://github.com/kristoferssolo/cipher-workshop",
-            )],
-        },
-    ]
-}
+                        .to_owned(),
+                stack: stack(&["Rust", "AES-128", "CLI", "WebAssembly"]),
+                links: vec![project_link(
+                    "GitHub",
+                    "https://github.com/kristoferssolo/cipher-workshop",
+                )],
+            },
+        ]
+    }
 
-fn working_style() -> Vec<FocusArea> {
-    vec![
-        focus(
-            "Rust web services",
-            "Backend systems with explicit data flow and predictable runtime behavior.",
-        ),
-        focus(
-            "Typed interfaces",
-            "Small contracts that make invalid states harder to express.",
-        ),
-        focus(
-            "Pragmatic testing",
-            "Coverage aimed at behavior, integrations and regression-prone edges.",
-        ),
-        focus(
-            "Maintainable deployment surfaces",
-            "Operational choices that are easy to inspect, document and repeat.",
-        ),
-    ]
+    fn working_style() -> Vec<FocusArea> {
+        vec![
+            focus(
+                "Rust web services",
+                "Backend systems with explicit data flow and predictable runtime behavior.",
+            ),
+            focus(
+                "Typed interfaces",
+                "Small contracts that make invalid states harder to express.",
+            ),
+            focus(
+                "Pragmatic testing",
+                "Coverage aimed at behavior, integrations and regression-prone edges.",
+            ),
+            focus(
+                "Maintainable deployment surfaces",
+                "Operational choices that are easy to inspect, document and repeat.",
+            ),
+        ]
+    }
 }
 
 #[cfg(test)]
