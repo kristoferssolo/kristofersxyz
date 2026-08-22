@@ -1,24 +1,19 @@
 mod action_links;
 mod browser;
-mod command_line;
 mod content_pane;
 mod entry_details;
 mod external_links;
 mod model;
 mod next_entry;
 mod notice_view;
-mod status_line;
 mod view_model;
 
-use self::{
-    content_pane::ContentPane, notice_view::NoticeView, status_line::StatusLine,
-    view_model::HomeViewModel,
-};
+use self::{content_pane::ContentPane, notice_view::NoticeView, view_model::HomeViewModel};
 use crate::app::{
     browser::current_fragment,
     content::PortfolioContent,
-    editor::{Key, KeyInput},
-    layout::Sidebar,
+    editor::{Key, KeyInput, Mode},
+    layout::{BlankPage, StatusBarState, StatusLocation},
 };
 use leptos::prelude::Effect as ReactiveEffect;
 use leptos::{ev, prelude::*};
@@ -32,6 +27,19 @@ pub fn HomePage() -> impl IntoView {
     provide_context(view_model);
     let active = Signal::derive(move || view_model.state.get().active.entry);
     let on_select = Callback::new(move |entry| view_model.pick(&entry));
+    let status = Signal::derive(move || match view_model.state.get().mode {
+        Mode::Normal => StatusBarState::normal(
+            "kristofers.xyz",
+            StatusLocation::Page {
+                current: view_model.position(),
+                total: view_model.total(),
+            },
+        )
+        .with_help()
+        .with_progress(),
+        Mode::Command(text) => StatusBarState::command(':', text),
+        Mode::Search(text) => StatusBarState::command('/', text),
+    });
 
     // Fragments are not sent to the server, so restore them once the browser
     // has mounted the homepage.
@@ -66,13 +74,9 @@ pub fn HomePage() -> impl IntoView {
     });
 
     view! {
-        <main class="flex min-h-dvh flex-col bg-black font-mono text-[#d4d7db] md:h-dvh md:overflow-hidden">
-            <NoticeView />
-            <div class="grid min-h-0 flex-1 md:grid-cols-[minmax(260px,340px)_minmax(0,1fr)]">
-                <Sidebar active on_select />
-                <ContentPane />
-            </div>
-            <StatusLine />
-        </main>
+        <NoticeView />
+        <BlankPage active status on_select>
+            <ContentPane />
+        </BlankPage>
     }
 }

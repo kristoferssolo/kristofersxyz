@@ -1,4 +1,7 @@
-use crate::app::{editor::EntryId, layout::Sidebar};
+use crate::app::{
+    editor::EntryId,
+    layout::{BlankPage, StatusBarState, StatusLocation},
+};
 use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
@@ -7,40 +10,32 @@ use leptos_router::components::A;
 #[component]
 pub fn NotFoundPage() -> impl IntoView {
     let active = Signal::derive(|| EntryId::Profile);
+    let status = Signal::derive(|| {
+        StatusBarState::normal("[No Name]", StatusLocation::Cursor { line: 0, column: 0 })
+    });
 
     view! {
         // Overrides the site title from `SiteMeta`, which would otherwise
         // announce this page as the homepage in the tab and to crawlers.
         <Title text="E484: Can't open file" />
-        <main class="min-h-dvh bg-black font-mono text-[#d4d7db] md:grid md:grid-cols-[minmax(260px,340px)_minmax(0,1fr)]">
-            <Sidebar active />
-            <div class="flex min-h-dvh flex-col">
-                <section class="flex flex-1 items-center px-5 py-14 sm:px-10 md:px-14">
-                    <div class="max-w-[62ch]">
-                        <p class="text-[11px] tracking-[0.24em] text-[#4c525a] uppercase">"E484"</p>
-                        <h1 class="mt-3 font-sans text-[clamp(1.75rem,4.5vw,2.75rem)] leading-[1.1] font-semibold text-white">
-                            "Can't open file"
-                        </h1>
-                        <p class="mt-5 font-sans text-[16px] leading-[1.7] text-[#aab2bb] sm:text-[17px]">
-                            "There is nothing at this path. The portfolio lives at the root."
-                        </p>
-                        <A
-                            href="/"
-                            attr:class="mt-6 inline-block text-[13px] text-white underline decoration-[#3c424a] underline-offset-[5px] hover:decoration-[#e2a340]"
-                        >
-                            "Back to profile"
-                        </A>
-                    </div>
-                </section>
-
-                <footer class="flex h-7 shrink-0 items-stretch text-[12px] text-[#8b939d]" style="background:#0d1013">
-                    <span class="flex items-center bg-[#e2a340] px-3 font-semibold text-black">
-                        "NORMAL"
-                    </span>
-                    <span class="flex items-center px-3 text-white">"[No Name]"</span>
-                    <span class="ml-auto flex items-center px-3 tabular-nums">"0:0"</span>
-                </footer>
-            </div>
-        </main>
+        <BlankPage active status>
+            <section class="flex min-h-0 flex-1 items-center overflow-y-auto px-5 py-14 sm:px-10 md:px-14">
+                <div class="max-w-[62ch]">
+                    <p class="text-[11px] tracking-[0.24em] text-[#4c525a] uppercase">"E484"</p>
+                    <h1 class="mt-3 font-sans text-[clamp(1.75rem,4.5vw,2.75rem)] leading-[1.1] font-semibold text-white">
+                        "Can't open file"
+                    </h1>
+                    <p class="mt-5 font-sans text-[16px] leading-[1.7] text-[#aab2bb] sm:text-[17px]">
+                        "There is nothing at this path. The portfolio lives at the root."
+                    </p>
+                    <A
+                        href="/"
+                        attr:class="mt-6 inline-block text-[13px] text-white underline decoration-[#3c424a] underline-offset-[5px] hover:decoration-[#e2a340]"
+                    >
+                        "Back to profile"
+                    </A>
+                </div>
+            </section>
+        </BlankPage>
     }
 }

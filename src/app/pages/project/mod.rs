@@ -3,7 +3,7 @@ use crate::{
         browser::navigate_to,
         content::PortfolioContent,
         editor::{Buffer, EntryId, Key, PageStep},
-        layout::Sidebar,
+        layout::{BlankPage, StatusBarState, StatusLocation},
         markdown,
     },
     domain::{Project, ProjectSlug},
@@ -46,6 +46,12 @@ fn ProjectReader(project: Project) -> impl IntoView {
     });
     let repository = project.links.first().cloned();
     let filename = format!("work/{}.md", project.slug);
+    let location = position.map_or(
+        StatusLocation::Cursor { line: 0, column: 0 },
+        |(current, total)| StatusLocation::Page { current, total },
+    );
+    let status_state = StatusBarState::normal(filename, location);
+    let status = Signal::derive(move || status_state.clone());
 
     ReactiveEffect::new(move |_| {
         let current = active_id.clone();
@@ -72,84 +78,69 @@ fn ProjectReader(project: Project) -> impl IntoView {
     });
 
     view! {
-        <main class="grid h-dvh grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-black font-mono text-[#d4d7db] md:grid-cols-[minmax(260px,340px)_minmax(0,1fr)] md:grid-rows-1">
-            <Sidebar active />
-            <div class="flex min-h-0 min-w-0 flex-col">
-                <article class="min-h-0 flex-1 overflow-y-auto px-5 py-9 sm:px-10 md:px-14 md:py-14 xl:px-20">
-                    <div class="mx-auto grid max-w-[1080px] gap-14 xl:grid-cols-[minmax(0,76ch)_220px]">
-                        <div class="min-w-0">
-                            <p class="text-[10px] tracking-[0.22em] text-[#59616a] uppercase">
-                                {format!("~/work/{}", project.slug)}
-                            </p>
-                            <h1 class="mt-4 font-sans text-[clamp(2.5rem,7vw,5.5rem)] leading-[0.95] font-semibold tracking-[-0.045em] text-white">
-                                {project.title.clone()}
-                            </h1>
-                            <p class="mt-6 max-w-[62ch] font-sans text-[17px] leading-[1.65] text-[#b8bec5] sm:text-[19px]">
-                                {project.summary.clone()}
-                            </p>
-                            {repository.map(|link| {
-                                view! {
-                                    <div class="mt-7 text-[13px]">
-                                        <a
-                                            href=link.href
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="text-white underline decoration-[#3c424a] underline-offset-[5px] hover:decoration-[#e2a340]"
-                                        >
-                                            {link.label}
-                                            <span aria-hidden="true" class="ml-[1ch] text-[#e2a340]">
-                                                "↗"
-                                            </span>
-                                        </a>
-                                    </div>
-                                }
-                            })}
+        <BlankPage active status>
+            <article class="min-h-0 flex-1 overflow-y-auto px-5 py-9 sm:px-10 md:px-14 md:py-14 xl:px-20">
+                <div class="mx-auto grid max-w-[1080px] gap-14 xl:grid-cols-[minmax(0,76ch)_220px]">
+                    <div class="min-w-0">
+                        <p class="text-[10px] tracking-[0.22em] text-[#59616a] uppercase">
+                            {format!("~/work/{}", project.slug)}
+                        </p>
+                        <h1 class="mt-4 font-sans text-[clamp(2.5rem,7vw,5.5rem)] leading-[0.95] font-semibold tracking-[-0.045em] text-white">
+                            {project.title.clone()}
+                        </h1>
+                        <p class="mt-6 max-w-[62ch] font-sans text-[17px] leading-[1.65] text-[#b8bec5] sm:text-[19px]">
+                            {project.summary.clone()}
+                        </p>
+                        {repository.map(|link| {
+                            view! {
+                                <div class="mt-7 text-[13px]">
+                                    <a
+                                        href=link.href
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="text-white underline decoration-[#3c424a] underline-offset-[5px] hover:decoration-[#e2a340]"
+                                    >
+                                        {link.label}
+                                        <span aria-hidden="true" class="ml-[1ch] text-[#e2a340]">
+                                            "↗"
+                                        </span>
+                                    </a>
+                                </div>
+                            }
+                        })}
 
-                            <div
-                                class="project-description mt-14"
-                                inner_html=description
-                            ></div>
+                        <div
+                            class="project-description mt-14"
+                            inner_html=description
+                        ></div>
 
-                            <ProjectSequence projects=content.projects current=project.slug.clone() />
-                        </div>
-
-                        <aside class="border-t border-[#1e2126] pt-6 xl:border-t-0 xl:pt-1">
-                            <p class="text-[10px] tracking-[0.2em] text-[#59616a] uppercase">
-                                "Technologies"
-                            </p>
-                            <ul class="mt-3 space-y-1 text-[12px] text-[#aab2bb]">
-                                {project
-                                    .technologies
-                                    .into_iter()
-                                    .map(|technology| view! { <li>{technology}</li> })
-                                    .collect_view()}
-                            </ul>
-
-                            <div class="mt-9 border-t border-[#1e2126] pt-5">
-                                <p class="text-[10px] tracking-[0.2em] text-[#59616a] uppercase">
-                                    "Evidence"
-                                </p>
-                                <p class="mt-3 font-sans text-[13px] leading-[1.6] text-[#7f8892]">
-                                    "Description, system shape, implementation decisions, and source."
-                                </p>
-                            </div>
-                        </aside>
+                        <ProjectSequence projects=content.projects current=project.slug.clone() />
                     </div>
-                </article>
 
-                <footer class="flex h-7 shrink-0 items-stretch overflow-hidden text-[12px] leading-none text-[#8b939d]" style="background:#0d1013">
-                    <span class="flex items-center bg-[#e2a340] px-3 font-semibold text-black">
-                        "NORMAL"
-                    </span>
-                    <span class="flex min-w-0 items-center truncate px-3 text-white">
-                        {filename}
-                    </span>
-                    <span class="ml-auto flex items-center px-3 tabular-nums">
-                        {position.map(|(current, total)| format!("[{current}/{total}]"))}
-                    </span>
-                </footer>
-            </div>
-        </main>
+                    <aside class="border-t border-[#1e2126] pt-6 xl:border-t-0 xl:pt-1">
+                        <p class="text-[10px] tracking-[0.2em] text-[#59616a] uppercase">
+                            "Technologies"
+                        </p>
+                        <ul class="mt-3 space-y-1 text-[12px] text-[#aab2bb]">
+                            {project
+                                .technologies
+                                .into_iter()
+                                .map(|technology| view! { <li>{technology}</li> })
+                                .collect_view()}
+                        </ul>
+
+                        <div class="mt-9 border-t border-[#1e2126] pt-5">
+                            <p class="text-[10px] tracking-[0.2em] text-[#59616a] uppercase">
+                                "Evidence"
+                            </p>
+                            <p class="mt-3 font-sans text-[13px] leading-[1.6] text-[#7f8892]">
+                                "Description, system shape, implementation decisions, and source."
+                            </p>
+                        </div>
+                    </aside>
+                </div>
+            </article>
+        </BlankPage>
     }
 }
 
@@ -192,11 +183,13 @@ fn ProjectSequence(projects: Vec<Project>, current: ProjectSlug) -> impl IntoVie
 #[component]
 fn MissingProject() -> impl IntoView {
     let active = Signal::derive(|| EntryId::Profile);
+    let status = Signal::derive(|| {
+        StatusBarState::normal("[No Name]", StatusLocation::Cursor { line: 0, column: 0 })
+    });
 
     view! {
-        <main class="min-h-dvh bg-black font-mono text-[#d4d7db] md:grid md:grid-cols-[minmax(260px,340px)_minmax(0,1fr)]">
-            <Sidebar active />
-            <section class="flex min-h-dvh items-center px-5 py-14 sm:px-10 md:px-14">
+        <BlankPage active status>
+            <section class="flex min-h-0 flex-1 items-center overflow-y-auto px-5 py-14 sm:px-10 md:px-14">
                 <div class="max-w-[62ch]">
                     <p class="text-[11px] tracking-[0.24em] text-[#4c525a] uppercase">"E484"</p>
                     <h1 class="mt-3 font-sans text-[clamp(1.75rem,4.5vw,2.75rem)] leading-[1.1] font-semibold text-white">
@@ -210,7 +203,7 @@ fn MissingProject() -> impl IntoView {
                     </A>
                 </div>
             </section>
-        </main>
+        </BlankPage>
     }
 }
 
