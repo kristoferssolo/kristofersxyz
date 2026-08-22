@@ -1,6 +1,7 @@
 use crate::app::{
     content::PortfolioContent,
     editor::{Buffer, EntryId, SectionId},
+    editor_controller::EditorController,
 };
 use leptos::prelude::*;
 use leptos_router::components::A;
@@ -12,11 +13,16 @@ struct NavigationEntry {
     href: String,
 }
 
-/// Persistent portfolio navigation. On wide screens it occupies the same
-/// place a site header would, while the selected page scrolls beside it.
+/// The navigation's identity, shared with the toggle's `aria-controls`.
+const NAVIGATION_ID: &str = "portfolio-navigation";
+
+/// Portfolio navigation. On wide screens it occupies the same place a site
+/// header would, while the selected page scrolls beside it. Collapsed, it
+/// stays in the document so the toggle keeps naming something real.
 #[component]
 pub(super) fn Sidebar(
     #[prop(into)] active: Signal<EntryId>,
+    #[prop(into)] visible: Signal<bool>,
     on_select: Option<Callback<EntryId>>,
 ) -> impl IntoView {
     let content = expect_context::<PortfolioContent>();
@@ -24,8 +30,12 @@ pub(super) fn Sidebar(
 
     view! {
         <nav
+            id=NAVIGATION_ID
             aria-label="Portfolio"
-            class="border-b border-[#1e2126] py-3 text-[13px] md:h-full md:min-h-0 md:overflow-y-auto md:border-r md:border-b-0"
+            hidden=move || !visible.get()
+            // The top padding is the toggle's seat: the button floats over
+            // this corner in both states, so entries start below it.
+            class="border-b border-[#1e2126] pt-12 pb-3 text-[13px] md:h-full md:min-h-0 md:overflow-y-auto md:border-r md:border-b-0"
         >
             {groups
                 .into_iter()
@@ -111,6 +121,45 @@ pub(super) fn Sidebar(
                 })
                 .collect_view()}
         </nav>
+    }
+}
+
+/// The navigation's visibility control. It sits outside the `<nav>` so it
+/// survives the collapse, and dispatches the transition `Ctrl+B` dispatches.
+#[component]
+pub(super) fn SidebarToggle(editor: EditorController) -> impl IntoView {
+    let open = Signal::derive(move || editor.sidebar());
+
+    view! {
+        <button
+            type="button"
+            aria-controls=NAVIGATION_ID
+            aria-expanded=move || open.get().to_string()
+            aria-keyshortcuts="Control+B"
+            aria-label=move || {
+                if open.get() {
+                    "Collapse portfolio navigation, Ctrl+B"
+                } else {
+                    "Expand portfolio navigation, Ctrl+B"
+                }
+            }
+            on:click=move |_| editor.toggle_sidebar()
+            class="absolute top-2 left-2 z-10 flex h-7 items-center gap-[1ch] border border-[#30363d] bg-[#080a0d] px-1.5 text-[10px] text-[#b8bfc7] hover:border-[#3d444d] hover:text-white"
+        >
+            <svg
+                width="14"
+                height="14"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.4"
+                aria-hidden="true"
+            >
+                <rect x="1.5" y="2.5" width="13" height="11"></rect>
+                <line x1="6" y1="2.5" x2="6" y2="13.5"></line>
+            </svg>
+            <span aria-hidden="true" class="text-[#e2a340]">"^B"</span>
+        </button>
     }
 }
 

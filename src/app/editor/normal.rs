@@ -13,20 +13,14 @@ pub(super) fn reduce(state: &EditorState, input: KeyInput, buffer: &Buffer) -> T
             // Captured deliberately: because native find is gone, search has
             // to cover all text, which it does.
             Key::Char('f' | 'F') => enter_mode(state, Mode::Search(String::new())),
-            Key::Char('b' | 'B') => Transition::new(
-                EditorState {
-                    buffers: !state.buffers,
-                    ..state.clone()
-                },
-                Vec::new(),
-            ),
+            Key::Char('b' | 'B') => super::toggle_sidebar(state),
             _ => Transition::unchanged(state),
         };
     }
 
-    // `j` and `k` reopen a hidden buffer list, so moving never strands anyone
-    // in a pane they cannot navigate out of.
-    let select = |selection: Option<Selection>, reveal: bool| {
+    // Movement selects and scrolls, and leaves the layout alone. A reader who
+    // collapsed the navigation keeps the width they asked for.
+    let select = |selection: Option<Selection>| {
         let Some(active) = selection else {
             return Transition::unchanged(state);
         };
@@ -34,7 +28,6 @@ pub(super) fn reduce(state: &EditorState, input: KeyInput, buffer: &Buffer) -> T
         Transition::new(
             EditorState {
                 active,
-                buffers: state.buffers || reveal,
                 ..state.clone()
             },
             vec![scrolled],
@@ -44,15 +37,13 @@ pub(super) fn reduce(state: &EditorState, input: KeyInput, buffer: &Buffer) -> T
     let current = &state.active.entry;
 
     match input.key {
-        Key::Char('j') | Key::ArrowDown => select(buffer.next(current), true),
-        Key::Char('k') | Key::ArrowUp => select(buffer.previous(current), true),
-        Key::Char('J') => select(buffer.next_section(current), false),
-        Key::Char('K') => select(buffer.previous_section(current), false),
-        Key::Char('g') => select(buffer.first(), false),
-        Key::Char('G') => select(buffer.last(), false),
-        Key::Char(digit @ '1'..='9') => {
-            select(buffer.by_number(digit as usize - '0' as usize), false)
-        }
+        Key::Char('j') | Key::ArrowDown => select(buffer.next(current)),
+        Key::Char('k') | Key::ArrowUp => select(buffer.previous(current)),
+        Key::Char('J') => select(buffer.next_section(current)),
+        Key::Char('K') => select(buffer.previous_section(current)),
+        Key::Char('g') => select(buffer.first()),
+        Key::Char('G') => select(buffer.last()),
+        Key::Char(digit @ '1'..='9') => select(buffer.by_number(digit as usize - '0' as usize)),
         Key::Enter => open(state, buffer),
         Key::Char('/') => enter_mode(state, Mode::Search(String::new())),
         Key::Char(':') => enter_mode(state, Mode::Command(String::new())),

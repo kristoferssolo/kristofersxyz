@@ -1,11 +1,11 @@
 //! Browser-facing controller for the pure editor reducer.
 
 use crate::app::{
-    browser::{focus_row, navigate, navigate_to, reveal_content},
+    browser::{activates_a_control, focus_row, navigate, navigate_to, reveal_content},
     content::PortfolioContent,
     editor::{
         Buffer, BufferEntry, EditorState, Effect, EntryId, Key, KeyInput, Mode, Transition, reduce,
-        select,
+        select, toggle_sidebar,
     },
 };
 use leptos::{prelude::*, web_sys::KeyboardEvent};
@@ -22,6 +22,20 @@ enum SelectionBehavior {
     Routes,
 }
 
+/// The reader's sidebar choice, carried across route changes.
+///
+/// Every page builds its own [`EditorController`], so without somewhere to
+/// leave it, a collapse would spring back open on the next navigation. The
+/// reducer still decides; this only remembers what it last decided.
+#[derive(Clone, Copy)]
+pub struct SidebarPreference(RwSignal<bool>);
+
+impl Default for SidebarPreference {
+    fn default() -> Self {
+        Self(RwSignal::new(true))
+    }
+}
+
 #[derive(Clone)]
 struct Notice {
     id: u64,
@@ -36,6 +50,7 @@ pub struct EditorController {
     buffer: StoredValue<Buffer>,
     notice: RwSignal<Option<Notice>>,
     issued: StoredValue<u64>,
+    sidebar_preference: SidebarPreference,
     selection_behavior: SelectionBehavior,
 }
 
@@ -59,12 +74,18 @@ impl EditorController {
         let selection = buffer
             .get(active)
             .map_or_else(Default::default, BufferEntry::selection);
+        let sidebar_preference = use_context::<SidebarPreference>().unwrap_or_default();
+        let state = EditorState {
+            sidebar: sidebar_preference.0.get_untracked(),
+            ..EditorState::new(selection)
+        };
 
         Self {
-            state: RwSignal::new(EditorState::new(selection)),
+            state: RwSignal::new(state),
             buffer: StoredValue::new(buffer),
             notice: RwSignal::new(None),
             issued: StoredValue::new(0),
+            sidebar_preference,
             selection_behavior,
         }
     }
@@ -82,6 +103,17 @@ impl EditorController {
     #[must_use]
     pub fn help(self) -> bool {
         self.state.get().help
+    }
+
+    #[must_use]
+    pub fn sidebar(self) -> bool {
+        self.state.get().sidebar
+    }
+
+    /// The toggle button's way into the reducer. Identical to `Ctrl+B`, so the
+    /// two controls cannot disagree about the layout.
+    pub fn toggle_sidebar(self) {
+        self.advance(toggle_sidebar(&self.state.get_untracked()));
     }
 
     #[must_use]
@@ -136,13 +168,20 @@ impl EditorController {
     /// Normalizes and dispatches one browser key event. Returns whether the
     /// editor handled it so the caller can preserve native browser shortcuts.
     pub fn handle_keydown(self, event: &KeyboardEvent) {
+        let current = self.state.get_untracked();
+
+        // An open line owns its Enter. In Normal mode the key belongs to
+        // whatever control has focus, so tab stops stay usable.
+        if matches!(current.mode, Mode::Normal) && activates_a_control(event) {
+            return;
+        }
+
         let input = KeyInput {
             key: Key::from_name(&event.key()),
             ctrl: event.ctrl_key(),
             alt: event.alt_key(),
             meta: event.meta_key(),
         };
-        let current = self.state.get_untracked();
         let transition = self
             .buffer
             .with_value(|buffer| reduce(&current, input, buffer));
@@ -156,6 +195,10 @@ impl EditorController {
     }
 
     fn advance(self, transition: Transition) {
+        if transition.state.sidebar != self.state.get_untracked().sidebar {
+            self.sidebar_preference.0.set(transition.state.sidebar);
+        }
+
         self.state.set(transition.state);
         for effect in &transition.effects {
             self.apply(effect);

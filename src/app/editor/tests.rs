@@ -143,22 +143,33 @@ fn question_mark_opens_help_and_escape_closes_it() {
 }
 
 #[test]
-fn ctrl_b_hides_the_buffer_list_and_j_brings_it_back() {
+fn ctrl_b_collapses_the_sidebar_and_movement_leaves_it_collapsed() {
     let hidden = reduce(
         &on(EntryId::Profile),
         KeyInput::ctrl(Key::Char('b')),
         &buffer(),
     )
     .state;
-    assert!(!hidden.buffers);
+    assert!(!hidden.sidebar);
 
     assert!(
-        press(&hidden, Key::Char('j')).state.buffers,
-        "j must not strand the reader in a pane they cannot navigate"
+        !press(&hidden, Key::Char('j')).state.sidebar,
+        "movement must not undo a collapse the reader asked for"
     );
-    assert!(
-        !press(&hidden, Key::Char('G')).state.buffers,
-        "only j and k reopen it, so jumping keeps the full width view"
+
+    let shown = reduce(&hidden, KeyInput::ctrl(Key::Char('b')), &buffer()).state;
+    assert!(shown.sidebar);
+}
+
+/// The toggle button dispatches [`toggle_sidebar`] directly, so it has to
+/// produce exactly what the key press produces.
+#[test]
+fn the_toggle_button_and_ctrl_b_agree() {
+    let state = on(EntryId::Profile);
+
+    assert_eq!(
+        toggle_sidebar(&state),
+        reduce(&state, KeyInput::ctrl(Key::Char('b')), &buffer())
     );
 }
 

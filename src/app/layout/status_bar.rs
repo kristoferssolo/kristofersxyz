@@ -98,33 +98,27 @@ impl StatusBarState {
 #[component]
 pub(super) fn StatusBar(#[prop(into)] state: Signal<StatusBarState>) -> impl IntoView {
     view! {
-        <footer
-            class="grid h-7 shrink-0 grid-cols-1 overflow-hidden md:grid-cols-[minmax(260px,340px)_minmax(0,1fr)]"
-            style="background:#0d1013"
-        >
-            // Native browsers draw hovered-link destinations in the lower
-            // left. Keep that desktop area clear so it cannot cover status.
-            <div aria-hidden="true" class="hidden border-r border-[#1e2126] md:block"></div>
-            <div class="min-w-0">
-                {move || match state.get().0 {
-                    StatusBarContent::Normal {
-                        filename,
-                        location,
-                        show_help,
-                        show_progress,
-                    } => {
-                        let progress = show_progress.then(|| location.progress()).flatten();
-                        view! {
-                            <div class="flex h-full items-stretch text-[12px] leading-none text-[#8b939d]">
-                                <span
-                                    class="flex items-center px-3 font-semibold text-black"
-                                    style=format!("background:{AMBER}")
-                                >
-                                    "NORMAL"
-                                </span>
-                                <span class="flex min-w-0 items-center truncate px-3 text-white">
-                                    {filename}
-                                </span>
+        <footer class="flex h-7 shrink-0 overflow-hidden" style="background:#0d1013">
+            {move || match state.get().0 {
+                StatusBarContent::Normal {
+                    filename,
+                    location,
+                    show_help,
+                    show_progress,
+                } => {
+                    let progress = show_progress.then(|| location.progress()).flatten();
+                    view! {
+                        <div class="flex h-full w-full items-stretch text-[12px] leading-none text-[#8b939d]">
+                            // Native browsers draw hovered-link destinations
+                            // over the lower left. Only the mode block sits
+                            // there, and it has nothing to read.
+                            <span
+                                class="flex items-center px-3 font-semibold text-black"
+                                style=format!("background:{AMBER}")
+                            >
+                                "NORMAL"
+                            </span>
+                            <span class="ml-auto flex min-w-0 items-stretch">
                                 {show_help.then(|| {
                                     view! {
                                         <span class="hidden items-center px-3 text-[#6c757f] md:flex">
@@ -132,27 +126,28 @@ pub(super) fn StatusBar(#[prop(into)] state: Signal<StatusBarState>) -> impl Int
                                         </span>
                                     }
                                 })}
-                                <span class="ml-auto flex items-stretch">
-                                    <span class="flex items-center px-3 tabular-nums">
-                                        {location.to_string()}
-                                    </span>
-                                    {progress.map(|percentage| {
-                                        view! {
-                                            <span class="flex items-center px-3 tabular-nums">
-                                                {format!("{percentage}%")}
-                                            </span>
-                                        }
-                                    })}
+                                <span class="flex min-w-0 items-center truncate px-3 text-white">
+                                    {filename}
                                 </span>
-                            </div>
-                        }
-                        .into_any()
+                                <span class="flex items-center px-3 tabular-nums">
+                                    {location.to_string()}
+                                </span>
+                                {progress.map(|percentage| {
+                                    view! {
+                                        <span class="flex items-center px-3 tabular-nums">
+                                            {format!("{percentage}%")}
+                                        </span>
+                                    }
+                                })}
+                            </span>
+                        </div>
                     }
-                    StatusBarContent::Command { prompt, text } => {
-                        view! { <CommandLine prompt text /> }.into_any()
-                    }
-                }}
-            </div>
+                    .into_any()
+                }
+                StatusBarContent::Command { prompt, text } => {
+                    view! { <CommandLine prompt text /> }.into_any()
+                }
+            }}
         </footer>
     }
 }
@@ -160,7 +155,7 @@ pub(super) fn StatusBar(#[prop(into)] state: Signal<StatusBarState>) -> impl Int
 #[component]
 fn CommandLine(prompt: char, text: String) -> impl IntoView {
     view! {
-        <div class="flex h-full items-center gap-[1ch] border border-[#2b3037] bg-[#0b0e11] px-2.5 text-[13px] text-white">
+        <div class="flex h-full w-full items-center gap-[1ch] border border-[#2b3037] bg-[#0b0e11] px-2.5 text-[13px] text-white">
             <span aria-hidden="true" class="text-[#e2a340]">"\u{276f}"</span>
             <span>{format!("{prompt}{text}")}</span>
             <span aria-hidden="true" class="inline-block h-[15px] w-[1ch] bg-white"></span>

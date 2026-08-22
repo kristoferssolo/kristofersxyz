@@ -38,6 +38,21 @@ pub fn reduce(state: &EditorState, input: KeyInput, buffer: &Buffer) -> Transiti
     }
 }
 
+/// Shows or hides the portfolio navigation.
+///
+/// `Ctrl+B` and the toggle button both reduce through here, so the button is
+/// never a second source of truth for the layout.
+#[must_use]
+pub fn toggle_sidebar(state: &EditorState) -> Transition {
+    Transition::new(
+        EditorState {
+            sidebar: !state.sidebar,
+            ..state.clone()
+        },
+        Vec::new(),
+    )
+}
+
 /// Selects an entry by id, rather than by key press.
 ///
 /// The two paths that need it are a click on a row or an action link, and a

@@ -1,7 +1,10 @@
 //! Browser navigation at the edge of the application.
 
 use crate::app::editor::{Destination, EntryId};
-use leptos::{prelude::document, wasm_bindgen::JsCast, web_sys};
+use leptos::{prelude::document, wasm_bindgen::JsCast, web_sys, web_sys::KeyboardEvent};
+
+/// The controls that answer to `Enter` themselves.
+const ACTIVATABLE: &str = "a[href], button";
 
 /// Below this width the sidebar and content stack, so a selection has to pull
 /// the content into view. Matches Tailwind's `md` breakpoint.
@@ -27,6 +30,18 @@ pub(super) fn navigate(destination: &Destination) {
 /// Opens one entry in the portfolio's ordered page sequence.
 pub(super) fn navigate_to(entry: &EntryId) {
     navigate(&Destination::Internal(entry.path()));
+}
+
+/// Whether the key press landed on a control that activates itself, such as
+/// the sidebar toggle or a navigation row. Both are tab stops, so the editor
+/// has to leave their `Enter` alone.
+pub(super) fn activates_a_control(event: &KeyboardEvent) -> bool {
+    event.key() == "Enter"
+        && event
+            .target()
+            .and_then(|target| target.dyn_into::<web_sys::Element>().ok())
+            .and_then(|element| element.closest(ACTIVATABLE).ok().flatten())
+            .is_some()
 }
 
 /// Returns the current URL fragment when it addresses part of the homepage.

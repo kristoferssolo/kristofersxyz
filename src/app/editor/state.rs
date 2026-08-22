@@ -22,19 +22,20 @@ pub struct EditorState {
     pub active: Selection,
     /// The which-key panel.
     pub help: bool,
-    /// The buffer list pane. `Ctrl+B` closes it, `:only` semantics.
-    pub buffers: bool,
+    /// The portfolio navigation. `Ctrl+B` and the toggle button are the only
+    /// two ways to change it, so a collapse is always the reader's choice.
+    pub sidebar: bool,
 }
 
 impl EditorState {
-    /// Normal mode on `active`, help closed and the buffer list open.
+    /// Normal mode on `active`, help closed and the navigation open.
     #[must_use]
     pub const fn new(active: Selection) -> Self {
         Self {
             mode: Mode::Normal,
             active,
             help: false,
-            buffers: true,
+            sidebar: true,
         }
     }
 }

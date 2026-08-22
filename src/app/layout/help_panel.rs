@@ -44,6 +44,7 @@ pub(super) fn HelpPanel(editor: EditorController) -> impl IntoView {
                                         (":contact", "open contact"),
                                         ("/text", "search portfolio content"),
                                         ("Ctrl+F", "start search"),
+                                        ("Ctrl+B", "show or hide the sidebar"),
                                     ]
                                 />
                             </div>

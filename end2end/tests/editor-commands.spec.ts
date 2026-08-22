@@ -3,7 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 async function runHelpCommand(page: Page) {
   await page.locator("main").click();
   await page.keyboard.type(":");
-  await expect(page.locator("footer > div").nth(1)).toHaveCSS(
+  await expect(page.locator("footer > div").first()).toHaveCSS(
     "border-radius",
     "0px",
   );
@@ -15,9 +15,7 @@ async function runHelpCommand(page: Page) {
   ).toBeVisible();
 }
 
-test("commands work on the homepage and project details", async ({
-  page,
-}) => {
+test("commands work on the homepage and project details", async ({ page }) => {
   await page.goto("http://localhost:3000/");
   await runHelpCommand(page);
 
@@ -31,22 +29,57 @@ test("commands work on the homepage and project details", async ({
   await expect(page).toHaveURL("http://localhost:3000/#contact");
 });
 
-test("desktop status starts beyond the native link preview area", async ({
+test("the status line spans the viewport, its text clear of the link preview", async ({
+  page,
+}) => {
+  const width = 1280;
+  await page.setViewportSize({ width, height: 800 });
+  await page.goto("http://localhost:3000/");
+
+  const status = await page.locator("footer > div").first().boundingBox();
+  // Browsers draw hovered-link destinations over the lower left, so the
+  // filename lives in the right cluster and only the mode block is exposed.
+  const filename = await page
+    .locator("footer")
+    .getByText("kristofers.xyz")
+    .boundingBox();
+
+  expect(status).not.toBeNull();
+  expect(filename).not.toBeNull();
+  if (status === null || filename === null) {
+    throw new Error("the shared page chrome did not render");
+  }
+
+  expect(status.x).toBeLessThanOrEqual(1);
+  expect(status.width).toBeGreaterThanOrEqual(width - 1);
+  expect(filename.x).toBeGreaterThan(width / 2);
+});
+
+test("ctrl+b collapses the sidebar and movement leaves it collapsed", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("http://localhost:3000/");
 
-  const sidebar = await page
-    .getByRole("navigation", { name: "Portfolio" })
-    .boundingBox();
-  const status = await page.locator("footer > div").nth(1).boundingBox();
+  const navigation = page.getByRole("navigation", { name: "Portfolio" });
+  const toggle = page.getByRole("button", { name: /portfolio navigation/ });
 
-  expect(sidebar).not.toBeNull();
-  expect(status).not.toBeNull();
-  if (sidebar === null || status === null) {
-    throw new Error("the shared page chrome did not render");
-  }
+  await expect(navigation).toBeVisible();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
 
-  expect(status.x).toBeGreaterThanOrEqual(sidebar.x + sidebar.width - 1);
+  // The toggle is the first tab stop, and the editor leaves its Enter alone.
+  await page.keyboard.press("Tab");
+  await expect(toggle).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(navigation).toBeHidden();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+  // G jumps to contact, which the homepage selects in place. Movement must
+  // leave the layout exactly as the reader set it.
+  await page.keyboard.press("G");
+  await expect(page.locator("footer")).toContainText("[5/5]");
+  await expect(navigation).toBeHidden();
+
+  await toggle.click();
+  await expect(navigation).toBeVisible();
 });

@@ -1,7 +1,10 @@
 use super::site_meta::SiteMeta;
 #[cfg(feature = "hydrate")]
 use crate::app::content::PortfolioContent;
-use crate::app::pages::{HomePage, NotFoundPage, ProjectPage};
+use crate::app::{
+    editor_controller::SidebarPreference,
+    pages::{HomePage, NotFoundPage, ProjectPage},
+};
 use leptos::prelude::*;
 #[cfg(feature = "hydrate")]
 use leptos::serde_json;
@@ -39,6 +42,9 @@ pub fn App() -> impl IntoView {
     provide_context(crate::app::content::server_content());
     #[cfg(feature = "hydrate")]
     provide_context(embedded_content());
+
+    // Above the router, so collapsing the sidebar survives a navigation.
+    provide_context(SidebarPreference::default());
 
     view! {
         <Stylesheet id="fonts" href=FONTS />
