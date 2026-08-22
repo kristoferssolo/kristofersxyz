@@ -1,15 +1,14 @@
 use crate::{
     app::{
-        browser::navigate_to,
         content::PortfolioContent,
-        editor::{Buffer, EntryId, Key, PageStep},
+        editor::EntryId,
+        editor_controller::EditorController,
         layout::{BlankPage, StatusBarState, StatusLocation},
         markdown,
     },
     domain::{Project, ProjectSlug},
 };
-use leptos::prelude::Effect as ReactiveEffect;
-use leptos::{ev, prelude::*};
+use leptos::prelude::*;
 use leptos_router::{components::A, hooks::use_params_map};
 
 #[component]
@@ -35,50 +34,24 @@ pub fn ProjectPage() -> impl IntoView {
 fn ProjectReader(project: Project) -> impl IntoView {
     let content = expect_context::<PortfolioContent>();
     let active_id = EntryId::Project(project.slug.clone());
-    let active_entry = active_id.clone();
-    let active = Signal::derive(move || active_entry.clone());
-    let pages = StoredValue::new(Buffer::from_content(&content));
+    let editor = EditorController::routes(&content, &active_id);
     let description = markdown::render(&project.description);
-    let position = pages.with_value(|pages| {
-        pages
-            .number_of(&active_id)
-            .map(|current| (current, pages.len()))
-    });
     let repository = project.links.first().cloned();
     let filename = format!("work/{}.md", project.slug);
-    let location = position.map_or(
-        StatusLocation::Cursor { line: 0, column: 0 },
-        |(current, total)| StatusLocation::Page { current, total },
-    );
-    let status_state = StatusBarState::normal(filename, location);
-    let status = Signal::derive(move || status_state.clone());
-
-    ReactiveEffect::new(move |_| {
-        let current = active_id.clone();
-        let handle = window_event_listener(ev::keydown, move |event| {
-            if event.ctrl_key() || event.alt_key() || event.meta_key() {
-                return;
-            }
-
-            let step = match Key::from_name(&event.key()) {
-                Key::Char('j') | Key::ArrowDown => PageStep::Next,
-                Key::Char('k') | Key::ArrowUp => PageStep::Previous,
-                _ => return,
-            };
-            let target = pages.with_value(|pages| pages.step(&current, step));
-
-            if let Some(target) = target
-                && target.entry != current
-            {
-                event.prevent_default();
-                navigate_to(&target.entry);
-            }
-        });
-        on_cleanup(move || handle.remove());
+    let status = Signal::derive(move || {
+        StatusBarState::from_editor_mode(
+            editor.mode(),
+            filename.clone(),
+            StatusLocation::Page {
+                current: editor.position(),
+                total: editor.total(),
+            },
+        )
+        .with_help()
     });
 
     view! {
-        <BlankPage active status>
+        <BlankPage editor status>
             <article class="min-h-0 flex-1 overflow-y-auto px-5 py-9 sm:px-10 md:px-14 md:py-14 xl:px-20">
                 <div class="mx-auto grid max-w-[1080px] gap-14 xl:grid-cols-[minmax(0,76ch)_220px]">
                     <div class="min-w-0">
@@ -182,13 +155,19 @@ fn ProjectSequence(projects: Vec<Project>, current: ProjectSlug) -> impl IntoVie
 
 #[component]
 fn MissingProject() -> impl IntoView {
-    let active = Signal::derive(|| EntryId::Profile);
-    let status = Signal::derive(|| {
-        StatusBarState::normal("[No Name]", StatusLocation::Cursor { line: 0, column: 0 })
+    let content = expect_context::<PortfolioContent>();
+    let editor = EditorController::routes(&content, &EntryId::Profile);
+    let status = Signal::derive(move || {
+        StatusBarState::from_editor_mode(
+            editor.mode(),
+            "[No Name]",
+            StatusLocation::Cursor { line: 0, column: 0 },
+        )
+        .with_help()
     });
 
     view! {
-        <BlankPage active status>
+        <BlankPage editor status>
             <section class="flex min-h-0 flex-1 items-center overflow-y-auto px-5 py-14 sm:px-10 md:px-14">
                 <div class="max-w-[62ch]">
                     <p class="text-[11px] tracking-[0.24em] text-[#4c525a] uppercase">"E484"</p>

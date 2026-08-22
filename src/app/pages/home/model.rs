@@ -84,14 +84,6 @@ pub(super) struct Entry {
     pub(super) links: Links,
 }
 
-/// A notification with the id that owns its timer, so an older timer cannot
-/// erase a newer message.
-#[derive(Clone)]
-pub(super) struct Notice {
-    pub(super) id: u64,
-    pub(super) message: String,
-}
-
 /// Flattens the portfolio into the buffer's line list, in the same order and
 /// under the same ids as the editor's own [`Buffer`].
 pub(super) fn entries(content: &PortfolioContent) -> Vec<Entry> {

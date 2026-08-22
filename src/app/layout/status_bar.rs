@@ -1,3 +1,4 @@
+use crate::app::editor::Mode;
 use leptos::prelude::*;
 use std::fmt::{self, Display, Formatter};
 
@@ -51,6 +52,19 @@ enum StatusBarContent {
 }
 
 impl StatusBarState {
+    #[must_use]
+    pub fn from_editor_mode(
+        mode: Mode,
+        filename: impl Into<String>,
+        location: StatusLocation,
+    ) -> Self {
+        match mode {
+            Mode::Normal => Self::normal(filename, location),
+            Mode::Command(text) => Self::command(':', text),
+            Mode::Search(text) => Self::command('/', text),
+        }
+    }
+
     pub fn normal(filename: impl Into<String>, location: StatusLocation) -> Self {
         Self(StatusBarContent::Normal {
             filename: filename.into(),

@@ -1,5 +1,7 @@
 use crate::app::{
+    content::PortfolioContent,
     editor::EntryId,
+    editor_controller::EditorController,
     layout::{BlankPage, StatusBarState, StatusLocation},
 };
 use leptos::prelude::*;
@@ -9,16 +11,22 @@ use leptos_router::components::A;
 /// Unknown paths, reported the way the editor would report a missing file.
 #[component]
 pub fn NotFoundPage() -> impl IntoView {
-    let active = Signal::derive(|| EntryId::Profile);
-    let status = Signal::derive(|| {
-        StatusBarState::normal("[No Name]", StatusLocation::Cursor { line: 0, column: 0 })
+    let content = expect_context::<PortfolioContent>();
+    let editor = EditorController::routes(&content, &EntryId::Profile);
+    let status = Signal::derive(move || {
+        StatusBarState::from_editor_mode(
+            editor.mode(),
+            "[No Name]",
+            StatusLocation::Cursor { line: 0, column: 0 },
+        )
+        .with_help()
     });
 
     view! {
         // Overrides the site title from `SiteMeta`, which would otherwise
         // announce this page as the homepage in the tab and to crawlers.
         <Title text="E484: Can't open file" />
-        <BlankPage active status>
+        <BlankPage editor status>
             <section class="flex min-h-0 flex-1 items-center overflow-y-auto px-5 py-14 sm:px-10 md:px-14">
                 <div class="max-w-[62ch]">
                     <p class="text-[11px] tracking-[0.24em] text-[#4c525a] uppercase">"E484"</p>
