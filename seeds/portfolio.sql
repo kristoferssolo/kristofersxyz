@@ -56,17 +56,26 @@ INSERT INTO project (id, sort_order, slug, title, summary, description_markdown)
         'guenther',
         'guenther',
         'Telegram bot that takes a social media link and sends the media back inline, so a shared post plays in the chat instead of opening a browser.',
-        '# What it solves
+        '## What it solves
 
-Shared media plays inside the Telegram conversation.
+Guenther turns supported Instagram, TikTok, X, and YouTube Shorts links into media that plays inside the Telegram conversation. Public posts stay in the chat instead of sending everyone through a browser or login prompt.
 
-## System
+## System shape
 
-Guenther receives Telegram updates, routes supported links to a media downloader, and replies with the resulting media.
+```text
+Telegram update
+    -> Guenther router
+    -> private Cobalt sidecar
+    -> Telegram media response
+```
+
+The Rust process classifies each URL, sends the download request to Cobalt, and builds the Telegram response. Optional modules handle F1 schedules, persistent bingo games, and reusable voice lines without making those dependencies mandatory for the media path.
 
 ## Engineering evidence
 
-The Rust application coordinates Telegram, media retrieval, optional game state, and container deployment.'
+The bingo module stores concurrent chat-local games in SQLite through SQLx. Entry imports are transactional, and existing cards keep their original entry text after later edits.
+
+The Compose deployment keeps Cobalt on a private network with no host port. An optional proxy applies only to Cobalt traffic, so it never receives the Telegram bot token.'
     ),
     (
         2,
@@ -74,7 +83,7 @@ The Rust application coordinates Telegram, media retrieval, optional game state,
         'traxor',
         'traxor',
         'Terminal UI for managing Transmission torrents: queue, inspect and control transfers without leaving the shell.',
-        '# What it solves
+        '## What it solves
 
 Torrent operations stay in the terminal.
 
@@ -88,15 +97,17 @@ Traxor presents Transmission RPC state through a keyboard-driven terminal interf
         'cipher-workshop',
         'cipher-workshop',
         'Rust workspace implementing cipher algorithms, AES-128 and CBC among them, exposed through both a CLI and a web interface.',
-        '# What it explores
+        '## What it explores
 
 Cipher implementations share one Rust workspace and support command-line and browser interfaces.'
     );
 
 INSERT INTO project_technology (project_id, sort_order, item) VALUES
     (1, 1, 'Rust'),
-    (1, 2, 'Telegram'),
-    (1, 3, 'yt-dlp'),
+    (1, 2, 'teloxide'),
+    (1, 3, 'Cobalt'),
+    (1, 4, 'SQLx and SQLite'),
+    (1, 5, 'Docker Compose'),
     (2, 1, 'Rust'),
     (2, 2, 'ratatui'),
     (2, 3, 'Transmission RPC'),

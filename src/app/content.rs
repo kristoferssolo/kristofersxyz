@@ -210,13 +210,28 @@ mod fixture {
                       inline, so a shared post plays in the chat instead of opening a browser."
                     .to_owned(),
                 description: project_description(
-                    "# What it solves\n\nShared media plays inside the Telegram conversation.\n\n\
-                     ## System\n\nGuenther receives Telegram updates, routes supported links to a media \
-                     downloader, and replies with the resulting media.\n\n## Engineering evidence\n\n\
-                     The Rust application coordinates Telegram, media retrieval, optional game \
-                     state, and container deployment.",
+                    "## What it solves\n\nGuenther turns supported Instagram, TikTok, X, and \
+                     YouTube Shorts links into media that plays inside the Telegram conversation. \
+                     Public posts stay in the chat instead of sending everyone through a browser \
+                     or login prompt.\n\n## System shape\n\n```text\nTelegram update\n    -> \
+                     Guenther router\n    -> private Cobalt sidecar\n    -> Telegram media response\n\
+                     ```\n\nThe Rust process classifies each URL, sends the download request to Cobalt, \
+                     and builds the Telegram response. Optional modules handle F1 schedules, \
+                     persistent bingo games, and reusable voice lines without making those \
+                     dependencies mandatory for the media path.\n\n## Engineering evidence\n\nThe \
+                     bingo module stores concurrent chat-local games in SQLite through SQLx. Entry \
+                     imports are transactional, and existing cards keep their original entry text \
+                     after later edits.\n\nThe Compose deployment keeps Cobalt on a private network \
+                     with no host port. An optional proxy applies only to Cobalt traffic, so it \
+                     never receives the Telegram bot token.",
                 ),
-                technologies: technologies(&["Rust", "Telegram", "yt-dlp"]),
+                technologies: technologies(&[
+                    "Rust",
+                    "teloxide",
+                    "Cobalt",
+                    "SQLx and SQLite",
+                    "Docker Compose",
+                ]),
                 links: vec![project_link(
                     "GitHub",
                     "https://github.com/kristoferssolo/guenther",
@@ -230,7 +245,7 @@ mod fixture {
                       transfers without leaving the shell."
                         .to_owned(),
                 description: project_description(
-                    "# What it solves\n\nTorrent operations stay in the terminal.\n\n## System\n\n\
+                    "## What it solves\n\nTorrent operations stay in the terminal.\n\n## System\n\n\
                      Traxor presents Transmission RPC state through a keyboard-driven terminal \
                      interface.",
                 ),
@@ -248,7 +263,7 @@ mod fixture {
                       exposed through both a CLI and a web interface."
                         .to_owned(),
                 description: project_description(
-                    "# What it explores\n\nCipher implementations share one Rust workspace and \
+                    "## What it explores\n\nCipher implementations share one Rust workspace and \
                      support command-line and browser interfaces.",
                 ),
                 technologies: technologies(&["Rust", "AES-128", "CLI", "WebAssembly"]),
