@@ -41,9 +41,9 @@ pub struct Application {
 }
 
 impl App {
-    /// Builds the shared application state: connect, migrate the schema into
-    /// place, then load the portfolio. The pool is dropped once the content is
-    /// read, since nothing queries per request.
+    /// Builds the shared application state: connect, migrate the schema, seed
+    /// an empty database, then load the portfolio. The pool is dropped once
+    /// the content is read, since nothing queries per request.
     ///
     /// # Errors
     ///
@@ -53,6 +53,7 @@ impl App {
     pub async fn new(settings: &Settings) -> Result<Self, StartupError> {
         let pool = db::connect(&settings.database.url).await?;
         db::migrate(&pool).await?;
+        db::seed_if_empty(&pool).await?;
         let content = db::portfolio::load(&pool).await?;
 
         // The shell serializes this copy into each page; `App` reads its own
@@ -107,5 +108,26 @@ impl Application {
     #[inline]
     pub async fn run_until_stopped(self) -> Result<(), std::io::Error> {
         self.server.await?
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::configuration::DatabaseSettings;
+    use claims::assert_ok;
+    use tempfile::NamedTempFile;
+
+    #[tokio::test]
+    async fn a_fresh_database_boots_with_portfolio_content() {
+        let database = NamedTempFile::new().expect("create a temporary database");
+        let settings = Settings {
+            database: DatabaseSettings {
+                url: format!("sqlite://{}", database.path().display()),
+            },
+        };
+
+        let app = assert_ok!(App::new(&settings).await);
+        assert_eq!(app.content.projects.len(), 3);
     }
 }
