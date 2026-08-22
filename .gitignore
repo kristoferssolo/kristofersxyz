@@ -21,6 +21,10 @@ test-results/
 end2end/playwright-report/
 playwright/.cache/
 
+# Local design artifacts
+public/mocks/
+public/og.png
+
 .env
 *.db
 *.db-shm
