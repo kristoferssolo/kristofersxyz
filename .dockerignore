@@ -1,7 +1,13 @@
 target/
 .git/
 .gitignore
+Dockerfile
+.dockerignore
 *.md
 .claude/
 end2end/
 .env*
+data/
+docs/
+.sqruff
+justfile

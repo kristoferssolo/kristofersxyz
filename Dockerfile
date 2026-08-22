@@ -1,9 +1,8 @@
 # Compute recipe
 FROM lukemathwalker/cargo-chef:0.1.78-rust-1.98.0-bookworm AS chef
 WORKDIR /app
-COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
-COPY src ./src
-COPY migrations ./migrations
+# droast ignore=DF007 reason="build context is constrained by .dockerignore"
+COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 # Install tools and build dependencies
@@ -34,12 +33,8 @@ RUN rustup target add wasm32-unknown-unknown
 
 # Bring in the cooked dependencies
 COPY --from=cacher /app/target target
-COPY Cargo.toml Cargo.lock ./
-COPY src ./src
-COPY migrations ./migrations
-COPY public ./public
-COPY seeds ./seeds
-COPY style ./style
+# droast ignore=DF007 reason="build context is constrained by .dockerignore"
+COPY . .
 
 # Build the Leptos app
 RUN cargo leptos build --release -vv
