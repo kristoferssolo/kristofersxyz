@@ -64,6 +64,7 @@ async fn the_seed_matches_the_static_fixture() {
         assert_eq!(loaded.slug, fixture.slug);
         assert_eq!(loaded.title, fixture.title);
         assert_eq!(loaded.summary, fixture.summary);
+        assert_eq!(loaded.description.as_str(), fixture.description.as_str());
         assert_eq!(loaded.technologies, fixture.technologies);
     }
 }

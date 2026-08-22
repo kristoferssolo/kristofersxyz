@@ -20,6 +20,10 @@ _Avoid_: Repository, work item, entry
 The portfolio's in-depth account of a Project. It combines a description and visual evidence with the Technologies used and, when useful, its architecture.
 _Avoid_: Read more, project page, case study
 
+**Project Description**:
+The ordered account of a Project's problem, system shape, engineering decisions, and results. It forms the main body of the Project Detail.
+_Avoid_: Body, content blob, case-study copy
+
 **Project Evidence**:
 Concrete material in a Project Detail that supports a claim about Kristofers's abilities, such as a screenshot, technical constraint, design decision, or result.
 _Avoid_: Feature list, proof point, content block

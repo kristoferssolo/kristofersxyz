@@ -37,8 +37,10 @@ pub(super) struct ContactRow {
 #[derive(sqlx::FromRow)]
 pub(super) struct ProjectRow {
     pub(super) id: i64,
-    pub(super) name: String,
+    pub(super) slug: String,
+    pub(super) title: String,
     pub(super) summary: String,
+    pub(super) description_markdown: String,
 }
 
 #[derive(sqlx::FromRow)]

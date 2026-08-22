@@ -1,20 +1,20 @@
 use super::rows::{ProjectItemRow, ProjectLinkRow, ProjectRow};
 use crate::{
-    app::content::{ProjectLink, ProjectSlug, ProjectSummary},
     db::DbPool,
+    domain::{Project, ProjectDescription, ProjectLink, ProjectSlug},
 };
 
-/// Loads project summaries with Technologies and links grouped in memory,
-/// avoiding queries per project.
-pub(super) async fn load(pool: &DbPool) -> Result<Vec<ProjectSummary>, sqlx::Error> {
+/// Loads projects with Technologies and links grouped in memory, avoiding
+/// queries per project.
+pub(super) async fn load(pool: &DbPool) -> Result<Vec<Project>, super::LoadError> {
     let rows = sqlx::query_as::<_, ProjectRow>(
-        "SELECT id, name, summary FROM project ORDER BY sort_order",
+        "SELECT id, slug, title, summary, description_markdown FROM project ORDER BY sort_order",
     )
     .fetch_all(pool)
     .await?;
 
     let technologies = sqlx::query_as::<_, ProjectItemRow>(
-        "SELECT project_id, item FROM project_stack ORDER BY project_id, sort_order",
+        "SELECT project_id, item FROM project_technology ORDER BY project_id, sort_order",
     )
     .fetch_all(pool)
     .await?;
@@ -27,12 +27,21 @@ pub(super) async fn load(pool: &DbPool) -> Result<Vec<ProjectSummary>, sqlx::Err
 
     rows.into_iter()
         .map(|project| {
-            let slug = project
-                .name
-                .parse::<ProjectSlug>()
-                .map_err(|error| sqlx::Error::Decode(Box::new(error)))?;
+            let slug = project.slug.parse::<ProjectSlug>().map_err(|source| {
+                super::LoadError::InvalidProjectSlug {
+                    value: project.slug,
+                    source,
+                }
+            })?;
+            let description = project
+                .description_markdown
+                .parse::<ProjectDescription>()
+                .map_err(|source| super::LoadError::InvalidProjectDescription {
+                    slug: slug.clone(),
+                    source,
+                })?;
 
-            Ok(ProjectSummary {
+            Ok(Project {
                 technologies: technologies
                     .iter()
                     .filter(|row| row.project_id == project.id)
@@ -47,8 +56,9 @@ pub(super) async fn load(pool: &DbPool) -> Result<Vec<ProjectSummary>, sqlx::Err
                     })
                     .collect(),
                 slug,
-                title: project.name,
+                title: project.title,
                 summary: project.summary,
+                description,
             })
         })
         .collect()

@@ -5,6 +5,7 @@ pub mod app;
 pub mod configuration;
 #[cfg(feature = "ssr")]
 pub mod db;
+pub mod domain;
 pub mod errors;
 #[cfg(feature = "ssr")]
 pub mod router;

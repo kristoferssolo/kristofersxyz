@@ -5,11 +5,11 @@
 BEGIN;
 
 DELETE FROM project_link;
-DELETE FROM project_stack;
+DELETE FROM project_technology;
 DELETE FROM project;
 DELETE FROM working_principle;
 DELETE FROM social_link;
-DELETE FROM profile_stack;
+DELETE FROM profile_technology;
 DELETE FROM profile;
 DELETE FROM contact;
 DELETE FROM site;
@@ -31,7 +31,7 @@ INSERT INTO profile (id, name, title, summary, about, email) VALUES (
     'mailto:dev@kristofers.xyz'
 );
 
-INSERT INTO profile_stack (sort_order, item) VALUES
+INSERT INTO profile_technology (sort_order, item) VALUES
     (1, 'Rust'),
     (2, 'Leptos'),
     (3, 'Axum'),
@@ -49,12 +49,51 @@ INSERT INTO working_principle (sort_order, label, detail) VALUES
     (3, 'Pragmatic testing', 'Coverage aimed at behavior, integrations and regression-prone edges.'),
     (4, 'Maintainable deployment surfaces', 'Operational choices that are easy to inspect, document and repeat.');
 
-INSERT INTO project (id, sort_order, name, summary) VALUES
-    (1, 1, 'guenther', 'Telegram bot that takes a social media link and sends the media back inline, so a shared post plays in the chat instead of opening a browser.'),
-    (2, 2, 'traxor', 'Terminal UI for managing Transmission torrents: queue, inspect and control transfers without leaving the shell.'),
-    (3, 3, 'cipher-workshop', 'Rust workspace implementing cipher algorithms, AES-128 and CBC among them, exposed through both a CLI and a web interface.');
+INSERT INTO project (id, sort_order, slug, title, summary, description_markdown) VALUES
+    (
+        1,
+        1,
+        'guenther',
+        'guenther',
+        'Telegram bot that takes a social media link and sends the media back inline, so a shared post plays in the chat instead of opening a browser.',
+        '# What it solves
 
-INSERT INTO project_stack (project_id, sort_order, item) VALUES
+Shared media plays inside the Telegram conversation.
+
+## System
+
+Guenther receives Telegram updates, routes supported links to a media downloader, and replies with the resulting media.
+
+## Engineering evidence
+
+The Rust application coordinates Telegram, media retrieval, optional game state, and container deployment.'
+    ),
+    (
+        2,
+        2,
+        'traxor',
+        'traxor',
+        'Terminal UI for managing Transmission torrents: queue, inspect and control transfers without leaving the shell.',
+        '# What it solves
+
+Torrent operations stay in the terminal.
+
+## System
+
+Traxor presents Transmission RPC state through a keyboard-driven terminal interface.'
+    ),
+    (
+        3,
+        3,
+        'cipher-workshop',
+        'cipher-workshop',
+        'Rust workspace implementing cipher algorithms, AES-128 and CBC among them, exposed through both a CLI and a web interface.',
+        '# What it explores
+
+Cipher implementations share one Rust workspace and support command-line and browser interfaces.'
+    );
+
+INSERT INTO project_technology (project_id, sort_order, item) VALUES
     (1, 1, 'Rust'),
     (1, 2, 'Telegram'),
     (1, 3, 'yt-dlp'),

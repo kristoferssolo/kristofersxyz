@@ -13,7 +13,26 @@ use self::rows::{ContactRow, FocusRow, ProfileRow, SiteRow, SocialRow};
 use crate::{
     app::content::{Contact, FocusArea, PortfolioContent, Profile, Site, SocialLink},
     db::DbPool,
+    domain::{ProjectDescriptionError, ProjectSlug, ProjectSlugError},
 };
+
+#[derive(Debug, thiserror::Error)]
+pub enum LoadError {
+    #[error("failed to query portfolio content")]
+    Database(#[from] sqlx::Error),
+    #[error("project slug '{value}' is invalid")]
+    InvalidProjectSlug {
+        value: String,
+        #[source]
+        source: ProjectSlugError,
+    },
+    #[error("project '{slug}' has an invalid description")]
+    InvalidProjectDescription {
+        slug: ProjectSlug,
+        #[source]
+        source: ProjectDescriptionError,
+    },
+}
 
 /// Reads the whole portfolio in a handful of ordered queries and assembles it
 /// into [`PortfolioContent`]. Rows come back by `sort_order`, so the buffer
@@ -22,7 +41,7 @@ use crate::{
 /// # Errors
 ///
 /// Returns [`sqlx::Error`] if a query fails or a singleton row is missing.
-pub async fn load(pool: &DbPool) -> Result<PortfolioContent, sqlx::Error> {
+pub async fn load(pool: &DbPool) -> Result<PortfolioContent, LoadError> {
     let site = sqlx::query_as::<_, SiteRow>(
         "SELECT url, title, description, og_image FROM site WHERE id = 1",
     )
@@ -36,7 +55,7 @@ pub async fn load(pool: &DbPool) -> Result<PortfolioContent, sqlx::Error> {
     .await?;
 
     let technologies =
-        sqlx::query_scalar::<_, String>("SELECT item FROM profile_stack ORDER BY sort_order")
+        sqlx::query_scalar::<_, String>("SELECT item FROM profile_technology ORDER BY sort_order")
             .fetch_all(pool)
             .await?;
 

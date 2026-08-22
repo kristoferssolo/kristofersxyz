@@ -1,5 +1,5 @@
 use super::*;
-use crate::app::content::{ProjectSlug, portfolio_content};
+use crate::{app::content::portfolio_content, domain::ProjectSlug};
 use claims::{assert_err_eq, assert_none, assert_ok_eq, assert_some_eq};
 use rstest::rstest;
 

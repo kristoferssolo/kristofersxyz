@@ -12,6 +12,9 @@ pub enum StartupError {
     #[error("failed to connect to or query the database")]
     Database(#[from] sqlx::Error),
 
+    #[error("failed to load portfolio content")]
+    Portfolio(#[from] db::portfolio::LoadError),
+
     #[error("failed to run migrations")]
     Migration(#[from] MigrateError),
 

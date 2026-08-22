@@ -6,14 +6,16 @@
 //! of truth; the static `portfolio_content` below is only a test fixture, and
 //! the db loader tests assert the two never drift.
 
-use serde::{Deserialize, Deserializer, Serialize, de};
-use std::{fmt, str::FromStr};
+use crate::domain::Project;
+#[cfg(test)]
+use crate::domain::{ProjectDescription, ProjectLink, ProjectSlug};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PortfolioContent {
     pub site: Site,
     pub profile: Profile,
-    pub projects: Vec<ProjectSummary>,
+    pub projects: Vec<Project>,
     pub contact: Contact,
 }
 
@@ -48,85 +50,6 @@ pub struct SocialLink {
     pub label: String,
     pub href: String,
     pub rel: String,
-}
-
-/// Stable, URL-safe identity for a Project.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct ProjectSlug(String);
-
-impl ProjectSlug {
-    /// Returns the validated slug as text.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl fmt::Display for ProjectSlug {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(self.as_str())
-    }
-}
-
-impl FromStr for ProjectSlug {
-    type Err = ProjectSlugError;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let first = value.chars().next().ok_or(ProjectSlugError::Empty)?;
-        let last = value.chars().next_back().ok_or(ProjectSlugError::Empty)?;
-        if !first.is_ascii_lowercase() && !first.is_ascii_digit()
-            || !last.is_ascii_lowercase() && !last.is_ascii_digit()
-        {
-            return Err(ProjectSlugError::InvalidEdge);
-        }
-
-        if let Some(character) = value.chars().find(|character| {
-            !character.is_ascii_lowercase() && !character.is_ascii_digit() && *character != '-'
-        }) {
-            return Err(ProjectSlugError::InvalidCharacter { character });
-        }
-
-        Ok(Self(value.to_owned()))
-    }
-}
-
-impl<'de> Deserialize<'de> for ProjectSlug {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        String::deserialize(deserializer)?
-            .parse()
-            .map_err(de::Error::custom)
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, thiserror::Error)]
-pub enum ProjectSlugError {
-    #[error("a project slug cannot be empty")]
-    Empty,
-    #[error("a project slug must start and end with a lowercase letter or digit")]
-    InvalidEdge,
-    #[error("a project slug cannot contain '{character}'")]
-    InvalidCharacter { character: char },
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ProjectSummary {
-    /// Stable identity used in URLs and editor state.
-    pub slug: ProjectSlug,
-    /// Reader-facing name, independent from the stable slug.
-    pub title: String,
-    pub summary: String,
-    pub technologies: Vec<String>,
-    pub links: Vec<ProjectLink>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ProjectLink {
-    pub label: String,
-    pub href: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -272,40 +195,62 @@ mod fixture {
             .unwrap_or_else(|error| panic!("invalid fixture project slug: {error}"))
     }
 
-    fn projects() -> Vec<ProjectSummary> {
+    fn project_description(value: &str) -> ProjectDescription {
+        value
+            .parse()
+            .unwrap_or_else(|error| panic!("invalid fixture project description: {error}"))
+    }
+
+    fn projects() -> Vec<Project> {
         vec![
-            ProjectSummary {
+            Project {
                 slug: project_slug("guenther"),
                 title: "guenther".to_owned(),
                 summary: "Telegram bot that takes a social media link and sends the media back \
                       inline, so a shared post plays in the chat instead of opening a browser."
                     .to_owned(),
+                description: project_description(
+                    "# What it solves\n\nShared media plays inside the Telegram conversation.\n\n\
+                     ## System\n\nGuenther receives Telegram updates, routes supported links to a media \
+                     downloader, and replies with the resulting media.\n\n## Engineering evidence\n\n\
+                     The Rust application coordinates Telegram, media retrieval, optional game \
+                     state, and container deployment.",
+                ),
                 technologies: technologies(&["Rust", "Telegram", "yt-dlp"]),
                 links: vec![project_link(
                     "GitHub",
                     "https://github.com/kristoferssolo/guenther",
                 )],
             },
-            ProjectSummary {
+            Project {
                 slug: project_slug("traxor"),
                 title: "traxor".to_owned(),
                 summary:
                     "Terminal UI for managing Transmission torrents: queue, inspect and control \
                       transfers without leaving the shell."
                         .to_owned(),
+                description: project_description(
+                    "# What it solves\n\nTorrent operations stay in the terminal.\n\n## System\n\n\
+                     Traxor presents Transmission RPC state through a keyboard-driven terminal \
+                     interface.",
+                ),
                 technologies: technologies(&["Rust", "ratatui", "Transmission RPC"]),
                 links: vec![project_link(
                     "Codeberg",
                     "https://codeberg.org/kristoferssolo/traxor",
                 )],
             },
-            ProjectSummary {
+            Project {
                 slug: project_slug("cipher-workshop"),
                 title: "cipher-workshop".to_owned(),
                 summary:
                     "Rust workspace implementing cipher algorithms, AES-128 and CBC among them, \
                       exposed through both a CLI and a web interface."
                         .to_owned(),
+                description: project_description(
+                    "# What it explores\n\nCipher implementations share one Rust workspace and \
+                     support command-line and browser interfaces.",
+                ),
                 technologies: technologies(&["Rust", "AES-128", "CLI", "WebAssembly"]),
                 links: vec![project_link(
                     "GitHub",
@@ -370,22 +315,5 @@ mod tests {
             "{} characters is too long",
             description.len()
         );
-    }
-
-    #[test]
-    fn project_slugs_accept_url_safe_text() {
-        use claims::assert_ok;
-
-        assert_ok!("guenther".parse::<ProjectSlug>());
-        assert_ok!("cipher-workshop-2".parse::<ProjectSlug>());
-    }
-
-    #[test]
-    fn project_slugs_reject_invalid_text() {
-        use claims::assert_err;
-
-        for value in ["", "Guenther", "project page", "-project", "project-"] {
-            assert_err!(value.parse::<ProjectSlug>());
-        }
     }
 }

@@ -1,8 +1,11 @@
 #[cfg(test)]
 use crate::app::editor::Buffer;
-use crate::app::{
-    content::{FocusArea, PortfolioContent, Profile, ProjectLink, SocialLink},
-    editor::{EntryId, SectionId},
+use crate::{
+    app::{
+        content::{FocusArea, PortfolioContent, Profile, SocialLink},
+        editor::{EntryId, SectionId},
+    },
+    domain::ProjectLink,
 };
 
 /// A link as it is rendered: visible label, destination, relationship.
@@ -178,7 +181,7 @@ pub(super) fn group_by_section(entries: &[Entry]) -> Vec<EntryGroup> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::content::{ProjectSlug, portfolio_content};
+    use crate::{app::content::portfolio_content, domain::ProjectSlug};
     use claims::{assert_none, assert_some_eq};
 
     fn project_slug(value: &str) -> ProjectSlug {

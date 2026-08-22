@@ -4,7 +4,7 @@
 //! row in the current collection", which goes wrong the moment content is
 //! reordered; [`EntryId::Project`] means the same project wherever it sits.
 
-use crate::app::content::{PortfolioContent, ProjectSlug};
+use crate::{app::content::PortfolioContent, domain::ProjectSlug};
 
 /// A section heading in the buffer list.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
