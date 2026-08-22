@@ -1,8 +1,15 @@
 use crate::{
-    app::{content::PortfolioContent, editor::EntryId, layout::Sidebar, markdown},
+    app::{
+        browser::navigate_to,
+        content::PortfolioContent,
+        editor::{Buffer, EntryId, Key, PageStep},
+        layout::Sidebar,
+        markdown,
+    },
     domain::{Project, ProjectSlug},
 };
-use leptos::prelude::*;
+use leptos::prelude::Effect as ReactiveEffect;
+use leptos::{ev, prelude::*};
 use leptos_router::{components::A, hooks::use_params_map};
 
 #[component]
@@ -28,17 +35,47 @@ pub fn ProjectPage() -> impl IntoView {
 fn ProjectReader(project: Project) -> impl IntoView {
     let content = expect_context::<PortfolioContent>();
     let active_id = EntryId::Project(project.slug.clone());
-    let active = Signal::derive(move || active_id.clone());
+    let active_entry = active_id.clone();
+    let active = Signal::derive(move || active_entry.clone());
+    let pages = StoredValue::new(Buffer::from_content(&content));
     let description = markdown::render(&project.description);
-    let position = project_position(&content.projects, &project.slug);
+    let position = pages.with_value(|pages| {
+        pages
+            .number_of(&active_id)
+            .map(|current| (current, pages.len()))
+    });
     let repository = project.links.first().cloned();
     let filename = format!("work/{}.md", project.slug);
 
+    ReactiveEffect::new(move |_| {
+        let current = active_id.clone();
+        let handle = window_event_listener(ev::keydown, move |event| {
+            if event.ctrl_key() || event.alt_key() || event.meta_key() {
+                return;
+            }
+
+            let step = match Key::from_name(&event.key()) {
+                Key::Char('j') | Key::ArrowDown => PageStep::Next,
+                Key::Char('k') | Key::ArrowUp => PageStep::Previous,
+                _ => return,
+            };
+            let target = pages.with_value(|pages| pages.step(&current, step));
+
+            if let Some(target) = target
+                && target.entry != current
+            {
+                event.prevent_default();
+                navigate_to(&target.entry);
+            }
+        });
+        on_cleanup(move || handle.remove());
+    });
+
     view! {
-        <main class="min-h-dvh bg-black font-mono text-[#d4d7db] md:grid md:grid-cols-[minmax(260px,340px)_minmax(0,1fr)]">
+        <main class="grid h-dvh grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-black font-mono text-[#d4d7db] md:grid-cols-[minmax(260px,340px)_minmax(0,1fr)] md:grid-rows-1">
             <Sidebar active />
-            <div class="flex min-h-dvh min-w-0 flex-col">
-                <article class="flex-1 px-5 py-9 sm:px-10 md:px-14 md:py-14 xl:px-20">
+            <div class="flex min-h-0 min-w-0 flex-col">
+                <article class="min-h-0 flex-1 overflow-y-auto px-5 py-9 sm:px-10 md:px-14 md:py-14 xl:px-20">
                     <div class="mx-auto grid max-w-[1080px] gap-14 xl:grid-cols-[minmax(0,76ch)_220px]">
                         <div class="min-w-0">
                             <p class="text-[10px] tracking-[0.22em] text-[#59616a] uppercase">
@@ -100,7 +137,7 @@ fn ProjectReader(project: Project) -> impl IntoView {
                     </div>
                 </article>
 
-                <footer class="flex h-7 shrink-0 items-stretch text-[12px] text-[#8b939d]" style="background:#0d1013">
+                <footer class="flex h-7 shrink-0 items-stretch overflow-hidden text-[12px] leading-none text-[#8b939d]" style="background:#0d1013">
                     <span class="flex items-center bg-[#e2a340] px-3 font-semibold text-black">
                         "NORMAL"
                     </span>
@@ -175,13 +212,6 @@ fn MissingProject() -> impl IntoView {
             </section>
         </main>
     }
-}
-
-fn project_position(projects: &[Project], current: &ProjectSlug) -> Option<(usize, usize)> {
-    projects
-        .iter()
-        .position(|project| &project.slug == current)
-        .map(|index| (index + 1, projects.len()))
 }
 
 fn project_neighbours(

@@ -1,4 +1,4 @@
-use crate::app::editor::{Destination, EntryId};
+use crate::app::editor::EntryId;
 use leptos::{prelude::*, wasm_bindgen::JsCast, web_sys};
 
 /// Below this width the buffer list and content pane stack, so a selection has
@@ -27,23 +27,6 @@ pub(super) fn reveal_content() {
         && let Some(section) = document().get_element_by_id("buffer-content")
     {
         section.scroll_into_view();
-    }
-}
-
-/// Navigates inside the portfolio or opens an external destination in a new
-/// tab.
-pub(super) fn navigate(destination: &Destination) {
-    let Some(window) = web_sys::window() else {
-        return;
-    };
-
-    match destination {
-        Destination::Internal(path) => {
-            let _ = window.location().set_href(path);
-        }
-        Destination::External(url) => {
-            let _ = window.open_with_url_and_target(url, "_blank");
-        }
     }
 }
 

@@ -1,3 +1,4 @@
+mod browser;
 pub mod content;
 pub mod editor;
 mod layout;

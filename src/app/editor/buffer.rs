@@ -45,10 +45,26 @@ impl EntryId {
             Self::Contact => "contact".to_owned(),
         }
     }
+
+    /// The canonical location of this page in the portfolio.
+    #[must_use]
+    pub fn path(&self) -> String {
+        match self {
+            Self::Profile => "/".to_owned(),
+            Self::Project(slug) => format!("/work/{slug}"),
+            Self::Contact => "/#contact".to_owned(),
+        }
+    }
 }
 
-/// Where `Enter` sends the reader. External only, while there are no project
-/// pages; the enum is the seam for `/work/:slug` when it returns.
+/// A single move through the ordered portfolio pages.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PageStep {
+    Next,
+    Previous,
+}
+
+/// Where `Enter` sends the reader.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Destination {
     /// A route inside the portfolio.
@@ -234,6 +250,15 @@ impl Buffer {
             .map(BufferEntry::selection)
     }
 
+    /// Moves once through the same page order rendered by the sidebar.
+    #[must_use]
+    pub fn step(&self, from: &EntryId, step: PageStep) -> Option<Selection> {
+        match step {
+            PageStep::Next => self.next(from),
+            PageStep::Previous => self.previous(from),
+        }
+    }
+
     /// First entry of the next section. `None` in the last section, which the
     /// reducer turns into staying put.
     #[must_use]
@@ -313,5 +338,53 @@ impl Buffer {
 
     fn index_of(&self, id: &EntryId) -> Option<usize> {
         self.entries.iter().position(|entry| &entry.id == id)
+    }
+}
+
+#[cfg(test)]
+mod page_tests {
+    use super::*;
+    use crate::app::content::portfolio_content;
+    use claims::assert_some_eq;
+
+    #[test]
+    fn pages_have_canonical_locations() {
+        let buffer = Buffer::from_content(&portfolio_content());
+        let paths = buffer
+            .entries()
+            .iter()
+            .map(|entry| entry.id.path())
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            paths,
+            [
+                "/",
+                "/work/guenther",
+                "/work/traxor",
+                "/work/cipher-workshop",
+                "/#contact",
+            ]
+        );
+    }
+
+    #[test]
+    fn project_pages_share_the_sidebar_sequence() {
+        let content = portfolio_content();
+        let buffer = Buffer::from_content(&content);
+        let guenther = EntryId::Project(content.projects[0].slug.clone());
+
+        assert_some_eq!(
+            buffer
+                .step(&guenther, PageStep::Previous)
+                .map(|selection| selection.entry),
+            EntryId::Profile
+        );
+        assert_some_eq!(
+            buffer
+                .step(&guenther, PageStep::Next)
+                .map(|selection| selection.entry.path()),
+            "/work/traxor".to_owned()
+        );
     }
 }

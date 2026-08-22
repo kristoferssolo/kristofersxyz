@@ -15,6 +15,7 @@ use self::{
     view_model::HomeViewModel,
 };
 use crate::app::{
+    browser::current_fragment,
     content::PortfolioContent,
     editor::{Key, KeyInput},
     layout::Sidebar,
@@ -31,6 +32,14 @@ pub fn HomePage() -> impl IntoView {
     provide_context(view_model);
     let active = Signal::derive(move || view_model.state.get().active.entry);
     let on_select = Callback::new(move |entry| view_model.pick(&entry));
+
+    // Fragments are not sent to the server, so restore them once the browser
+    // has mounted the homepage.
+    ReactiveEffect::new(move |_| {
+        if let Some(fragment) = current_fragment() {
+            view_model.pick_fragment(&fragment);
+        }
+    });
 
     // Bound globally so the keys work wherever the reader's focus sits.
     ReactiveEffect::new(move |_| {

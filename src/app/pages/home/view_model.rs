@@ -1,8 +1,9 @@
 use super::{
-    browser::{focus_row, navigate, reveal_content},
+    browser::{focus_row, reveal_content},
     model::{Action, Entry, Notice, actions, entries},
 };
 use crate::app::{
+    browser::{navigate, navigate_to},
     content::PortfolioContent,
     editor::{
         Buffer, EditorState, Effect, EntryId, KeyInput, Notification, Transition, reduce, select,
@@ -63,6 +64,18 @@ impl HomeViewModel {
         self.advance(transition);
     }
 
+    pub(super) fn pick_fragment(self, fragment: &str) {
+        let entry = self.buffer.with_value(|buffer| {
+            buffer
+                .by_fragment(fragment)
+                .map(|selection| selection.entry)
+        });
+
+        if let Some(entry) = entry {
+            self.pick(&entry);
+        }
+    }
+
     pub(super) fn current(self) -> Option<Entry> {
         let active = self.state.get().active.entry;
         self.entries
@@ -109,8 +122,12 @@ impl HomeViewModel {
     fn apply(self, effect: &Effect) {
         match effect {
             Effect::ScrollTo(entry) => {
-                focus_row(entry);
-                reveal_content();
+                if matches!(entry, EntryId::Project(_)) {
+                    navigate_to(entry);
+                } else {
+                    focus_row(entry);
+                    reveal_content();
+                }
             }
             Effect::Navigate(destination) => navigate(destination),
             Effect::Notify(notification) => self.notify(notification),

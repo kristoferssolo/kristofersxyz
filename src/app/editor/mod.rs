@@ -16,7 +16,9 @@ mod line;
 mod normal;
 mod state;
 
-pub use buffer::{Buffer, BufferEntry, Destination, EntryId, SearchHit, SectionId, Selection};
+pub use buffer::{
+    Buffer, BufferEntry, Destination, EntryId, PageStep, SearchHit, SectionId, Selection,
+};
 pub use command::Command;
 pub use key::{Key, KeyInput};
 pub use state::{EditorState, Effect, Mode, Notification, Transition};

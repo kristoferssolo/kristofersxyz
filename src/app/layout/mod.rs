@@ -1,6 +1,6 @@
 use crate::app::{
     content::PortfolioContent,
-    editor::{EntryId, SectionId},
+    editor::{Buffer, EntryId, SectionId},
 };
 use leptos::prelude::*;
 use leptos_router::components::A;
@@ -115,36 +115,24 @@ pub(crate) fn Sidebar(
 }
 
 fn navigation(content: &PortfolioContent) -> Vec<(SectionId, Vec<NavigationEntry>)> {
-    vec![
-        (
-            SectionId::Profile,
-            vec![NavigationEntry {
-                id: EntryId::Profile,
-                name: content.profile.name.clone(),
-                href: "/#profile".to_owned(),
-            }],
-        ),
-        (
-            SectionId::Work,
-            content
-                .projects
+    let buffer = Buffer::from_content(content);
+
+    [SectionId::Profile, SectionId::Work, SectionId::Contact]
+        .into_iter()
+        .map(|section| {
+            let entries = buffer
+                .entries()
                 .iter()
-                .map(|project| NavigationEntry {
-                    id: EntryId::Project(project.slug.clone()),
-                    name: project.title.clone(),
-                    href: project.path(),
+                .filter(|entry| entry.section == section)
+                .map(|entry| NavigationEntry {
+                    id: entry.id.clone(),
+                    name: entry.name.clone(),
+                    href: entry.id.path(),
                 })
-                .collect(),
-        ),
-        (
-            SectionId::Contact,
-            vec![NavigationEntry {
-                id: EntryId::Contact,
-                name: content.contact.name.clone(),
-                href: "/#contact".to_owned(),
-            }],
-        ),
-    ]
+                .collect();
+            (section, entries)
+        })
+        .collect()
 }
 
 #[cfg(test)]
