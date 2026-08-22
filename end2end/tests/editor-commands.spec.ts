@@ -25,3 +25,23 @@ test("commands work on the homepage and project details", async ({
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL("http://localhost:3000/#contact");
 });
+
+test("desktop status starts beyond the native link preview area", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("http://localhost:3000/");
+
+  const sidebar = await page
+    .getByRole("navigation", { name: "Portfolio" })
+    .boundingBox();
+  const status = await page.locator("footer > div").nth(1).boundingBox();
+
+  expect(sidebar).not.toBeNull();
+  expect(status).not.toBeNull();
+  if (sidebar === null || status === null) {
+    throw new Error("the shared page chrome did not render");
+  }
+
+  expect(status.x).toBeGreaterThanOrEqual(sidebar.x + sidebar.width - 1);
+});
