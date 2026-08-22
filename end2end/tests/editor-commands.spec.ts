@@ -2,7 +2,12 @@ import { expect, type Page, test } from "@playwright/test";
 
 async function runHelpCommand(page: Page) {
   await page.locator("main").click();
-  await page.keyboard.type(":help");
+  await page.keyboard.type(":");
+  await expect(page.locator("footer > div").nth(1)).toHaveCSS(
+    "border-radius",
+    "0px",
+  );
+  await page.keyboard.type("help");
   await expect(page.locator("footer")).toContainText(":help");
   await page.keyboard.press("Enter");
   await expect(
