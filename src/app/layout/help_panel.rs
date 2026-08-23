@@ -39,6 +39,7 @@ pub(super) fn HelpPanel(editor: EditorController) -> impl IntoView {
                                 <HelpGroup
                                     title="Commands"
                                     bindings=vec![
+                                        (":e[dit]", "open a page by name"),
                                         (":h[elp]", "open this reference"),
                                         (":w[ork]", "open the first Project"),
                                         (":c[ontact]", "open contact"),

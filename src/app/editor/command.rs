@@ -7,18 +7,22 @@
 use super::Notification;
 
 /// A command the editor understands.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Command {
     Help,
     Work,
     Contact,
+    /// The entry to open. Without a name, `:edit` rereads the current entry
+    /// the way vim rereads the current file.
+    Edit(Option<String>),
 }
 
 impl Command {
     /// Parses command text without the leading colon, which the view renders.
     ///
     /// Leading, trailing and repeated whitespace is collapsed first. The first
-    /// word names the command, and no command takes an argument yet.
+    /// word names the command and the rest is its argument, which only
+    /// `:edit` takes.
     ///
     /// # Errors
     ///
@@ -31,6 +35,10 @@ impl Command {
             .map_or((normalized.as_str(), None), |(name, argument)| {
                 (name, Some(argument))
             });
+
+        if abbreviates("edit", name) {
+            return Ok(Self::Edit(argument.map(str::to_owned)));
+        }
 
         let command = if abbreviates("help", name) {
             Self::Help

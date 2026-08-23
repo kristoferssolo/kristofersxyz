@@ -83,3 +83,21 @@ test("ctrl+b collapses the sidebar and movement leaves it collapsed", async ({
   await toggle.click();
   await expect(navigation).toBeVisible();
 });
+
+test(":e opens a page by name from another route", async ({ page }) => {
+  await page.goto("http://localhost:3000/work/guenther");
+  await page.locator("main").click();
+
+  await page.keyboard.type(":e traxor");
+  await expect(page.locator("footer")).toContainText(":e traxor");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL("http://localhost:3000/work/traxor");
+
+  // A name no entry answers to leaves the reader where they were.
+  await page.keyboard.type(":e nowhere");
+  await page.keyboard.press("Enter");
+  await expect(page.locator('[aria-live="polite"]')).toContainText(
+    "E94: No matching buffer for nowhere",
+  );
+  await expect(page).toHaveURL("http://localhost:3000/work/traxor");
+});

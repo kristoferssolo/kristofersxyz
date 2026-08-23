@@ -202,6 +202,8 @@ fn enter_where_there_is_nothing_to_open_says_so(#[case] entry: EntryId) {
 #[rstest]
 #[case("c", Command::Contact)]
 #[case("contact", Command::Contact)]
+#[case("e", Command::Edit(None))]
+#[case("edit", Command::Edit(None))]
 #[case("h", Command::Help)]
 #[case("hel", Command::Help)]
 #[case("help", Command::Help)]
@@ -210,6 +212,16 @@ fn enter_where_there_is_nothing_to_open_says_so(#[case] entry: EntryId) {
 #[case("   work   ", Command::Work)]
 fn commands_parse_from_any_prefix(#[case] input: &str, #[case] expected: Command) {
     assert_ok_eq!(Command::parse(input), expected);
+}
+
+#[rstest]
+#[case("e traxor", "traxor")]
+#[case("edit   cipher workshop  ", "cipher workshop")]
+fn edit_carries_its_argument(#[case] input: &str, #[case] expected: &str) {
+    assert_ok_eq!(
+        Command::parse(input),
+        Command::Edit(Some(expected.to_owned()))
+    );
 }
 
 #[rstest]
@@ -262,6 +274,44 @@ fn an_unknown_command_notifies_and_leaves_the_selection() {
 fn the_help_command_opens_the_panel() {
     let transition = press(&line_with(EntryId::Profile, ':', "help"), Key::Enter);
     assert!(transition.state.help);
+}
+
+#[rstest]
+#[case::name("e traxor", project("traxor"))]
+#[case::fragment("edit profile", EntryId::Profile)]
+#[case::part_of_a_name("e cipher", project("cipher-workshop"))]
+#[case::ignoring_case("e WRITE", EntryId::Contact)]
+fn edit_opens_the_entry_its_name_addresses(#[case] input: &str, #[case] expected: EntryId) {
+    let transition = press(&line_with(project("guenther"), ':', input), Key::Enter);
+
+    assert_eq!(transition.state.active.entry, expected);
+    assert!(transition.effects.contains(&Effect::ScrollTo(expected)));
+}
+
+#[test]
+fn edit_without_a_name_rereads_the_current_entry() {
+    let transition = press(&line_with(project("traxor"), ':', "e"), Key::Enter);
+
+    assert_eq!(transition.state.active.entry, project("traxor"));
+    assert!(
+        transition
+            .effects
+            .contains(&Effect::ScrollTo(project("traxor")))
+    );
+}
+
+#[test]
+fn edit_notifies_when_no_entry_matches_the_name() {
+    let transition = press(&line_with(EntryId::Profile, ':', "e nowhere"), Key::Enter);
+
+    assert_eq!(transition.state.active.entry, EntryId::Profile);
+    assert!(
+        transition
+            .effects
+            .contains(&Effect::Notify(Notification::NoMatchingBuffer(
+                "nowhere".to_owned()
+            )))
+    );
 }
 
 /// No incremental search: the jump happens on Enter, never while typing.

@@ -139,6 +139,12 @@ impl BufferEntry {
     fn matches(&self, needle: &str) -> bool {
         self.haystack.contains(needle)
     }
+
+    /// The lowercase names that address this entry: its own name, and the
+    /// fragment a URL uses for it.
+    fn names(&self) -> [String; 2] {
+        [self.name.to_lowercase(), self.id.fragment()]
+    }
 }
 
 /// A search result, and whether the scan passed the end of the buffer to
@@ -298,6 +304,27 @@ impl Buffer {
     pub fn by_number(&self, number: usize) -> Option<Selection> {
         self.entries
             .get(number.checked_sub(1)?)
+            .map(BufferEntry::selection)
+    }
+
+    /// The entry `name` addresses, for `:edit`. Matches case insensitively
+    /// against the entry's name and its fragment, taking an exact match over a
+    /// containing one so an entry titled after another cannot shadow it.
+    #[must_use]
+    pub fn by_name(&self, name: &str) -> Option<Selection> {
+        let needle = name.trim().to_lowercase();
+        if needle.is_empty() {
+            return None;
+        }
+
+        self.entries
+            .iter()
+            .find(|entry| entry.names().contains(&needle))
+            .or_else(|| {
+                self.entries
+                    .iter()
+                    .find(|entry| entry.names().iter().any(|name| name.contains(&needle)))
+            })
             .map(BufferEntry::selection)
     }
 

@@ -2,7 +2,8 @@
 //! way and differ only on Enter: a command runs, a search jumps.
 
 use super::{
-    Buffer, Command, EditorState, Effect, Key, KeyInput, Mode, Notification, SectionId, Transition,
+    Buffer, BufferEntry, Command, EditorState, Effect, Key, KeyInput, Mode, Notification,
+    SectionId, Transition,
 };
 
 /// Reduces one key press in the command line.
@@ -104,6 +105,16 @@ fn run(state: &EditorState, buffer: &Buffer, text: &str) -> Transition {
         }
         Ok(Command::Work) => buffer.first_of_section(SectionId::Work),
         Ok(Command::Contact) => buffer.first_of_section(SectionId::Contact),
+        // Rereading the current entry reruns its selection, which on a project
+        // route means the page loads again, as `:edit` does in vim.
+        Ok(Command::Edit(None)) => buffer.get(&state.active.entry).map(BufferEntry::selection),
+        Ok(Command::Edit(Some(name))) => {
+            let found = buffer.by_name(&name);
+            if found.is_none() {
+                effects.push(Effect::Notify(Notification::NoMatchingBuffer(name)));
+            }
+            found
+        }
         Err(notification) => {
             effects.push(Effect::Notify(notification));
             None
