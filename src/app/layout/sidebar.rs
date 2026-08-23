@@ -20,9 +20,8 @@ const NAVIGATION_ID: &str = "portfolio-navigation";
 /// header would, while the selected page scrolls beside it. Collapsed, it
 /// stays in the document so the toggle keeps naming something real.
 ///
-/// The wide-screen collapse fades out as its column narrows. `visibility`
-/// carries the last step so the entries stay painted for the whole fade and
-/// still leave the accessibility tree and the tab order at the end of it.
+/// `visibility` is in the collapse transition, so the entries stay painted
+/// through the fade and leave the tab order only once it ends.
 #[component]
 pub(super) fn Sidebar(
     #[prop(into)] active: Signal<EntryId>,
