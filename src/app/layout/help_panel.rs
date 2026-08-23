@@ -39,9 +39,9 @@ pub(super) fn HelpPanel(editor: EditorController) -> impl IntoView {
                                 <HelpGroup
                                     title="Commands"
                                     bindings=vec![
-                                        (":help", "open this reference"),
-                                        (":work", "open the first Project"),
-                                        (":contact", "open contact"),
+                                        (":h[elp]", "open this reference"),
+                                        (":w[ork]", "open the first Project"),
+                                        (":c[ontact]", "open contact"),
                                         ("/text", "search portfolio content"),
                                         ("Ctrl+F", "start search"),
                                         ("Ctrl+B", "show or hide the sidebar"),

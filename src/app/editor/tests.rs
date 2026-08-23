@@ -197,20 +197,34 @@ fn enter_where_there_is_nothing_to_open_says_so(#[case] entry: EntryId) {
     );
 }
 
+/// Every command name is reachable from its first letter on, so this also
+/// checks that no two names shadow each other.
 #[rstest]
+#[case("c", Command::Contact)]
+#[case("contact", Command::Contact)]
+#[case("h", Command::Help)]
+#[case("hel", Command::Help)]
 #[case("help", Command::Help)]
 #[case("w", Command::Work)]
 #[case("work", Command::Work)]
-#[case("c", Command::Contact)]
-#[case("contact", Command::Contact)]
 #[case("   work   ", Command::Work)]
-fn commands_parse_from_exact_aliases(#[case] input: &str, #[case] expected: Command) {
+fn commands_parse_from_any_prefix(#[case] input: &str, #[case] expected: Command) {
     assert_ok_eq!(Command::parse(input), expected);
 }
 
 #[rstest]
+#[case::help("help me", "me")]
+#[case::work("w traxor", "traxor")]
+fn a_command_taking_no_argument_rejects_one(#[case] input: &str, #[case] rest: &str) {
+    assert_err_eq!(
+        Command::parse(input),
+        Notification::TrailingCharacters(rest.to_owned())
+    );
+}
+
+#[rstest]
 #[case::misspelled("wrok")]
-#[case::a_prefix_that_is_not_an_alias("wo")]
+#[case::not_a_command_name("x")]
 #[case::nothing("")]
 fn anything_else_is_not_an_editor_command(#[case] input: &str) {
     assert_err_eq!(

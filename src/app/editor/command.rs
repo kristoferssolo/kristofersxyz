@@ -1,7 +1,8 @@
 //! The command line parser.
 //!
-//! Exact aliases only. Prefix matching waits until there are enough commands
-//! to justify it.
+//! Vim takes any unambiguous prefix of a command name, so `:h`, `:he` and
+//! `:hel` all reach `:help`. Every name here differs in its first letter, so
+//! one character is always enough.
 
 use super::Notification;
 
@@ -16,21 +17,39 @@ pub enum Command {
 impl Command {
     /// Parses command text without the leading colon, which the view renders.
     ///
-    /// Leading, trailing and repeated whitespace between arguments is
-    /// collapsed first. Whitespace inside an argument is left alone, for when
-    /// commands start taking arguments.
+    /// Leading, trailing and repeated whitespace is collapsed first. The first
+    /// word names the command, and no command takes an argument yet.
     ///
     /// # Errors
     ///
-    /// Returns the notification to show for input that is not a command.
+    /// Returns the notification to show for input that names no command, or
+    /// that hands an argument to one taking none.
     pub fn parse(input: &str) -> Result<Self, Notification> {
         let normalized = input.split_whitespace().collect::<Vec<_>>().join(" ");
+        let (name, argument) = normalized
+            .split_once(' ')
+            .map_or((normalized.as_str(), None), |(name, argument)| {
+                (name, Some(argument))
+            });
 
-        match normalized.as_str() {
-            "help" => Ok(Self::Help),
-            "w" | "work" => Ok(Self::Work),
-            "c" | "contact" => Ok(Self::Contact),
-            _ => Err(Notification::NotAnEditorCommand(normalized)),
-        }
+        let command = if abbreviates("help", name) {
+            Self::Help
+        } else if abbreviates("work", name) {
+            Self::Work
+        } else if abbreviates("contact", name) {
+            Self::Contact
+        } else {
+            return Err(Notification::NotAnEditorCommand(normalized));
+        };
+
+        argument.map_or(Ok(command), |argument| {
+            Err(Notification::TrailingCharacters(argument.to_owned()))
+        })
     }
+}
+
+/// Whether `input` is one of vim's abbreviations of `name`: a non-empty
+/// prefix of it.
+fn abbreviates(name: &str, input: &str) -> bool {
+    !input.is_empty() && name.starts_with(input)
 }

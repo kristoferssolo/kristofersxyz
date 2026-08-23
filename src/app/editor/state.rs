@@ -46,6 +46,7 @@ impl EditorState {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Notification {
     NotAnEditorCommand(String),
+    TrailingCharacters(String),
     PatternNotFound(String),
     SearchWrapped,
     NothingToOpen,
@@ -55,6 +56,7 @@ impl Display for Notification {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::NotAnEditorCommand(input) => write!(f, "E492: Not an editor command: {input}"),
+            Self::TrailingCharacters(rest) => write!(f, "E488: Trailing characters: {rest}"),
             Self::PatternNotFound(query) => write!(f, "E486: Pattern not found: {query}"),
             Self::SearchWrapped => f.write_str("search hit BOTTOM, continuing at TOP"),
             Self::NothingToOpen => f.write_str("Nothing to open here"),
