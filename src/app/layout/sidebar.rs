@@ -19,6 +19,10 @@ const NAVIGATION_ID: &str = "portfolio-navigation";
 /// Portfolio navigation. On wide screens it occupies the same place a site
 /// header would, while the selected page scrolls beside it. Collapsed, it
 /// stays in the document so the toggle keeps naming something real.
+///
+/// The wide-screen collapse fades out as its column narrows. `visibility`
+/// carries the last step so the entries stay painted for the whole fade and
+/// still leave the accessibility tree and the tab order at the end of it.
 #[component]
 pub(super) fn Sidebar(
     #[prop(into)] active: Signal<EntryId>,
@@ -32,10 +36,15 @@ pub(super) fn Sidebar(
         <nav
             id=NAVIGATION_ID
             aria-label="Portfolio"
-            hidden=move || !visible.get()
             // The top padding is the toggle's seat: the button floats over
             // this corner in both states, so entries start below it.
-            class="border-b border-[#1e2126] pt-12 pb-3 text-[13px] md:h-full md:min-h-0 md:overflow-y-auto md:border-r md:border-b-0"
+            class=move || {
+                if visible.get() {
+                    "border-b border-[#1e2126] pt-12 pb-3 text-[13px] transition-[opacity,visibility] duration-150 ease-out md:h-full md:min-h-0 md:visible md:overflow-x-hidden md:overflow-y-auto md:border-r md:border-b-0 md:opacity-100"
+                } else {
+                    "hidden border-b border-[#1e2126] pt-12 pb-3 text-[13px] transition-[opacity,visibility] duration-150 ease-out md:invisible md:block md:h-full md:min-h-0 md:overflow-x-hidden md:overflow-y-auto md:border-r md:border-b-0 md:opacity-0"
+                }
+            }
         >
             {groups
                 .into_iter()
@@ -43,7 +52,7 @@ pub(super) fn Sidebar(
                     view! {
                         <div class="mt-4 first:mt-0">
                             <p
-                                class="mb-1 pl-[7ch] text-[10px] tracking-[0.24em] text-[#4c525a] uppercase"
+                                class="mb-1 pl-[7ch] text-[10px] tracking-[0.24em] whitespace-nowrap text-[#4c525a] uppercase"
                             >
                                 {section.label()}
                             </p>

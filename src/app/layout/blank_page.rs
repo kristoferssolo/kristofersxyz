@@ -34,11 +34,14 @@ pub fn BlankPage(
         <main class="grid h-dvh grid-rows-[minmax(0,1fr)_1.75rem] overflow-hidden bg-black font-mono text-[#d4d7db]">
             <NoticeView editor />
             <HelpPanel editor />
+            // Only the sidebar's column animates. The stacked layout drops its
+            // row instead of narrowing it, and an `auto` track has no width to
+            // interpolate from, so the collapse is instant below `md`.
             <div class=move || {
                 if sidebar.get() {
-                    "relative grid min-h-0 grid-rows-[auto_minmax(0,1fr)] md:grid-cols-[minmax(260px,340px)_minmax(0,1fr)] md:grid-rows-1"
+                    "relative grid min-h-0 grid-rows-[auto_minmax(0,1fr)] transition-[grid-template-columns] duration-150 ease-out md:grid-cols-[340px_minmax(0,1fr)] md:grid-rows-1"
                 } else {
-                    "relative grid min-h-0 grid-rows-[minmax(0,1fr)]"
+                    "relative grid min-h-0 grid-rows-[minmax(0,1fr)] transition-[grid-template-columns] duration-150 ease-out md:grid-cols-[0px_minmax(0,1fr)] md:grid-rows-1"
                 }
             }>
                 <SidebarToggle editor />
