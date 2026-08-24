@@ -1,5 +1,7 @@
 #![recursion_limit = "512"]
 
+#[cfg(feature = "ssr")]
+pub mod admin_cli;
 pub mod app;
 #[cfg(feature = "ssr")]
 pub mod authentication;

@@ -29,6 +29,7 @@ config = { version = "0.15", default-features = false, features = ["toml"], opti
 dotenvy = { version = "0.15", optional = true }
 thiserror = "2.0"
 argon2 = { version = "0.5", features = ["std"], optional = true }
+rpassword = { version = "7", optional = true }
 secrecy = { version = "0.10", features = ["serde"], optional = true }
 uuid = { version = "1", features = ["v4"], optional = true }
 tracing = "0.1"
@@ -47,6 +48,7 @@ ssr = [
   "dep:argon2",
   "dep:config",
   "dep:dotenvy",
+  "dep:rpassword",
   "dep:secrecy",
   "dep:sqlx",
   "dep:tokio",

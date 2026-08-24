@@ -2,6 +2,7 @@
 #[tokio::main]
 async fn main() -> Result<(), kristofersxyz::errors::ApplicationError> {
     use kristofersxyz::{
+        admin_cli::{self, AdminCliError},
         configuration::Settings,
         startup::{App, Application},
         telemetry::{get_subscriber, init_subscriber},
@@ -14,6 +15,22 @@ async fn main() -> Result<(), kristofersxyz::errors::ApplicationError> {
     init_subscriber(subscriber);
 
     let settings = Settings::from_env()?;
+
+    // No subcommand means serve, which is how cargo-leptos runs this binary.
+    // A subcommand runs the tool and exits.
+    let mut arguments = std::env::args().skip(1);
+    if let Some(command) = arguments.next() {
+        return match command.as_str() {
+            "set-password" => {
+                let username = arguments.next().ok_or(AdminCliError::Usage)?;
+                let password = admin_cli::read_new_password()?;
+                admin_cli::set_password(&settings, &username, &password).await?;
+                log!("password set for '{username}'");
+                Ok(())
+            }
+            other => Err(AdminCliError::UnknownCommand(other.to_owned()).into()),
+        };
+    }
 
     let app = App::new(&settings).await?;
 
