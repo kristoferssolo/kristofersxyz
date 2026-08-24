@@ -1,7 +1,7 @@
 mod auth;
 
 use crate::{
-    app::{App, shell},
+    app::{App, content::server_content, shell},
     sessions::SqliteSessionStore,
     startup::AppState,
 };
@@ -15,23 +15,21 @@ use tower_sessions::{Expiry, SessionManagerLayer, cookie::SameSite};
 
 pub fn route(state: AppState) -> Router {
     let routes = generate_route_list(App);
-    let content = state.content.clone();
 
-    // The shell serves both the page routes and the 404 fallback. It provides
-    // the portfolio into context for the server render and serializes it into
-    // the page for the client to hydrate from. The admin routes sit alongside
-    // it, ahead of the Leptos fallback.
+    // The shell serves both the page routes and the 404 fallback. Each render
+    // reads the current portfolio rather than a snapshot taken here, so a
+    // content edit shows on the next request without a restart. The admin
+    // routes sit alongside it, ahead of the Leptos fallback.
     Router::new()
         .route("/login", get(auth::login_form).post(auth::login))
         .route("/logout", post(auth::logout))
         .route("/admin", get(auth::admin))
         .leptos_routes(&state, routes, {
             let leptos_options = state.leptos_options.clone();
-            let content = content.clone();
-            move || shell(leptos_options.clone(), &content)
+            move || shell(leptos_options.clone(), server_content().as_ref())
         })
-        .fallback(file_and_error_handler::<AppState, _>(move |options| {
-            shell(options, &content)
+        .fallback(file_and_error_handler::<AppState, _>(|options| {
+            shell(options, server_content().as_ref())
         }))
         .layer(session_layer(state.pool.clone()))
         .with_state(state)

@@ -28,6 +28,7 @@ serde = { version = "1.0", features = ["derive"] }
 config = { version = "0.15", default-features = false, features = ["toml"], optional = true }
 dotenvy = { version = "0.15", optional = true }
 thiserror = "2.0"
+arc-swap = { version = "1", optional = true }
 async-trait = { version = "0.1", optional = true }
 serde_json = { version = "1", optional = true }
 argon2 = { version = "0.5", features = ["std"], optional = true }
@@ -49,6 +50,7 @@ ssr = [
   "leptos_router/ssr",
   "dep:axum",
   "dep:leptos_axum",
+  "dep:arc-swap",
   "dep:argon2",
   "dep:async-trait",
   "dep:config",

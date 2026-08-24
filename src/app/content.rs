@@ -71,26 +71,36 @@ pub struct Contact {
 #[cfg(feature = "ssr")]
 mod server {
     use super::PortfolioContent;
-    use std::sync::OnceLock;
+    use arc_swap::ArcSwap;
+    use std::sync::{Arc, OnceLock};
 
-    static CONTENT: OnceLock<PortfolioContent> = OnceLock::new();
+    /// The live portfolio. An [`ArcSwap`] so page renders read it without a
+    /// lock on the hot path, while a content edit can replace it atomically.
+    static CONTENT: OnceLock<ArcSwap<PortfolioContent>> = OnceLock::new();
 
-    /// Stores the loaded portfolio. Startup calls this once, before serving.
+    /// Sets the current portfolio: once at boot, and again after every edit.
+    /// A later render sees the new value on its next read.
     pub fn store(content: PortfolioContent) {
-        let _ = CONTENT.set(content);
+        let content = Arc::new(content);
+        match CONTENT.get() {
+            Some(cell) => cell.store(content),
+            None => {
+                let _ = CONTENT.set(ArcSwap::new(content));
+            }
+        }
     }
 
-    /// The loaded portfolio.
+    /// The current portfolio, cheap to clone since it hands back an [`Arc`].
     ///
     /// # Panics
     ///
     /// Panics if called before [`store`], which startup always calls first.
     #[must_use]
-    pub fn content() -> PortfolioContent {
+    pub fn content() -> Arc<PortfolioContent> {
         CONTENT
             .get()
             .expect("portfolio content is set at startup")
-            .clone()
+            .load_full()
     }
 }
 

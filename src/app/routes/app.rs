@@ -39,7 +39,7 @@ pub fn App() -> impl IntoView {
     // source differs by side: the boot-loaded singleton on the server, the
     // embedded JSON on the client, which renders identical values.
     #[cfg(feature = "ssr")]
-    provide_context(crate::app::content::server_content());
+    provide_context(crate::app::content::server_content().as_ref().clone());
     #[cfg(feature = "hydrate")]
     provide_context(embedded_content());
 

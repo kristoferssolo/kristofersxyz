@@ -1,7 +1,4 @@
-use crate::{
-    app::content::PortfolioContent, configuration::Settings, db, db::DbPool,
-    errors::ApplicationError, router::route,
-};
+use crate::{configuration::Settings, db, db::DbPool, errors::ApplicationError, router::route};
 use axum::extract::FromRef;
 use leptos::{config::errors::LeptosConfigError, prelude::*};
 use sqlx::migrate::MigrateError;
@@ -24,14 +21,8 @@ pub enum StartupError {
 
 #[derive(Debug, Clone)]
 pub struct App {
-    /// The portfolio, loaded once at boot. The database is the source of truth,
-    /// but no page render queries it: every response reads this cached copy,
-    /// which is also serialized into the page so the client hydrates from the
-    /// same values.
-    pub content: PortfolioContent,
     /// The connection pool, kept alive past boot so authenticated requests
-    /// (login, and later content edits) can reach the database. Page renders
-    /// still read `content` rather than querying here.
+    /// (login, and content edits) can reach the database.
     pub pool: DbPool,
     pub leptos_options: LeptosOptions,
 }
@@ -60,14 +51,12 @@ impl App {
         db::seed_if_empty(&pool).await?;
         let content = db::portfolio::load(&pool).await?;
 
-        // The shell serializes this copy into each page; `App` reads its own
-        // from the server global during SSR, since router context does not
-        // reach it.
-        crate::app::content::store_server_content(content.clone());
+        // The live copy every render reads. Router context does not reach the
+        // shell, so it lives in a server global rather than on `App`.
+        crate::app::content::store_server_content(content);
 
         let leptos_options = get_configuration(None)?.leptos_options;
         Ok(Self {
-            content,
             pool,
             leptos_options,
         })
@@ -138,7 +127,7 @@ mod tests {
             },
         };
 
-        let app = assert_ok!(App::new(&settings).await);
-        assert_eq!(app.content.projects.len(), 3);
+        assert_ok!(App::new(&settings).await);
+        assert_eq!(crate::app::content::server_content().projects.len(), 3);
     }
 }
