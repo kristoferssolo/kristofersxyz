@@ -1,6 +1,6 @@
 use crate::{
-    app::content::PortfolioContent, configuration::Settings, db, errors::ApplicationError,
-    router::route,
+    app::content::PortfolioContent, configuration::Settings, db, db::DbPool,
+    errors::ApplicationError, router::route,
 };
 use axum::extract::FromRef;
 use leptos::{config::errors::LeptosConfigError, prelude::*};
@@ -25,10 +25,14 @@ pub enum StartupError {
 #[derive(Debug, Clone)]
 pub struct App {
     /// The portfolio, loaded once at boot. The database is the source of truth,
-    /// but no request queries it: every response reads this cached copy, which
-    /// is also serialized into the page so the client hydrates from the same
-    /// values.
+    /// but no page render queries it: every response reads this cached copy,
+    /// which is also serialized into the page so the client hydrates from the
+    /// same values.
     pub content: PortfolioContent,
+    /// The connection pool, kept alive past boot so authenticated requests
+    /// (login, and later content edits) can reach the database. Page renders
+    /// still read `content` rather than querying here.
+    pub pool: DbPool,
     pub leptos_options: LeptosOptions,
 }
 
@@ -42,8 +46,8 @@ pub struct Application {
 
 impl App {
     /// Builds the shared application state: connect, migrate the schema, seed
-    /// an empty database, then load the portfolio. The pool is dropped once
-    /// the content is read, since nothing queries per request.
+    /// an empty database, then load the portfolio. The pool is retained on the
+    /// returned `App`, since authenticated requests query it after boot.
     ///
     /// # Errors
     ///
@@ -64,6 +68,7 @@ impl App {
         let leptos_options = get_configuration(None)?.leptos_options;
         Ok(Self {
             content,
+            pool,
             leptos_options,
         })
     }
@@ -72,6 +77,12 @@ impl App {
 impl FromRef<AppState> for LeptosOptions {
     fn from_ref(state: &AppState) -> Self {
         state.leptos_options.clone()
+    }
+}
+
+impl FromRef<AppState> for DbPool {
+    fn from_ref(state: &AppState) -> Self {
+        state.pool.clone()
     }
 }
 
