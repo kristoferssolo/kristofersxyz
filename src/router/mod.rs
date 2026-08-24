@@ -1,9 +1,14 @@
+mod auth;
+
 use crate::{
     app::{App, shell},
     sessions::SqliteSessionStore,
     startup::AppState,
 };
-use axum::Router;
+use axum::{
+    Router,
+    routing::{get, post},
+};
 use leptos_axum::{LeptosRoutes, file_and_error_handler, generate_route_list};
 use time::Duration;
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::SameSite};
@@ -14,8 +19,12 @@ pub fn route(state: AppState) -> Router {
 
     // The shell serves both the page routes and the 404 fallback. It provides
     // the portfolio into context for the server render and serializes it into
-    // the page for the client to hydrate from.
+    // the page for the client to hydrate from. The admin routes sit alongside
+    // it, ahead of the Leptos fallback.
     Router::new()
+        .route("/login", get(auth::login_form).post(auth::login))
+        .route("/logout", post(auth::logout))
+        .route("/admin", get(auth::admin))
         .leptos_routes(&state, routes, {
             let leptos_options = state.leptos_options.clone();
             let content = content.clone();
