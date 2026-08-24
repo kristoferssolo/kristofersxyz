@@ -14,6 +14,8 @@ pub mod errors;
 #[cfg(feature = "ssr")]
 pub mod router;
 #[cfg(feature = "ssr")]
+pub mod sessions;
+#[cfg(feature = "ssr")]
 pub mod startup;
 #[cfg(feature = "ssr")]
 pub mod telemetry;

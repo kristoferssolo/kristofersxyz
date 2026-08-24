@@ -28,6 +28,8 @@ serde = { version = "1.0", features = ["derive"] }
 config = { version = "0.15", default-features = false, features = ["toml"], optional = true }
 dotenvy = { version = "0.15", optional = true }
 thiserror = "2.0"
+async-trait = { version = "0.1", optional = true }
+serde_json = { version = "1", optional = true }
 argon2 = { version = "0.5", features = ["std"], optional = true }
 rpassword = { version = "7", optional = true }
 secrecy = { version = "0.10", features = ["serde"], optional = true }
@@ -36,6 +38,8 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"], optional = true }
 tracing-bunyan-formatter = { version = "0.3", optional = true }
 tracing-log = { version = "0.2", optional = true }
+tower-sessions = { version = "0.15", optional = true }
+time = { version = "0.3", optional = true }
 
 [features]
 hydrate = ["leptos/hydrate", "dep:console_error_panic_hook", "dep:wasm-bindgen"]
@@ -46,12 +50,16 @@ ssr = [
   "dep:axum",
   "dep:leptos_axum",
   "dep:argon2",
+  "dep:async-trait",
   "dep:config",
   "dep:dotenvy",
   "dep:rpassword",
   "dep:secrecy",
+  "dep:serde_json",
   "dep:sqlx",
+  "dep:time",
   "dep:tokio",
+  "dep:tower-sessions",
   "dep:tracing-bunyan-formatter",
   "dep:tracing-log",
   "dep:tracing-subscriber",
