@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS profile (
     email TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS profile_stack (
+CREATE TABLE IF NOT EXISTS profile_technology (
     item TEXT NOT NULL PRIMARY KEY,
     sort_order INTEGER NOT NULL,
     UNIQUE (sort_order)
@@ -42,14 +42,16 @@ CREATE TABLE IF NOT EXISTS working_principle (
 
 CREATE TABLE IF NOT EXISTS project (
     id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
+    slug TEXT NOT NULL,
+    title TEXT NOT NULL,
     summary TEXT NOT NULL,
+    description_markdown TEXT NOT NULL,
     sort_order INTEGER NOT NULL,
-    UNIQUE (name),
+    UNIQUE (slug),
     UNIQUE (sort_order)
 );
 
-CREATE TABLE IF NOT EXISTS project_stack (
+CREATE TABLE IF NOT EXISTS project_technology (
     project_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     item TEXT NOT NULL,
     sort_order INTEGER NOT NULL,
