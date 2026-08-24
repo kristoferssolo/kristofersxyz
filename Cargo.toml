@@ -28,6 +28,9 @@ serde = { version = "1.0", features = ["derive"] }
 config = { version = "0.15", default-features = false, features = ["toml"], optional = true }
 dotenvy = { version = "0.15", optional = true }
 thiserror = "2.0"
+argon2 = { version = "0.5", features = ["std"], optional = true }
+secrecy = { version = "0.10", features = ["serde"], optional = true }
+uuid = { version = "1", features = ["v4"], optional = true }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"], optional = true }
 tracing-bunyan-formatter = { version = "0.3", optional = true }
@@ -41,13 +44,16 @@ ssr = [
   "leptos_router/ssr",
   "dep:axum",
   "dep:leptos_axum",
+  "dep:argon2",
   "dep:config",
   "dep:dotenvy",
+  "dep:secrecy",
   "dep:sqlx",
   "dep:tokio",
   "dep:tracing-bunyan-formatter",
   "dep:tracing-log",
   "dep:tracing-subscriber",
+  "dep:uuid",
 ]
 
 [dev-dependencies]

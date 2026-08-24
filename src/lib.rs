@@ -2,6 +2,8 @@
 
 pub mod app;
 #[cfg(feature = "ssr")]
+pub mod authentication;
+#[cfg(feature = "ssr")]
 pub mod configuration;
 #[cfg(feature = "ssr")]
 pub mod db;
