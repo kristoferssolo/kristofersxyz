@@ -6,12 +6,15 @@
 //! Tailwind, so this admin surface renders independently of that build.
 
 use crate::{
+    app::content::{server_content, store_server_content},
     authentication::{AuthError, Credentials, validate_credentials},
+    db,
+    domain::ProjectDescription,
     startup::AppState,
 };
 use axum::{
     Form,
-    extract::State,
+    extract::{Path, State},
     http::StatusCode,
     response::{Html, IntoResponse, Redirect, Response},
 };
@@ -74,10 +77,63 @@ pub async fn logout(session: Session) -> Redirect {
 /// The admin area, reachable only with a session. A signed-out visitor is
 /// sent to the login form.
 pub async fn admin(session: Session) -> Response {
-    match session.get::<Uuid>(USER_ID_KEY).await {
-        Ok(Some(_)) => Html(admin_page()).into_response(),
-        _ => Redirect::to("/login").into_response(),
+    if owner(&session).await.is_some() {
+        Html(admin_page()).into_response()
+    } else {
+        Redirect::to("/login").into_response()
     }
+}
+
+#[derive(Deserialize)]
+pub struct ProjectEdit {
+    markdown: String,
+}
+
+/// Saves an edit to a project's description Markdown, then reloads and
+/// re-caches the portfolio so the change shows on the next request. Only the
+/// owner may edit; the markdown must be non-empty; the slug must exist.
+pub async fn edit_project(
+    session: Session,
+    State(state): State<AppState>,
+    Path(slug): Path<String>,
+    Form(form): Form<ProjectEdit>,
+) -> Response {
+    if owner(&session).await.is_none() {
+        return Redirect::to("/login").into_response();
+    }
+
+    if form.markdown.parse::<ProjectDescription>().is_err() {
+        return (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "A project description cannot be empty.",
+        )
+            .into_response();
+    }
+
+    match db::portfolio::set_project_description(&state.pool, &slug, &form.markdown).await {
+        Ok(true) => match db::portfolio::load(&state.pool).await {
+            Ok(content) => {
+                store_server_content(content);
+                Redirect::to("/admin").into_response()
+            }
+            Err(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Saved, but the portfolio could not be reloaded.",
+            )
+                .into_response(),
+        },
+        Ok(false) => (StatusCode::NOT_FOUND, "No such project.").into_response(),
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Could not save the edit.",
+        )
+            .into_response(),
+    }
+}
+
+/// The authenticated user's id, if the session holds one.
+async fn owner(session: &Session) -> Option<Uuid> {
+    session.get::<Uuid>(USER_ID_KEY).await.ok().flatten()
 }
 
 /// Rotates the session id to defeat fixation, then records the user.
@@ -149,7 +205,7 @@ fn document(title: &str, body: &str) -> String {
 /// The login page. The right pane is a read-only status readout drawn from the
 /// live portfolio, so the counts and page list stay true as content changes.
 fn login_page(error: Option<&str>) -> String {
-    let content = crate::app::content::server_content();
+    let content = server_content();
     let projects = content.projects.len();
 
     let mut names = Vec::with_capacity(projects + 2);

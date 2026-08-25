@@ -4,6 +4,21 @@ use crate::{
     domain::{Project, ProjectDescription, ProjectLink, ProjectSlug},
 };
 
+/// Replaces a project's description Markdown, returning whether a row matched
+/// the slug.
+pub(super) async fn set_description(
+    pool: &DbPool,
+    slug: &str,
+    markdown: &str,
+) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query("UPDATE project SET description_markdown = ?1 WHERE slug = ?2")
+        .bind(markdown)
+        .bind(slug)
+        .execute(pool)
+        .await?;
+    Ok(result.rows_affected() > 0)
+}
+
 /// Loads projects with Technologies and links grouped in memory, avoiding
 /// queries per project.
 pub(super) async fn load(pool: &DbPool) -> Result<Vec<Project>, super::LoadError> {

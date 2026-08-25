@@ -6,7 +6,7 @@
 
 use axum::{
     Router,
-    body::Body,
+    body::{Body, to_bytes},
     http::{Request, StatusCode, header},
 };
 use kristofersxyz::{
@@ -42,6 +42,33 @@ fn login_request(username: &str, password: &str) -> Request<Body> {
             "username={username}&password={password}"
         )))
         .expect("build the login request")
+}
+
+/// Signs in as the owner and returns the session cookie to replay.
+async fn sign_in(router: &Router) -> String {
+    let login = router
+        .clone()
+        .oneshot(login_request("owner", "s3cret"))
+        .await
+        .expect("send the login");
+    login.headers()[header::SET_COOKIE]
+        .to_str()
+        .expect("cookie is text")
+        .split(';')
+        .next()
+        .expect("cookie has a value")
+        .to_owned()
+}
+
+fn edit_request(slug: &str, markdown: &str, cookie: Option<&str>) -> Request<Body> {
+    let mut builder = Request::post(format!("/admin/project/{slug}"))
+        .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
+    if let Some(cookie) = cookie {
+        builder = builder.header(header::COOKIE, cookie);
+    }
+    builder
+        .body(Body::from(format!("markdown={markdown}")))
+        .expect("build the edit request")
 }
 
 #[tokio::test]
@@ -104,4 +131,71 @@ async fn a_completed_login_reaches_the_admin_area() {
         .expect("send the admin request");
 
     assert_eq!(admin.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn an_owner_can_edit_a_project_and_the_page_updates() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let save = router
+        .clone()
+        .oneshot(edit_request("traxor", "EDITMARKER42", Some(&cookie)))
+        .await
+        .expect("send the edit");
+    assert_eq!(save.status(), StatusCode::SEE_OTHER);
+    assert_eq!(save.headers()[header::LOCATION], "/admin");
+
+    // The refreshed cache feeds the detail page render.
+    let page = router
+        .oneshot(
+            Request::get("/work/traxor")
+                .body(Body::empty())
+                .expect("build request"),
+        )
+        .await
+        .expect("send the page request");
+    let body = to_bytes(page.into_body(), usize::MAX)
+        .await
+        .expect("read the body");
+    assert!(String::from_utf8_lossy(&body).contains("EDITMARKER42"));
+}
+
+#[tokio::test]
+async fn an_unauthenticated_edit_is_rejected() {
+    let (router, _database) = app_with_owner().await;
+
+    let response = router
+        .oneshot(edit_request("traxor", "EDITMARKER42", None))
+        .await
+        .expect("send the edit");
+
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(response.headers()[header::LOCATION], "/login");
+}
+
+#[tokio::test]
+async fn an_empty_description_is_rejected() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let response = router
+        .oneshot(edit_request("traxor", "", Some(&cookie)))
+        .await
+        .expect("send the edit");
+
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+#[tokio::test]
+async fn editing_an_unknown_project_is_not_found() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let response = router
+        .oneshot(edit_request("ghost", "EDITMARKER42", Some(&cookie)))
+        .await
+        .expect("send the edit");
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
