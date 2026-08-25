@@ -23,8 +23,6 @@ pub fn NotFoundPage() -> impl IntoView {
     });
 
     view! {
-        // Overrides the site title from `SiteMeta`, which would otherwise
-        // announce this page as the homepage in the tab and to crawlers.
         <Title text="E484: Can't open file" />
         <BlankPage editor status>
             <section class="flex min-h-0 flex-1 items-center overflow-y-auto px-5 py-14 sm:px-10 md:px-14">

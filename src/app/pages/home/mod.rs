@@ -37,8 +37,6 @@ pub fn HomePage() -> impl IntoView {
         .with_progress()
     });
 
-    // Fragments are not sent to the server, so restore them once the browser
-    // has mounted the homepage.
     ReactiveEffect::new(move |_| {
         if let Some(fragment) = current_fragment() {
             view_model.pick_fragment(&fragment);

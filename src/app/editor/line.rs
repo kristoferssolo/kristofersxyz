@@ -1,5 +1,4 @@
-//! Command and search line reduction. Both lines edit their text the same
-//! way and differ only on Enter: a command runs, a search jumps.
+//! Command and search line editing. Enter runs a command or executes a search.
 
 use super::{
     Buffer, BufferEntry, Command, EditorState, Effect, Key, KeyInput, Mode, Notification,
@@ -26,7 +25,7 @@ pub(super) fn search(
     line(state, input, buffer, query, Line::Search)
 }
 
-/// Which line is open. Both edit the same way and differ only on Enter.
+/// The active line and its Enter behavior.
 #[derive(Clone, Copy)]
 enum Line {
     Command,
@@ -67,7 +66,6 @@ fn line(
         Key::Escape => cancel(state),
         Key::Backspace => {
             let mut next = text.to_owned();
-            // Backspace on an empty line leaves the mode, the way vim does.
             next.pop()
                 .map_or_else(|| cancel(state), |_| rewrite(next.clone()))
         }
@@ -80,7 +78,7 @@ fn line(
     }
 }
 
-/// Leaves the line with the selection exactly where it was.
+/// Returns to Normal mode without moving the selection.
 fn cancel(state: &EditorState) -> Transition {
     Transition::new(
         EditorState {
@@ -105,8 +103,6 @@ fn run(state: &EditorState, buffer: &Buffer, text: &str) -> Transition {
         }
         Ok(Command::Work) => buffer.first_of_section(SectionId::Work),
         Ok(Command::Contact) => buffer.first_of_section(SectionId::Contact),
-        // Rereading the current entry reruns its selection, which on a project
-        // route means the page loads again, as `:edit` does in vim.
         Ok(Command::Edit(None)) => buffer.get(&state.active.entry).map(BufferEntry::selection),
         Ok(Command::Edit(Some(name))) => {
             let found = buffer.by_name(&name);

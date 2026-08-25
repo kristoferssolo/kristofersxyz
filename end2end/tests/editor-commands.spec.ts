@@ -37,8 +37,6 @@ test("the status line spans the viewport, its text clear of the link preview", a
   await page.goto("http://localhost:3000/");
 
   const status = await page.locator("footer > div").first().boundingBox();
-  // Browsers draw hovered-link destinations over the lower left, so the
-  // filename lives in the right cluster and only the mode block is exposed.
   const filename = await page
     .locator("footer")
     .getByText("kristofers.xyz")
@@ -67,15 +65,12 @@ test("ctrl+b collapses the sidebar and movement leaves it collapsed", async ({
   await expect(navigation).toBeVisible();
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
 
-  // The toggle is the first tab stop, and the editor leaves its Enter alone.
   await page.keyboard.press("Tab");
   await expect(toggle).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(navigation).toBeHidden();
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
 
-  // G jumps to contact, which the homepage selects in place. Movement must
-  // leave the layout exactly as the reader set it.
   await page.keyboard.press("G");
   await expect(page.locator("footer")).toContainText("[5/5]");
   await expect(navigation).toBeHidden();
@@ -93,7 +88,6 @@ test(":e opens a page by name from another route", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL("http://localhost:3000/work/traxor");
 
-  // A name no entry answers to leaves the reader where they were.
   await page.keyboard.type(":e nowhere");
   await page.keyboard.press("Enter");
   await expect(page.locator('[aria-live="polite"]')).toContainText(

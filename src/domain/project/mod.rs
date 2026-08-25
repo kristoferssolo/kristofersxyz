@@ -1,7 +1,7 @@
 //! Project domain types.
 //!
-//! Persistence and presentation both cross this module's interface. Once a
-//! project has been built, its route identity and long description are valid.
+//! Constructors validate the route slug and require a non-empty description
+//! before persistence or rendering can use a Project.
 
 use serde::{Deserialize, Deserializer, Serialize, de};
 use std::{fmt, str::FromStr};

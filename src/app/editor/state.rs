@@ -1,11 +1,9 @@
-//! The editor's data model: the state a key press reads, and the
-//! transition it produces. The reduction that moves between these values
-//! lives in the `normal` and `line` sibling modules.
+//! State read and produced by the editor reducers in `normal` and `line`.
 
 use super::{Destination, EntryId, Selection};
 use std::fmt::{self, Display, Formatter};
 
-/// Which keys mean what right now.
+/// The editor's current input mode.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Mode {
     Normal,
@@ -15,15 +13,15 @@ pub enum Mode {
     Search(String),
 }
 
-/// Everything the editor knows.
+/// State shared by every input mode.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EditorState {
     pub mode: Mode,
     pub active: Selection,
     /// The which-key panel.
     pub help: bool,
-    /// The portfolio navigation. `Ctrl+B` and the toggle button are the only
-    /// two ways to change it, so a collapse is always the reader's choice.
+    /// Whether the portfolio navigation is visible. Only `Ctrl+B` and its
+    /// button change this value.
     pub sidebar: bool,
 }
 
@@ -40,9 +38,7 @@ impl EditorState {
     }
 }
 
-/// The full message set. Vim codes where vim has them, plain language where
-/// it does not: inventing a code for a case vim lacks is where the bit would
-/// become a lie.
+/// Messages emitted by editor transitions.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Notification {
     NotAnEditorCommand(String),
@@ -66,8 +62,7 @@ impl Display for Notification {
     }
 }
 
-/// Something the adapter has to do to the world. Timing lives out there too:
-/// the reducer emits [`Effect::Notify`], the adapter schedules its removal.
+/// Side effects for the browser adapter to perform.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Effect {
     /// Bring the entry's content into view.
@@ -76,13 +71,13 @@ pub enum Effect {
     Navigate(Destination),
     /// Replace whatever notification is showing.
     Notify(Notification),
-    /// Clear the notification now, rather than waiting for its timer.
+    /// Clear the current notification before its timer expires.
     Dismiss,
     /// Return keyboard focus to the page, after the command line closes.
     FocusPage,
 }
 
-/// The result of one key press.
+/// New state and browser effects from one input.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Transition {
     pub state: EditorState,
@@ -94,7 +89,7 @@ impl Transition {
         Self { state, effects }
     }
 
-    /// What an unbound key produces: nothing at all.
+    /// Returns an unchanged state with no effects.
     pub(super) fn unchanged(state: &EditorState) -> Self {
         Self::new(state.clone(), Vec::new())
     }

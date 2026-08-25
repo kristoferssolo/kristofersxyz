@@ -1,9 +1,7 @@
-//! The owner login flow: a form, its verification, a session guard for the
-//! admin area, and logout.
+//! Owner login, session checks, and logout.
 //!
-//! These are plain Axum handlers rather than Leptos server functions. The
-//! [`session`] submodule owns what the admin session stores; [`view`] renders
-//! the pages the handlers return.
+//! Axum handlers return HTML from [`view`] and store authentication data through
+//! [`session`].
 
 mod session;
 mod view;
@@ -41,9 +39,8 @@ pub async fn login_form() -> Html<String> {
     Html(login_page(None))
 }
 
-/// Verifies the submitted credentials and, on success, starts a session and
-/// sends the owner to the admin area. A failure re-renders the form with a
-/// fixed message, never echoing the submitted values.
+/// Starts a session for valid credentials. Failures return a fixed message and
+/// never echo submitted values.
 pub async fn login(
     session: Session,
     State(state): State<AppState>,
@@ -79,8 +76,7 @@ pub async fn logout(session: Session) -> Redirect {
     Redirect::to("/")
 }
 
-/// The admin area, reachable only with a session. A signed-out visitor is
-/// sent to the login form.
+/// Renders the admin area or redirects a signed-out visitor to login.
 pub async fn admin(session: Session) -> Response {
     if owner(&session).await.is_none() {
         return Redirect::to("/login").into_response();
@@ -91,9 +87,7 @@ pub async fn admin(session: Session) -> Response {
     Html(admin_page(&name)).into_response()
 }
 
-/// The edit page for a single project: a textarea prefilled with the project's
-/// current description Markdown. Owner only; an unknown slug is a 404. The form
-/// posts back to [`edit_project`].
+/// Renders an owner's project Markdown form. Unknown slugs return 404.
 pub async fn project_form(session: Session, Path(slug): Path<String>) -> Response {
     if owner(&session).await.is_none() {
         return Redirect::to("/login").into_response();
@@ -115,9 +109,8 @@ pub struct ProjectEdit {
     markdown: String,
 }
 
-/// Saves an edit to a project's description Markdown, then reloads and
-/// re-caches the portfolio so the change shows on the next request. Only the
-/// owner may edit; the markdown must be non-empty; the slug must exist.
+/// Saves non-empty Project Description Markdown, then refreshes the cached
+/// portfolio. Requires an owner session and a known slug.
 pub async fn edit_project(
     session: Session,
     State(state): State<AppState>,

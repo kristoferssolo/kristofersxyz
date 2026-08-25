@@ -1,10 +1,8 @@
 //! A SQLite-backed [`SessionStore`] over the application's own connection pool.
 //!
-//! `tower-sessions-sqlx-store` pins sqlx 0.8, which would pull a second sqlx
-//! into the build alongside this crate's 0.9. Implementing the store here keeps
-//! one sqlx, one pool, and one migration story, while still giving real
-//! server-side sessions: a logout deletes the row, so a stolen cookie stops
-//! working immediately.
+//! `tower-sessions-sqlx-store` pins sqlx 0.8. This implementation uses the
+//! application's sqlx 0.9 pool and migrations. Logout deletes the server-side
+//! row, which invalidates the cookie.
 
 use crate::db::DbPool;
 use async_trait::async_trait;
@@ -14,8 +12,7 @@ use tower_sessions::{
     session_store::{self, SessionStore},
 };
 
-/// Stores each session as one row: the id, the record as JSON, and the expiry
-/// as a unix timestamp so expired rows can be filtered and swept in SQL.
+/// Stores the id, JSON record, and Unix expiry timestamp in one row.
 #[derive(Clone, Debug)]
 pub struct SqliteSessionStore {
     pool: DbPool,
@@ -27,8 +24,7 @@ impl SqliteSessionStore {
         Self { pool }
     }
 
-    /// Whether a row already holds this id, used to resolve the astronomically
-    /// unlikely id collision on creation.
+    /// Checks for an id collision before insertion.
     async fn id_taken(&self, id: &Id) -> session_store::Result<bool> {
         let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sessions WHERE id = ?1")
             .bind(id.to_string())
@@ -95,8 +91,7 @@ impl SessionStore for SqliteSessionStore {
     }
 }
 
-/// A database failure the store cannot recover from, in the store's own error
-/// vocabulary.
+/// Converts a sqlx failure into the session store's backend error.
 fn backend(error: sqlx::Error) -> session_store::Error {
     session_store::Error::Backend(error.to_string())
 }

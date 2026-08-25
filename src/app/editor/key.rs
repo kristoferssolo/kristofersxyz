@@ -1,5 +1,4 @@
-//! The browser event, normalized at the Leptos boundary so the reducer never
-//! sees `web_sys`.
+//! Browser key events converted into DOM-free editor input.
 
 /// A key, as the editor cares about it. Anything unbound arrives as
 /// [`Key::Other`].
@@ -68,8 +67,7 @@ impl KeyInput {
         }
     }
 
-    /// True when a modifier the editor does not bind is held, which is the
-    /// signal to leave the key to the browser.
+    /// Whether the browser should handle this modified key.
     pub(super) const fn foreign(self) -> bool {
         self.alt || self.meta
     }

@@ -170,8 +170,6 @@ impl EditorController {
     pub fn handle_keydown(self, event: &KeyboardEvent) {
         let current = self.state.get_untracked();
 
-        // An open line owns its Enter. In Normal mode the key belongs to
-        // whatever control has focus, so tab stops stay usable.
         if matches!(current.mode, Mode::Normal) && activates_a_control(event) {
             return;
         }

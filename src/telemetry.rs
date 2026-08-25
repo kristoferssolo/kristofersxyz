@@ -5,12 +5,11 @@ use tracing_log::LogTracer;
 use tracing_subscriber::fmt::MakeWriter;
 use tracing_subscriber::{EnvFilter, Registry, layer::SubscriberExt};
 
-/// Create a new tracing subscriber.
+/// Builds a Bunyan-formatted tracing subscriber.
 ///
 /// # Panics
 ///
-/// This function may panic if there is a bug in the `EnvFilter::from` implementation,
-/// causing the `env_filter.into()` conversion to fail. This is highly unlikely.
+/// Panics if `env_filter` cannot be converted into an [`EnvFilter`].
 pub fn get_subscriber<Sink>(
     name: &str,
     env_filter: &str,
@@ -28,16 +27,11 @@ where
         .with(formatting_layer)
 }
 
-/// Initialize a global subscriber for tracing and logging.
+/// Installs the process-wide tracing subscriber and log bridge.
 ///
 /// # Panics
 ///
-/// This function may panic in the following cases:
-///
-/// - If `LogTracer::init()` fails because the global logger has already been initialized.
-///   This typically happens if `init_subscriber` is called more than once.
-/// - If `set_global_default(subscriber)` fails because another subscriber has already been set,
-///   or if there's an issue with the provided subscriber.
+/// Panics if another global logger or tracing subscriber is already installed.
 pub fn init_subscriber(subscriber: impl Subscriber + Sync + Send) {
     LogTracer::init().expect("Failed to set logger");
     set_global_default(subscriber).expect("Failed to set subscriber");

@@ -180,8 +180,6 @@ pub(super) fn admin_page(name: &str) -> String {
         })
         .collect::<String>();
 
-    // The public site is the projects plus the profile and contact pages, the
-    // same count the login readout reports.
     let projects = content.projects.len();
     let pages = projects + 2;
 

@@ -21,12 +21,10 @@ pub enum StartupError {
 
 #[derive(Debug, Clone)]
 pub struct App {
-    /// The connection pool, kept alive past boot so authenticated requests
-    /// (login, and content edits) can reach the database.
+    /// Shared by login and content-edit requests after startup.
     pub pool: DbPool,
     pub leptos_options: LeptosOptions,
-    /// Whether the session cookie is marked `Secure`. Carried here so the
-    /// router can build the session layer from application state.
+    /// Cookie policy used when the router builds its session layer.
     pub secure_cookie: bool,
 }
 
@@ -39,9 +37,8 @@ pub struct Application {
 }
 
 impl App {
-    /// Builds the shared application state: connect, migrate the schema, seed
-    /// an empty database, then load the portfolio. The pool is retained on the
-    /// returned `App`, since authenticated requests query it after boot.
+    /// Connects to SQLite, prepares its content, and stores the portfolio for
+    /// server rendering.
     ///
     /// # Errors
     ///
@@ -54,8 +51,6 @@ impl App {
         db::seed_if_empty(&pool).await?;
         let content = db::portfolio::load(&pool).await?;
 
-        // The live copy every render reads. Router context does not reach the
-        // shell, so it lives in a server global rather than on `App`.
         crate::app::content::store_server_content(content);
 
         let leptos_options = get_configuration(None)?.leptos_options;
@@ -84,8 +79,7 @@ impl Application {
     ///
     /// # Errors
     ///
-    /// - Returns [`ApplicationError`] if:
-    ///   - It fails to bind to the specified address.
+    /// Returns [`ApplicationError`] if the listener cannot bind.
     pub async fn build(app: App) -> Result<Self, ApplicationError> {
         let addr = app.leptos_options.site_addr;
         let listener = TcpListener::bind(addr).await?;
@@ -108,7 +102,7 @@ impl Application {
     ///
     /// # Errors
     ///
-    /// - Returns `std::io::Error` if the server task encounters an error.
+    /// Returns `std::io::Error` if the server task fails.
     #[inline]
     pub async fn run_until_stopped(self) -> Result<(), std::io::Error> {
         self.server.await?

@@ -29,7 +29,8 @@ pub enum AuthError {
 }
 
 /// Verifies a username and password against the stored hash, returning the
-/// authenticated user's id.
+/// authenticated user's id. Unknown usernames still run Argon2 verification
+/// so they follow the same expensive path as wrong passwords.
 ///
 /// # Errors
 ///
@@ -40,8 +41,6 @@ pub async fn validate_credentials(
     credentials: Credentials,
     pool: &DbPool,
 ) -> Result<Uuid, AuthError> {
-    // A real hash for a password nobody has, verified when the username is
-    // unknown so the miss costs the same as a wrong password.
     let mut user_id = None;
     let mut expected_hash = SecretString::from(
         "$argon2id$v=19$m=15000,t=2,p=1$gZiV/M1gPc22ELAH/Jh1Hw$CWOrkoo7oJBQ/iyh7uJ0LO2aLEfrHwTWllSAxT0zRno".to_owned(),
@@ -57,12 +56,10 @@ pub async fn validate_credentials(
     let password = credentials.password;
     tokio::task::spawn_blocking(move || verify_password_hash(&expected_hash, &password)).await??;
 
-    // Set only on a stored username, so a matched dummy hash cannot happen.
     user_id.ok_or(AuthError::InvalidCredentials)
 }
 
-/// Hashes a password with Argon2id for storage. Each call draws a fresh salt,
-/// so the same password hashes differently every time.
+/// Hashes a password with Argon2id and a fresh random salt.
 ///
 /// # Errors
 ///
@@ -78,8 +75,7 @@ pub fn compute_password_hash(password: &SecretString) -> Result<SecretString, Au
     Ok(SecretString::from(hash))
 }
 
-/// Verifies a candidate against a stored PHC hash. The Argon2 parameters come
-/// from the stored hash itself, so a default hasher verifies any of them.
+/// Verifies a candidate against the parameters encoded in a PHC hash.
 fn verify_password_hash(
     expected: &SecretString,
     candidate: &SecretString,

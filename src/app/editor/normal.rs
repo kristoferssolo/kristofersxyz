@@ -10,16 +10,12 @@ use super::{
 pub(super) fn reduce(state: &EditorState, input: KeyInput, buffer: &Buffer) -> Transition {
     if input.ctrl {
         return match input.key {
-            // Captured deliberately: because native find is gone, search has
-            // to cover all text, which it does.
             Key::Char('f' | 'F') => enter_mode(state, Mode::Search(String::new())),
             Key::Char('b' | 'B') => super::toggle_sidebar(state),
             _ => Transition::unchanged(state),
         };
     }
 
-    // Movement selects and scrolls, and leaves the layout alone. A reader who
-    // collapsed the navigation keeps the width they asked for.
     let select = |selection: Option<Selection>| {
         let Some(active) = selection else {
             return Transition::unchanged(state);

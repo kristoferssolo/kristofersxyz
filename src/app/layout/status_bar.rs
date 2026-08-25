@@ -109,9 +109,6 @@ pub(super) fn StatusBar(#[prop(into)] state: Signal<StatusBarState>) -> impl Int
                     let progress = show_progress.then(|| location.progress()).flatten();
                     view! {
                         <div class="flex h-full w-full items-stretch text-[12px] leading-none text-[#8b939d]">
-                            // Native browsers draw hovered-link destinations
-                            // over the lower left. Only the mode block sits
-                            // there, and it has nothing to read.
                             <span
                                 class="flex items-center px-3 font-semibold text-black"
                                 style=format!("background:{AMBER}")

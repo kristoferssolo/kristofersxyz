@@ -35,8 +35,6 @@ pub(super) fn Sidebar(
         <nav
             id=NAVIGATION_ID
             aria-label="Portfolio"
-            // The top padding is the toggle's seat: the button floats over
-            // this corner in both states, so entries start below it.
             class=move || {
                 if visible.get() {
                     "border-b border-[#1e2126] pt-12 pb-3 text-[13px] transition-[opacity,visibility] duration-150 ease-out md:h-full md:min-h-0 md:visible md:overflow-x-hidden md:overflow-y-auto md:border-r md:border-b-0 md:opacity-100"

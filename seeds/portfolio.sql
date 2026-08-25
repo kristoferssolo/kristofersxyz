@@ -1,6 +1,6 @@
--- The versioned portfolio content. This is the source of truth the loader
--- reads, so it must stay in sync with the content model in src/app/content.rs.
--- Idempotent: it clears every table before inserting, so re-running it is safe.
+-- Versioned portfolio content loaded into an empty database.
+-- Keep its shape aligned with src/app/content.rs.
+-- The transaction clears every content table before inserting the fixture.
 
 BEGIN;
 

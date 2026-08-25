@@ -31,19 +31,16 @@ fn embedded_content() -> PortfolioContent {
     serde_json::from_str(&json).expect("the embedded portfolio content is valid JSON")
 }
 
+/// Provides portfolio and sidebar state to every route.
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();
 
-    // Put the portfolio into context so the pages read one small type. The
-    // source differs by side: the boot-loaded singleton on the server, the
-    // embedded JSON on the client, which renders identical values.
     #[cfg(feature = "ssr")]
     provide_context(crate::app::content::server_content().as_ref().clone());
     #[cfg(feature = "hydrate")]
     provide_context(embedded_content());
 
-    // Above the router, so collapsing the sidebar survives a navigation.
     provide_context(SidebarPreference::default());
 
     view! {

@@ -24,9 +24,8 @@ pub struct DatabaseSettings {
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct SessionSettings {
-    /// Whether the session cookie carries the `Secure` attribute, which keeps
-    /// the browser from sending it over plain HTTP. On by default; a local HTTP
-    /// deployment opts out with `SESSION_COOKIE_SECURE=false`.
+    /// Whether the session cookie carries the `Secure` attribute. Defaults to
+    /// true. Local HTTP deployments can set `SESSION_COOKIE_SECURE=false`.
     pub secure_cookie: bool,
 }
 
@@ -46,8 +45,7 @@ impl Settings {
 }
 
 impl DatabaseSettings {
-    /// The database is the source of truth for the portfolio, so `DATABASE_URL`
-    /// is required: without it there is nothing to render.
+    /// Reads the required portfolio database URL.
     fn from_env() -> Result<Self, ConfigurationError> {
         let url = env::var("DATABASE_URL").map_err(|source| {
             ConfigurationError::MissingEnvironmentVariable {
@@ -60,10 +58,8 @@ impl DatabaseSettings {
 }
 
 impl SessionSettings {
-    /// Reads the cookie policy from the environment. Unset means secure, so a
-    /// forgotten variable fails closed rather than leaking the cookie over HTTP;
-    /// only an explicit `false` turns it off, and an unparseable value stays
-    /// secure.
+    /// Reads the cookie policy. Missing or invalid values default to secure;
+    /// only an explicit `false` permits plain HTTP.
     fn from_env() -> Self {
         let secure_cookie = env::var("SESSION_COOKIE_SECURE")
             .map_or(true, |value| value.trim().parse().unwrap_or(true));

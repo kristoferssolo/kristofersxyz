@@ -1,13 +1,10 @@
-//! The editor core: a pure reducer over key input.
+//! Pure editor state transitions.
 //!
-//! No `web_sys`, no timers, no DOM, so every key is exhaustively testable.
-//! The Leptos adapter normalizes the browser event into a [`KeyInput`], calls
-//! [`reduce`], and applies the resulting [`Effect`]s. The whole [`EditorState`]
-//! lives here; none of it is half managed by the view.
+//! This module has no DOM, timers, or `web_sys`. The Leptos adapter converts
+//! browser events into [`KeyInput`] values and applies the returned [`Effect`]s.
 //!
-//! `state` holds the data model, `normal` and `line` hold the reduction for
-//! each mode, and `buffer`, `command` and `key` hold the vocabulary the
-//! reducer reads.
+//! `normal` and `line` reduce input by mode. `buffer`, `command`, and `key`
+//! define the values they consume.
 
 mod buffer;
 mod command;
@@ -23,8 +20,7 @@ pub use command::Command;
 pub use key::{Key, KeyInput};
 pub use state::{EditorState, Effect, Mode, Notification, Transition};
 
-/// Applies one key press. Pure: the same state, input and buffer always give
-/// the same transition.
+/// Returns the transition for one key press.
 #[must_use]
 pub fn reduce(state: &EditorState, input: KeyInput, buffer: &Buffer) -> Transition {
     if input.foreign() {
@@ -40,8 +36,7 @@ pub fn reduce(state: &EditorState, input: KeyInput, buffer: &Buffer) -> Transiti
 
 /// Shows or hides the portfolio navigation.
 ///
-/// `Ctrl+B` and the toggle button both reduce through here, so the button is
-/// never a second source of truth for the layout.
+/// Both `Ctrl+B` and the toggle button call this function.
 #[must_use]
 pub fn toggle_sidebar(state: &EditorState) -> Transition {
     Transition::new(
@@ -53,11 +48,10 @@ pub fn toggle_sidebar(state: &EditorState) -> Transition {
     )
 }
 
-/// Selects an entry by id, rather than by key press.
+/// Selects an entry by id.
 ///
-/// The two paths that need it are a click on a row or an action link, and a
-/// hash fragment on load. Closes any open line, the way clicking away from
-/// vim's command line does.
+/// Rows, action links, and URL fragments use this path. Selection also closes
+/// an open command or search line.
 #[must_use]
 pub fn select(state: &EditorState, entry: &EntryId, buffer: &Buffer) -> Transition {
     let Some(active) = buffer.get(entry).map(BufferEntry::selection) else {

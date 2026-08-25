@@ -1,8 +1,6 @@
-//! The buffer: the entry list the editor moves around in.
+//! Ordered portfolio entries used by editor navigation.
 //!
-//! Entries carry stable ids rather than indices. A `usize` means "the third
-//! row in the current collection", which goes wrong the moment content is
-//! reordered; [`EntryId::Project`] means the same project wherever it sits.
+//! Stable ids survive content reordering; numeric indices do not.
 
 use crate::{app::content::PortfolioContent, domain::ProjectSlug};
 
@@ -81,8 +79,7 @@ pub struct Selection {
 }
 
 impl Default for Selection {
-    /// The profile entry. The buffer always opens with it, so a page that
-    /// cannot read the buffer still has somewhere real to start.
+    /// Defaults to the profile, the first entry in every valid buffer.
     fn default() -> Self {
         Self {
             section: SectionId::Profile,
@@ -99,8 +96,7 @@ pub struct BufferEntry {
     pub name: String,
     /// Where `Enter` goes. Profile and Contact have nowhere to go.
     pub destination: Option<Destination>,
-    /// Lowercased name, section label, body and meta, joined. Built once at
-    /// construction rather than per keystroke.
+    /// Lowercased searchable text, computed once when the buffer is built.
     haystack: String,
 }
 
@@ -155,15 +151,14 @@ pub struct SearchHit {
     pub wrapped: bool,
 }
 
-/// The whole buffer, in the order it renders.
+/// All entries in display order.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Buffer {
     entries: Vec<BufferEntry>,
 }
 
 impl Buffer {
-    /// Flattens the portfolio into lines. Takes content by reference so the
-    /// source can later be a database query.
+    /// Flattens portfolio content into navigable lines.
     #[must_use]
     pub fn from_content(content: &PortfolioContent) -> Self {
         let profile = &content.profile;
@@ -308,8 +303,8 @@ impl Buffer {
     }
 
     /// The entry `name` addresses, for `:edit`. Matches case insensitively
-    /// against the entry's name and its fragment, taking an exact match over a
-    /// containing one so an entry titled after another cannot shadow it.
+    /// against names and URL fragments. Exact matches take precedence over
+    /// substring matches.
     #[must_use]
     pub fn by_name(&self, name: &str) -> Option<Selection> {
         let needle = name.trim().to_lowercase();
@@ -329,7 +324,7 @@ impl Buffer {
     }
 
     /// The entry a `#fragment` addresses, comparing against generated
-    /// fragments so an unknown one cannot invent an entry.
+    /// fragments. Unknown fragments return `None`.
     #[must_use]
     pub fn by_fragment(&self, fragment: &str) -> Option<Selection> {
         let fragment = fragment.trim_start_matches('#');
@@ -341,8 +336,7 @@ impl Buffer {
 
     /// Searches forward from `from`, wrapping, matching case insensitively
     /// against name, section label, body and meta. The starting entry is
-    /// checked last, so a search never reports the row already selected
-    /// without having looked everywhere else first.
+    /// checked last, after every other entry.
     #[must_use]
     pub fn search(&self, from: &EntryId, query: &str) -> Option<SearchHit> {
         let needle = query.trim().to_lowercase();

@@ -16,8 +16,6 @@ async fn main() -> Result<(), kristofersxyz::errors::ApplicationError> {
 
     let settings = Settings::from_env()?;
 
-    // No subcommand means serve, which is how cargo-leptos runs this binary.
-    // A subcommand runs the tool and exits.
     let mut arguments = std::env::args().skip(1);
     if let Some(command) = arguments.next() {
         return match command.as_str() {
@@ -44,8 +42,4 @@ async fn main() -> Result<(), kristofersxyz::errors::ApplicationError> {
 }
 
 #[cfg(not(feature = "ssr"))]
-pub fn main() {
-    // no client-side main function
-    // unless we want this to work with e.g., Trunk for pure client-side testing
-    // see lib.rs for hydration function instead
-}
+pub fn main() {}

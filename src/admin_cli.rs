@@ -1,8 +1,6 @@
-//! Command-line administration, dispatched from `main` before the server
-//! starts. One command so far: set or reset an owner's password.
+//! Command-line administration dispatched before server startup.
 //!
-//! The server binary serves when run with no arguments, so `cargo leptos`
-//! is unaffected; a subcommand runs the tool and exits instead.
+//! No arguments starts the server. A subcommand runs its task and exits.
 
 use crate::{
     authentication::{AuthError, compute_password_hash},
@@ -33,8 +31,7 @@ pub enum AdminCliError {
     Hash(#[from] AuthError),
 }
 
-/// Creates the user if the username is new, or replaces its password if the
-/// user already exists. Migrates first, so it works against a fresh database.
+/// Creates the user or replaces its password after running migrations.
 ///
 /// # Errors
 ///
@@ -63,8 +60,7 @@ pub async fn set_password(
     Ok(())
 }
 
-/// Prompts for a password twice on the terminal, echo suppressed, and returns
-/// it only when the two entries match and are non-empty.
+/// Reads the same non-empty password twice without terminal echo.
 ///
 /// # Errors
 ///

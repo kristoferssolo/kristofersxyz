@@ -1,10 +1,8 @@
 //! Owner authentication: credential verification and password hashing.
 //!
-//! Modelled on *Zero to Production in Rust*. Usernames and Argon2 PHC hashes
-//! live in the `users` table, and a login is one verification against the
-//! stored hash. The verification runs even for an unknown username, so a
-//! failed login takes the same time whether or not the username exists and
-//! cannot be used to enumerate accounts.
+//! Modelled on *Zero to Production in Rust*. The `users` table stores usernames
+//! and Argon2 PHC hashes. Unknown usernames still run one hash verification to
+//! reduce timing differences that could reveal registered accounts.
 
 mod password;
 

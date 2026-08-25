@@ -16,10 +16,6 @@ use tower_sessions::{Expiry, SessionManagerLayer, cookie::SameSite};
 pub fn route(state: AppState) -> Router {
     let routes = generate_route_list(App);
 
-    // The shell serves both the page routes and the 404 fallback. Each render
-    // reads the current portfolio rather than a snapshot taken here, so a
-    // content edit shows on the next request without a restart. The admin
-    // routes sit alongside it, ahead of the Leptos fallback.
     Router::new()
         .route("/login", get(auth::login_form).post(auth::login))
         .route("/logout", post(auth::logout))
@@ -41,13 +37,9 @@ pub fn route(state: AppState) -> Router {
 
 /// The server-side session middleware, backed by the shared SQLite pool.
 ///
-/// `secure` marks the cookie `Secure` so it never rides plain HTTP. It comes
-/// from `SESSION_COOKIE_SECURE`, on by default and turned off for local HTTP
-/// development.
-fn session_layer(
-    pool: crate::db::DbPool,
-    secure: bool,
-) -> SessionManagerLayer<SqliteSessionStore> {
+/// `secure` controls the cookie's `Secure` attribute. Production defaults to
+/// true; local HTTP development can disable it.
+fn session_layer(pool: crate::db::DbPool, secure: bool) -> SessionManagerLayer<SqliteSessionStore> {
     SessionManagerLayer::new(SqliteSessionStore::new(pool))
         .with_http_only(true)
         .with_same_site(SameSite::Strict)

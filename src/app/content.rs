@@ -1,10 +1,8 @@
 //! The portfolio content model.
 //!
-//! [`PortfolioContent`] is the shape every view renders. It is owned and
-//! serializable, so the database loader can build it and the server can embed
-//! it in the page for the client to hydrate from. The database is the source
-//! of truth; the static `portfolio_content` below is only a test fixture, and
-//! the db loader tests assert the two never drift.
+//! Every view renders [`PortfolioContent`]. The server loads it from SQLite and
+//! serializes it into the page for hydration. Tests use the static fixture and
+//! check that it matches the seed database.
 
 use crate::domain::Project;
 #[cfg(test)]
@@ -19,14 +17,12 @@ pub struct PortfolioContent {
     pub contact: Contact,
 }
 
-/// Site level metadata. Title and description are never optional, because a
-/// missing one is what search results and link previews show as a blank.
+/// Required metadata for browser titles, search results, and link previews.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Site {
     pub url: String,
     pub title: String,
-    /// The meta and Open Graph description. Reuses the profile summary, so the
-    /// search snippet and the page never drift apart.
+    /// Shared by the meta description and Open Graph tags.
     pub description: String,
     /// Absolute, because Open Graph consumers do not resolve relative paths.
     pub og_image: String,
@@ -58,28 +54,25 @@ pub struct FocusArea {
     pub detail: String,
 }
 
-/// The contact entry. Mail only: no form, and therefore no spam surface.
+/// The mail-only contact entry.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Contact {
     pub name: String,
     pub body: String,
 }
 
-/// The server's copy of the loaded portfolio. `App` reads it here during SSR:
-/// Leptos context from the router does not reach the shell-level component
-/// tree, so the boot-loaded singleton is stored here instead.
+/// Server-side portfolio storage for the shell, which cannot read router
+/// context during SSR.
 #[cfg(feature = "ssr")]
 mod server {
     use super::PortfolioContent;
     use arc_swap::ArcSwap;
     use std::sync::{Arc, OnceLock};
 
-    /// The live portfolio. An [`ArcSwap`] so page renders read it without a
-    /// lock on the hot path, while a content edit can replace it atomically.
+    /// [`ArcSwap`] gives renders lock-free reads and admin edits atomic writes.
     static CONTENT: OnceLock<ArcSwap<PortfolioContent>> = OnceLock::new();
 
-    /// Sets the current portfolio: once at boot, and again after every edit.
-    /// A later render sees the new value on its next read.
+    /// Replaces the portfolio at startup or after an admin edit.
     pub fn store(content: PortfolioContent) {
         let content = Arc::new(content);
         match CONTENT.get() {
@@ -90,7 +83,7 @@ mod server {
         }
     }
 
-    /// The current portfolio, cheap to clone since it hands back an [`Arc`].
+    /// Returns the current portfolio in a cloned [`Arc`].
     ///
     /// # Panics
     ///
@@ -107,8 +100,7 @@ mod server {
 #[cfg(feature = "ssr")]
 pub use server::{content as server_content, store as store_server_content};
 
-/// The static portfolio the reducer and page tests build their buffers from.
-/// The running app loads the same content from the database instead.
+/// Static content used by reducer and page tests.
 #[cfg(test)]
 pub(crate) use fixture::portfolio_content;
 

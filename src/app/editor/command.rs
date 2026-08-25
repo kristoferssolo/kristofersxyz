@@ -1,8 +1,7 @@
 //! The command line parser.
 //!
-//! Vim takes any unambiguous prefix of a command name, so `:h`, `:he` and
-//! `:hel` all reach `:help`. Every name here differs in its first letter, so
-//! one character is always enough.
+//! Vim accepts unambiguous command prefixes. The current commands differ at
+//! their first character, making every non-empty prefix unambiguous.
 
 use super::Notification;
 
@@ -12,8 +11,7 @@ pub enum Command {
     Help,
     Work,
     Contact,
-    /// The entry to open. Without a name, `:edit` rereads the current entry
-    /// the way vim rereads the current file.
+    /// The entry to open. With no name, `:edit` reloads the current entry.
     Edit(Option<String>),
 }
 
@@ -56,8 +54,7 @@ impl Command {
     }
 }
 
-/// Whether `input` is one of vim's abbreviations of `name`: a non-empty
-/// prefix of it.
+/// Whether `input` is a non-empty prefix of `name`.
 fn abbreviates(name: &str, input: &str) -> bool {
     !input.is_empty() && name.starts_with(input)
 }
