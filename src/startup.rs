@@ -25,6 +25,9 @@ pub struct App {
     /// (login, and content edits) can reach the database.
     pub pool: DbPool,
     pub leptos_options: LeptosOptions,
+    /// Whether the session cookie is marked `Secure`. Carried here so the
+    /// router can build the session layer from application state.
+    pub secure_cookie: bool,
 }
 
 pub type AppState = App;
@@ -59,6 +62,7 @@ impl App {
         Ok(Self {
             pool,
             leptos_options,
+            secure_cookie: settings.session.secure_cookie,
         })
     }
 }
@@ -114,7 +118,7 @@ impl Application {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::configuration::DatabaseSettings;
+    use crate::configuration::{DatabaseSettings, SessionSettings};
     use claims::assert_ok;
     use tempfile::NamedTempFile;
 
@@ -124,6 +128,9 @@ mod tests {
         let settings = Settings {
             database: DatabaseSettings {
                 url: format!("sqlite://{}", database.path().display()),
+            },
+            session: SessionSettings {
+                secure_cookie: false,
             },
         };
 

@@ -11,7 +11,7 @@ use axum::{
 };
 use kristofersxyz::{
     admin_cli::set_password,
-    configuration::{DatabaseSettings, Settings},
+    configuration::{DatabaseSettings, SessionSettings, Settings},
     router::route,
     startup::App,
 };
@@ -26,6 +26,9 @@ async fn app_with_owner() -> (Router, NamedTempFile) {
     let settings = Settings {
         database: DatabaseSettings {
             url: format!("sqlite://{}", database.path().display()),
+        },
+        session: SessionSettings {
+            secure_cookie: false,
         },
     };
     set_password(&settings, "owner", &SecretString::from("s3cret".to_owned()))

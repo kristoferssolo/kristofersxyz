@@ -88,7 +88,7 @@ mod tests {
     use super::*;
     use crate::{
         authentication::{Credentials, validate_credentials},
-        configuration::DatabaseSettings,
+        configuration::{DatabaseSettings, SessionSettings},
     };
     use claims::{assert_err, assert_ok};
     use tempfile::NamedTempFile;
@@ -97,6 +97,9 @@ mod tests {
         Settings {
             database: DatabaseSettings {
                 url: format!("sqlite://{}", database.path().display()),
+            },
+            session: SessionSettings {
+                secure_cookie: false,
             },
         }
     }
