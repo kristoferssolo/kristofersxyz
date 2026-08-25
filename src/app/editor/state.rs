@@ -94,3 +94,27 @@ impl Transition {
         Self::new(state.clone(), Vec::new())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(
+        Notification::NotAnEditorCommand("wrok".to_owned()),
+        "E492: Not an editor command: wrok"
+    )]
+    #[case(
+        Notification::PatternNotFound("kubernetes".to_owned()),
+        "E486: Pattern not found: kubernetes"
+    )]
+    #[case(Notification::SearchWrapped, "search hit BOTTOM, continuing at TOP")]
+    #[case(Notification::NothingToOpen, "Nothing to open here")]
+    fn notifications_read_the_way_vim_reports_them(
+        #[case] notification: Notification,
+        #[case] expected: &str,
+    ) {
+        assert_eq!(notification.to_string(), expected);
+    }
+}

@@ -58,3 +58,58 @@ impl Command {
 fn abbreviates(name: &str, input: &str) -> bool {
     !input.is_empty() && name.starts_with(input)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use claims::{assert_err_eq, assert_ok_eq};
+    use rstest::rstest;
+
+    /// Every command name is reachable from its first letter on, so this also
+    /// checks that no two names shadow each other.
+    #[rstest]
+    #[case("c", Command::Contact)]
+    #[case("contact", Command::Contact)]
+    #[case("e", Command::Edit(None))]
+    #[case("edit", Command::Edit(None))]
+    #[case("h", Command::Help)]
+    #[case("hel", Command::Help)]
+    #[case("help", Command::Help)]
+    #[case("w", Command::Work)]
+    #[case("work", Command::Work)]
+    #[case("   work   ", Command::Work)]
+    fn commands_parse_from_any_prefix(#[case] input: &str, #[case] expected: Command) {
+        assert_ok_eq!(Command::parse(input), expected);
+    }
+
+    #[rstest]
+    #[case("e traxor", "traxor")]
+    #[case("edit   cipher workshop  ", "cipher workshop")]
+    fn edit_carries_its_argument(#[case] input: &str, #[case] expected: &str) {
+        assert_ok_eq!(
+            Command::parse(input),
+            Command::Edit(Some(expected.to_owned()))
+        );
+    }
+
+    #[rstest]
+    #[case::help("help me", "me")]
+    #[case::work("w traxor", "traxor")]
+    fn a_command_taking_no_argument_rejects_one(#[case] input: &str, #[case] rest: &str) {
+        assert_err_eq!(
+            Command::parse(input),
+            Notification::TrailingCharacters(rest.to_owned())
+        );
+    }
+
+    #[rstest]
+    #[case::misspelled("wrok")]
+    #[case::not_a_command_name("x")]
+    #[case::nothing("")]
+    fn anything_else_is_not_an_editor_command(#[case] input: &str) {
+        assert_err_eq!(
+            Command::parse(input),
+            Notification::NotAnEditorCommand(input.trim().to_owned())
+        );
+    }
+}
