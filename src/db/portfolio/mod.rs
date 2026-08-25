@@ -6,8 +6,6 @@
 
 mod projects;
 mod rows;
-#[cfg(test)]
-mod tests;
 
 use self::rows::{ContactRow, FocusRow, ProfileRow, SiteRow, SocialRow};
 use crate::{
@@ -126,4 +124,92 @@ pub async fn set_project_description(
     markdown: &str,
 ) -> Result<bool, sqlx::Error> {
     projects::set_description(pool, slug, markdown).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::{DbPoolOptions, migrate, seed_if_empty};
+
+    /// A migrated database with the bundled seed applied. SQLite gives each
+    /// connection its own in-memory database, so the test pool is capped at one
+    /// connection.
+    async fn seeded_pool() -> DbPool {
+        let pool = DbPoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .expect("connect to an in-memory database");
+        migrate(&pool).await.expect("run the migrations");
+        seed_if_empty(&pool).await.expect("seed the database");
+        pool
+    }
+
+    #[tokio::test]
+    async fn the_seed_loads_into_the_content_model() {
+        let content = load(&seeded_pool().await)
+            .await
+            .expect("load the seeded portfolio");
+
+        assert_eq!(
+            content.site.title,
+            "Kristofers Solo, Rust software developer"
+        );
+        assert_eq!(content.profile.name, "Kristofers Solo");
+        assert_eq!(
+            content.profile.technologies,
+            ["Rust", "Leptos", "Axum", "Tailwind"]
+        );
+        assert_eq!(content.profile.working_style.len(), 4);
+        assert_eq!(content.profile.links.len(), 4);
+        assert_eq!(content.contact.name, "Write to me");
+    }
+
+    #[tokio::test]
+    async fn projects_keep_their_order_technologies_and_links() {
+        let content = load(&seeded_pool().await)
+            .await
+            .expect("load the seeded portfolio");
+
+        let names = content
+            .projects
+            .iter()
+            .map(|project| project.slug.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(names, ["guenther", "traxor", "cipher-workshop"]);
+
+        let cipher = &content.projects[2];
+        assert_eq!(
+            cipher.technologies,
+            ["Rust", "AES-128", "CLI", "WebAssembly"]
+        );
+        assert_eq!(cipher.links.len(), 1);
+        assert_eq!(cipher.links[0].label, "GitHub");
+        assert_eq!(
+            cipher.links[0].href,
+            "https://github.com/kristoferssolo/cipher-workshop"
+        );
+    }
+
+    /// The seed exists to reproduce the static fixture exactly. If they drift,
+    /// the page renders different content depending on where it was loaded.
+    #[tokio::test]
+    async fn the_seed_matches_the_static_fixture() {
+        use crate::app::content::portfolio_content;
+
+        let loaded = load(&seeded_pool().await)
+            .await
+            .expect("load the seeded portfolio");
+        let fixture = portfolio_content();
+
+        assert_eq!(loaded.profile.about, fixture.profile.about);
+        assert_eq!(loaded.projects.len(), fixture.projects.len());
+        for (loaded, fixture) in loaded.projects.iter().zip(&fixture.projects) {
+            assert_eq!(loaded.slug, fixture.slug);
+            assert_eq!(loaded.title, fixture.title);
+            assert_eq!(loaded.summary, fixture.summary);
+            assert_eq!(loaded.description.as_str(), fixture.description.as_str());
+            assert_eq!(loaded.technologies, fixture.technologies);
+        }
+    }
 }

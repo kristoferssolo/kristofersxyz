@@ -29,7 +29,19 @@ pub async fn seed_if_empty(pool: &DbPool) -> Result<(), sqlx::Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::test_support::migrated_pool;
+    use crate::db::{DbPoolOptions, migrate};
+
+    /// A migrated but unseeded database. SQLite gives each connection its own
+    /// in-memory database, so the test pool is capped at one connection.
+    async fn migrated_pool() -> DbPool {
+        let pool = DbPoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .expect("connect to an in-memory database");
+        migrate(&pool).await.expect("run the migrations");
+        pool
+    }
 
     #[tokio::test]
     async fn seed_if_empty_populates_a_fresh_database() {
