@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: sqlite:///app/data/portfolio.db
+      SESSION_COOKIE_SECURE: "false"
+    volumes:
+      - portfolio-data:/app/data
+    init: true
+    restart: unless-stopped
+volumes:
+  portfolio-data:

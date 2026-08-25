@@ -49,7 +49,9 @@ RUN apt-get update\
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid 10001 app \
     && useradd --uid 10001 --gid app --no-create-home --home-dir /app \
-        --shell /usr/sbin/nologin app
+        --shell /usr/sbin/nologin app \
+    && mkdir /app/data \
+    && chown 10001:10001 /app/data
 
 # Copy binaries and assets
 COPY --chown=10001:10001 --from=builder /app/target/release/kristofersxyz /app/
