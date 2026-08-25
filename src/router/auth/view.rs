@@ -21,7 +21,7 @@ body{margin:0;min-height:100dvh;background:#000;color:#d4d7db;
   font-family:"IBM Plex Mono",ui-monospace,monospace;text-rendering:optimizeLegibility}
 .login{display:grid;grid-template-columns:360px 1fr;min-height:100dvh}
 aside{border-right:1px solid #1e2126;padding:3rem 2.25rem;display:flex;flex-direction:column;min-height:0}
-.eyebrow{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#4c525a}
+.eyebrow{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#767d87}
 h1{margin:.7rem 0 0;font-family:"IBM Plex Sans",sans-serif;font-weight:600;font-size:1.5rem;color:#fff}
 .lede{margin:.6rem 0 0;font-size:13px;line-height:1.6;color:#8b939d}
 form{margin-top:2.2rem}
@@ -36,12 +36,12 @@ textarea:focus{outline:none;border-color:#e2a340}
 button{margin-top:1.6rem;width:100%;background:#080a0d;color:#fff;border:1px solid #30363d;
   padding:.55rem;font:inherit;font-size:13px;cursor:pointer}
 button:hover{border-color:#e2a340}
-.foot{margin-top:auto;padding-top:2rem;font-size:11px;color:#4c525a}
+.foot{margin-top:auto;padding-top:2rem;font-size:11px;color:#767d87}
 .stage{position:relative;overflow:hidden;display:flex;flex-direction:column;padding:3rem 3.25rem}
 .tag{position:absolute;top:1.5rem;right:2rem;font-size:11px;letter-spacing:.18em;
   text-transform:uppercase;color:#2b3037}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:0 3rem}
-.grp{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#59616a;margin:2rem 0 .8rem}
+.grp{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#767d87;margin:2rem 0 .8rem}
 .grp:first-child{margin-top:0}
 dl{display:grid;grid-template-columns:13ch 1fr;gap:.55rem 2ch;margin:0;font-size:13px}
 dt{color:#8b939d}
@@ -49,7 +49,7 @@ dd{margin:0;color:#c3c9cf}
 dd b{color:#e2a340;font-weight:500}
 .pages{margin:.2rem 0 0;font-size:13px}
 .pages p{margin:.35rem 0;color:#8b939d}
-.pages .n{color:#3c424a;margin-right:1.5ch}
+.pages .n{color:#6b7280;margin-right:1.5ch}
 .mark{margin-top:auto;font-family:"IBM Plex Sans",sans-serif;font-weight:600;
   letter-spacing:-.04em;line-height:.9;font-size:clamp(2rem,4vw,3.2rem);color:#0e1116}
 .eyebrow a{color:inherit;text-decoration:none}
@@ -73,18 +73,18 @@ dd b{color:#e2a340;font-weight:500}
 .row{display:flex;justify-content:space-between;align-items:baseline;gap:2ch}
 .name{font-size:15px;color:#fff}
 .projects a:hover .name{color:#e2a340}
-.edit{display:inline-flex;align-items:center;color:#3c424a}
+.edit{display:inline-flex;align-items:center;color:#6b7280}
 .edit .i{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;
   stroke-linecap:round;stroke-linejoin:round}
 .projects a:hover .edit{color:#e2a340}
 .name-row{display:flex;align-items:center;gap:1.1ch}
 .ico{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;
-  stroke-linecap:round;stroke-linejoin:round;color:#59616a}
+  stroke-linecap:round;stroke-linejoin:round;color:#767d87}
 .projects a:hover .ico{color:#e2a340}
 .sum{margin:.5rem 0 0;font-size:13px;line-height:1.55;color:#8b939d}
-.meta{margin:.6rem 0 0;font-size:11px;letter-spacing:.04em;color:#4c525a}
+.meta{margin:.6rem 0 0;font-size:11px;letter-spacing:.04em;color:#767d87}
 .meta b{color:#8b939d;font-weight:400}
-.meta .path{color:#3c424a}
+.meta .path{color:#6b7280}
 :focus-visible{outline:2px solid #e2a340;outline-offset:2px}
 @media (max-width:720px){.login{grid-template-columns:1fr}.stage{display:none}aside{border-right:none}}
 "#;
