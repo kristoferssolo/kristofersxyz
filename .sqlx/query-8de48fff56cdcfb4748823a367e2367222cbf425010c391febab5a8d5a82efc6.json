@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE project SET title = ?1, summary = ?2, description_markdown = ?3 WHERE slug = ?4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "8de48fff56cdcfb4748823a367e2367222cbf425010c391febab5a8d5a82efc6"
+}

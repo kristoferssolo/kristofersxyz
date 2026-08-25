@@ -115,19 +115,21 @@ pub async fn load(pool: &DbPool) -> Result<PortfolioContent, LoadError> {
     })
 }
 
-/// Replaces a project's description Markdown by slug, returning whether the
-/// project exists. The caller reloads and re-caches the portfolio so the edit
-/// takes effect.
+/// Replaces a project's editable fields by slug, returning whether the project
+/// exists. The caller reloads and re-caches the portfolio so the edit takes
+/// effect.
 ///
 /// # Errors
 ///
 /// Returns [`sqlx::Error`] if the update fails.
-pub async fn set_project_description(
+pub async fn set_project(
     pool: &DbPool,
     slug: &str,
-    markdown: &str,
+    title: &str,
+    summary: &str,
+    description: &str,
 ) -> Result<bool, sqlx::Error> {
-    projects::set_description(pool, slug, markdown).await
+    projects::set(pool, slug, title, summary, description).await
 }
 
 #[cfg(test)]

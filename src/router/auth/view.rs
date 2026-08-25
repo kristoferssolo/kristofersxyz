@@ -215,25 +215,44 @@ pub(super) fn admin_page(name: &str) -> String {
     document("Admin", &body)
 }
 
-/// A project's edit form, its textarea prefilled with the current description.
+/// A project's edit form, prefilled with its current fields. The slug is the
+/// route identity, so it is shown but not editable.
 pub(super) fn project_page(project: &Project) -> String {
+    let slug = escape(project.slug.as_str());
     let body = format!(
         "<main class=\"admin\">\
-           <p class=\"eyebrow\"><a href=\"/admin\">Admin</a> / edit</p>\
-           <h1>{title}</h1>\
-           <p class=\"lede\">Description, in Markdown.</p>\
+           <p class=\"eyebrow\"><a href=\"/admin\">Admin</a> / {slug}</p>\
+           <h1>Edit project</h1>\
            <form method=\"post\" action=\"/admin/project/{slug}\">\
-             <label>Markdown\
-               <textarea name=\"markdown\" spellcheck=\"false\">{description}</textarea>\
-             </label>\
+             {title}{summary}{description}\
              <button type=\"submit\">Save</button>\
            </form>\
          </main>",
-        title = escape(&project.title),
-        slug = escape(project.slug.as_str()),
-        description = escape(project.description.as_str()),
+        title = field("Title", "title", &project.title),
+        summary = field("Summary", "summary", &project.summary),
+        description = area("Description (Markdown)", "markdown", project.description.as_str()),
     );
     document(&escape(&project.title), &body)
+}
+
+/// A labeled single-line text input carrying its current value.
+fn field(label: &str, name: &str, value: &str) -> String {
+    format!(
+        "<label>{label}<input name=\"{name}\" value=\"{value}\"></label>",
+        label = escape(label),
+        value = escape(value),
+    )
+}
+
+/// A labeled multi-line text area carrying its current value.
+fn area(label: &str, name: &str, value: &str) -> String {
+    format!(
+        "<label>{label}\
+           <textarea name=\"{name}\" spellcheck=\"false\">{value}</textarea>\
+         </label>",
+        label = escape(label),
+        value = escape(value),
+    )
 }
 
 /// Escapes the handful of characters that would otherwise break out of the

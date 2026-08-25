@@ -65,13 +65,25 @@ async fn sign_in(router: &Router) -> String {
 }
 
 fn edit_request(slug: &str, markdown: &str, cookie: Option<&str>) -> Request<Body> {
+    project_edit(slug, "A title", "A summary", markdown, cookie)
+}
+
+fn project_edit(
+    slug: &str,
+    title: &str,
+    summary: &str,
+    markdown: &str,
+    cookie: Option<&str>,
+) -> Request<Body> {
     let mut builder = Request::post(format!("/admin/project/{slug}"))
         .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
     if let Some(cookie) = cookie {
         builder = builder.header(header::COOKIE, cookie);
     }
     builder
-        .body(Body::from(format!("markdown={markdown}")))
+        .body(Body::from(format!(
+            "title={title}&summary={summary}&markdown={markdown}"
+        )))
         .expect("build the edit request")
 }
 
@@ -241,6 +253,44 @@ async fn an_owner_can_edit_a_project_and_the_page_updates() {
         .await
         .expect("read the body");
     assert!(String::from_utf8_lossy(&body).contains("EDITMARKER42"));
+}
+
+#[tokio::test]
+async fn an_owner_can_edit_the_title_and_summary() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let save = router
+        .clone()
+        .oneshot(project_edit(
+            "traxor",
+            "Traxor Reborn",
+            "A fresh summary",
+            "Body text here",
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the edit");
+    assert_eq!(save.status(), StatusCode::SEE_OTHER);
+
+    let admin = router
+        .oneshot(get_request("/admin", Some(&cookie)))
+        .await
+        .expect("send the admin request");
+    assert!(body_text(admin).await.contains("Traxor Reborn"));
+}
+
+#[tokio::test]
+async fn an_empty_title_is_rejected() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let response = router
+        .oneshot(project_edit("traxor", "", "summary", "body", Some(&cookie)))
+        .await
+        .expect("send the edit");
+
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
 #[tokio::test]

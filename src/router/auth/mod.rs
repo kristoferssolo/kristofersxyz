@@ -10,7 +10,6 @@ use crate::{
     app::content::{server_content, store_server_content},
     authentication::{AuthError, Credentials, validate_credentials},
     db,
-    domain::ProjectDescription,
     startup::AppState,
 };
 use axum::{
@@ -106,11 +105,13 @@ pub async fn project_form(session: Session, Path(slug): Path<String>) -> Respons
 
 #[derive(Deserialize)]
 pub struct ProjectEdit {
+    title: String,
+    summary: String,
     markdown: String,
 }
 
-/// Saves non-empty Project Description Markdown, then refreshes the cached
-/// portfolio. Requires an owner session and a known slug.
+/// Saves a project's editable fields, then refreshes the cached portfolio.
+/// Requires an owner session, a known slug, and non-empty fields.
 pub async fn edit_project(
     session: Session,
     State(state): State<AppState>,
@@ -121,35 +122,58 @@ pub async fn edit_project(
         return Redirect::to("/login").into_response();
     }
 
-    if form.markdown.parse::<ProjectDescription>().is_err() {
-        return (
-            StatusCode::UNPROCESSABLE_ENTITY,
-            "A project description cannot be empty.",
-        )
-            .into_response();
+    if !all_filled(&[&form.title, &form.summary, &form.markdown]) {
+        return unprocessable();
     }
 
-    match db::portfolio::set_project_description(&state.pool, &slug, &form.markdown).await {
-        Ok(true) => db::portfolio::load(&state.pool).await.map_or_else(
-            |_| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Saved, but the portfolio could not be reloaded.",
-                )
-                    .into_response()
-            },
-            |content| {
-                store_server_content(content);
-                Redirect::to("/admin").into_response()
-            },
-        ),
+    match db::portfolio::set_project(&state.pool, &slug, &form.title, &form.summary, &form.markdown)
+        .await
+    {
+        Ok(true) => apply(&state).await,
         Ok(false) => (StatusCode::NOT_FOUND, "No such project.").into_response(),
-        Err(_) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Could not save the edit.",
-        )
-            .into_response(),
+        Err(_) => internal(),
     }
+}
+
+/// Whether every required text field carries a value.
+fn all_filled(fields: &[&str]) -> bool {
+    fields.iter().all(|field| !field.trim().is_empty())
+}
+
+/// The response for a submission with an empty required field.
+fn unprocessable() -> Response {
+    (
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "Every field is required.",
+    )
+        .into_response()
+}
+
+/// The response for an edit that could not be saved.
+fn internal() -> Response {
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "Could not save the edit.",
+    )
+        .into_response()
+}
+
+/// Reloads the portfolio into the cache after a save, then returns to the admin
+/// area. The row is already written, so a reload failure is reported as such.
+async fn apply(state: &AppState) -> Response {
+    db::portfolio::load(&state.pool).await.map_or_else(
+        |_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Saved, but the portfolio could not be reloaded.",
+            )
+                .into_response()
+        },
+        |content| {
+            store_server_content(content);
+            Redirect::to("/admin").into_response()
+        },
+    )
 }
 
 /// Re-renders the login form with a fixed message under the given status.

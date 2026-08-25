@@ -4,16 +4,20 @@ use crate::{
     domain::{Project, ProjectDescription, ProjectLink, ProjectSlug},
 };
 
-/// Replaces a project's description Markdown, returning whether a row matched
-/// the slug.
-pub(super) async fn set_description(
+/// Replaces a project's editable fields by slug, returning whether a row
+/// matched. The slug is the route identity and stays fixed.
+pub(super) async fn set(
     pool: &DbPool,
     slug: &str,
-    markdown: &str,
+    title: &str,
+    summary: &str,
+    description: &str,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query!(
-        "UPDATE project SET description_markdown = ?1 WHERE slug = ?2",
-        markdown,
+        "UPDATE project SET title = ?1, summary = ?2, description_markdown = ?3 WHERE slug = ?4",
+        title,
+        summary,
+        description,
         slug
     )
     .execute(pool)
