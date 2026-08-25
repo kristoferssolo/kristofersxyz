@@ -70,9 +70,14 @@ dd b{color:#e2a340;font-weight:500}
 .row{display:flex;justify-content:space-between;align-items:baseline;gap:2ch}
 .name{font-size:15px;color:#fff}
 .projects a:hover .name{color:#e2a340}
-.edit{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#3c424a}
-.edit .arr{letter-spacing:0;margin-left:.6em}
+.edit{display:inline-flex;align-items:center;color:#3c424a}
+.edit .i{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
 .projects a:hover .edit{color:#e2a340}
+.name-row{display:flex;align-items:center;gap:1.1ch}
+.ico{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;
+  stroke-linecap:round;stroke-linejoin:round;color:#59616a}
+.projects a:hover .ico{color:#e2a340}
 .sum{margin:.5rem 0 0;font-size:13px;line-height:1.55;color:#8b939d}
 .meta{margin:.6rem 0 0;font-size:11px;letter-spacing:.04em;color:#4c525a}
 .meta b{color:#8b939d;font-weight:400}
@@ -160,6 +165,22 @@ pub(super) fn login_page(error: Option<&str>) -> String {
     document("Sign in", &body)
 }
 
+/// The row affordance: Lucide `chevron-right`, shown on every entry link.
+const AFFORDANCE: &str = "<span class=\"edit\"><svg class=\"i\" viewBox=\"0 0 24 24\">\
+     <path d=\"m9 18 6-6-6-6\"/></svg></span>";
+/// The entry markers: Lucide `box`, `user`, `mail`, and `globe`.
+const ICON_PROJECT: &str = "<svg class=\"ico\" viewBox=\"0 0 24 24\">\
+     <path d=\"M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z\"/>\
+     <path d=\"m3.3 7 8.7 5 8.7-5\"/><path d=\"M12 22V12\"/></svg>";
+const ICON_PROFILE: &str = "<svg class=\"ico\" viewBox=\"0 0 24 24\">\
+     <path d=\"M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2\"/><circle cx=\"12\" cy=\"7\" r=\"4\"/></svg>";
+const ICON_CONTACT: &str = "<svg class=\"ico\" viewBox=\"0 0 24 24\">\
+     <rect width=\"20\" height=\"16\" x=\"2\" y=\"4\" rx=\"2\"/>\
+     <path d=\"m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7\"/></svg>";
+const ICON_SITE: &str = "<svg class=\"ico\" viewBox=\"0 0 24 24\">\
+     <circle cx=\"12\" cy=\"12\" r=\"10\"/>\
+     <path d=\"M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20\"/><path d=\"M2 12h20\"/></svg>";
+
 /// The admin landing page: a session and content readout beside every project
 /// as a link to its edit form. `name` is the signed-in user.
 pub(super) fn admin_page(name: &str) -> String {
@@ -174,8 +195,9 @@ pub(super) fn admin_page(name: &str) -> String {
             let _ = write!(
                 rows,
                 "<li><a href=\"/admin/project/{slug}\">\
-                   <div class=\"row\"><span class=\"name\">{title}</span>\
-                     <span class=\"edit\">Edit<span class=\"arr\">-&gt;</span></span></div>\
+                   <div class=\"row\">\
+                     <span class=\"name-row\">{ICON_PROJECT}<span class=\"name\">{title}</span></span>\
+                     {AFFORDANCE}</div>\
                    <p class=\"sum\">{summary}</p>\
                    <p class=\"meta\"><b>{techs}</b> tech &middot; <b>{links}</b> {link_label} \
                      &middot; <b>{words}</b> words &middot; \
@@ -219,16 +241,19 @@ pub(super) fn admin_page(name: &str) -> String {
              <p class=\"eyebrow\">Site</p>\
              <ul class=\"projects\">\
                <li><a href=\"/admin/profile\">\
-                 <div class=\"row\"><span class=\"name\">Profile</span>\
-                   <span class=\"edit\">Edit<span class=\"arr\">-&gt;</span></span></div>\
+                 <div class=\"row\">\
+                   <span class=\"name-row\">{ICON_PROFILE}<span class=\"name\">Profile</span></span>\
+                   {AFFORDANCE}</div>\
                  <p class=\"meta\">name, title, summary, about, email</p></a></li>\
                <li><a href=\"/admin/contact\">\
-                 <div class=\"row\"><span class=\"name\">Contact</span>\
-                   <span class=\"edit\">Edit<span class=\"arr\">-&gt;</span></span></div>\
+                 <div class=\"row\">\
+                   <span class=\"name-row\">{ICON_CONTACT}<span class=\"name\">Contact</span></span>\
+                   {AFFORDANCE}</div>\
                  <p class=\"meta\">name, body</p></a></li>\
                <li><a href=\"/admin/site\">\
-                 <div class=\"row\"><span class=\"name\">Site metadata</span>\
-                   <span class=\"edit\">Edit<span class=\"arr\">-&gt;</span></span></div>\
+                 <div class=\"row\">\
+                   <span class=\"name-row\">{ICON_SITE}<span class=\"name\">Site metadata</span></span>\
+                   {AFFORDANCE}</div>\
                  <p class=\"meta\">url, title, description, OpenGraph image</p></a></li>\
              </ul>\
            </div>\

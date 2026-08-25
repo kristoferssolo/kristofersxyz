@@ -176,10 +176,11 @@ async fn the_admin_page_links_to_each_project() {
     assert_eq!(page.status(), StatusCode::OK);
 
     let body = body_text(page).await;
-    // Each project links to its edit form, and the panel names the signed-in
-    // owner it stored at login.
+    // Each project links to its edit form, the panel names the signed-in owner
+    // it stored at login, and the entry rows carry their icons.
     assert!(body.contains("/admin/project/traxor"));
     assert!(body.contains("owner"));
+    assert!(body.contains("<svg"));
 }
 
 #[tokio::test]
