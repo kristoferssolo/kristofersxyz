@@ -9,7 +9,7 @@ use crate::{
     app::content::{server_content, store_server_content},
     authentication::{AuthError, Credentials, validate_credentials},
     db,
-    domain::ProjectDescription,
+    domain::{Project, ProjectDescription},
     startup::AppState,
 };
 use axum::{
@@ -81,6 +81,25 @@ pub async fn admin(session: Session) -> Response {
         Html(admin_page()).into_response()
     } else {
         Redirect::to("/login").into_response()
+    }
+}
+
+/// The edit page for a single project: a textarea prefilled with the project's
+/// current description Markdown. Owner only; an unknown slug is a 404. The form
+/// posts back to [`edit_project`].
+pub async fn project_form(session: Session, Path(slug): Path<String>) -> Response {
+    if owner(&session).await.is_none() {
+        return Redirect::to("/login").into_response();
+    }
+
+    let content = server_content();
+    match content
+        .projects
+        .iter()
+        .find(|project| project.slug.as_str() == slug)
+    {
+        Some(project) => Html(project_page(project)).into_response(),
+        None => (StatusCode::NOT_FOUND, "No such project.").into_response(),
     }
 }
 
@@ -163,6 +182,9 @@ label{display:block;margin-top:1.3rem;font-size:12px;color:#8b939d}
 input{margin-top:.4rem;display:block;width:100%;background:#0b0e11;color:#fff;
   border:1px solid #2b3037;padding:.5rem .65rem;font:inherit;font-size:13px}
 input:focus{outline:none;border-color:#e2a340}
+textarea{margin-top:.4rem;display:block;width:100%;min-height:55vh;background:#0b0e11;color:#fff;
+  border:1px solid #2b3037;padding:.6rem .7rem;font:inherit;font-size:13px;line-height:1.65;resize:vertical}
+textarea:focus{outline:none;border-color:#e2a340}
 .err{margin-top:1.2rem;font-size:12px;color:#e2a340}
 button{margin-top:1.6rem;width:100%;background:#080a0d;color:#fff;border:1px solid #30363d;
   padding:.55rem;font:inherit;font-size:13px;cursor:pointer}
@@ -183,9 +205,17 @@ dd b{color:#e2a340;font-weight:500}
 .pages .n{color:#3c424a;margin-right:1.5ch}
 .mark{margin-top:auto;font-family:"IBM Plex Sans",sans-serif;font-weight:600;
   letter-spacing:-.04em;line-height:.9;font-size:clamp(2rem,4vw,3.2rem);color:#0e1116}
-.admin{max-width:420px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;
-  justify-content:center;padding:0 2.25rem}
+.admin{max-width:680px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;
+  padding:3rem 2.25rem}
 .admin button{width:auto;align-self:flex-start;padding:.55rem 1.4rem}
+.eyebrow a{color:inherit;text-decoration:none}
+.eyebrow a:hover{color:#8b939d}
+.projects{list-style:none;margin:1.6rem 0 0;padding:0}
+.projects a{display:flex;justify-content:space-between;align-items:baseline;gap:2ch;
+  padding:.75rem 0;border-bottom:1px solid #1e2126;color:#d4d7db;text-decoration:none}
+.projects a:hover{color:#e2a340}
+.projects .slug{font-size:11px;color:#4c525a}
+.signout{margin-top:2.5rem}
 :focus-visible{outline:2px solid #e2a340;outline-offset:2px}
 @media (max-width:720px){.login{grid-template-columns:1fr}.stage{display:none}aside{border-right:none}}
 "#;
@@ -268,14 +298,57 @@ fn login_page(error: Option<&str>) -> String {
     document("Sign in", &body)
 }
 
+/// The admin landing page: every project as a link to its edit form, drawn from
+/// the live portfolio so the list tracks content changes.
 fn admin_page() -> String {
-    let body = "<main class=\"admin\">\
-         <p class=\"eyebrow\">Admin</p>\
-         <h1>Signed in</h1>\
-         <p class=\"lede\">Content editing lands here next.</p>\
-         <form method=\"post\" action=\"/logout\"><button type=\"submit\">Sign out</button></form>\
-         </main>";
-    document("Admin", body)
+    let content = server_content();
+
+    let projects = content
+        .projects
+        .iter()
+        .map(|project| {
+            format!(
+                "<li><a href=\"/admin/project/{slug}\">{title}\
+                 <span class=\"slug\">{slug}</span></a></li>",
+                slug = escape(project.slug.as_str()),
+                title = escape(&project.title),
+            )
+        })
+        .collect::<String>();
+
+    let body = format!(
+        "<main class=\"admin\">\
+           <p class=\"eyebrow\">Admin</p>\
+           <h1>Projects</h1>\
+           <p class=\"lede\">Select a project to edit its description.</p>\
+           <ul class=\"projects\">{projects}</ul>\
+           <form class=\"signout\" method=\"post\" action=\"/logout\">\
+             <button type=\"submit\">Sign out</button>\
+           </form>\
+         </main>"
+    );
+    document("Admin", &body)
+}
+
+/// A project's edit form, its textarea prefilled with the current description.
+fn project_page(project: &Project) -> String {
+    let body = format!(
+        "<main class=\"admin\">\
+           <p class=\"eyebrow\"><a href=\"/admin\">Admin</a> / edit</p>\
+           <h1>{title}</h1>\
+           <p class=\"lede\">Description, in Markdown.</p>\
+           <form method=\"post\" action=\"/admin/project/{slug}\">\
+             <label>Markdown\
+               <textarea name=\"markdown\" spellcheck=\"false\">{description}</textarea>\
+             </label>\
+             <button type=\"submit\">Save</button>\
+           </form>\
+         </main>",
+        title = escape(&project.title),
+        slug = escape(project.slug.as_str()),
+        description = escape(project.description.as_str()),
+    );
+    document(&escape(&project.title), &body)
 }
 
 /// Escapes the handful of characters that would otherwise break out of the

@@ -136,6 +136,79 @@ async fn a_completed_login_reaches_the_admin_area() {
     assert_eq!(admin.status(), StatusCode::OK);
 }
 
+fn get_request(uri: &str, cookie: Option<&str>) -> Request<Body> {
+    let mut builder = Request::get(uri);
+    if let Some(cookie) = cookie {
+        builder = builder.header(header::COOKIE, cookie);
+    }
+    builder.body(Body::empty()).expect("build the request")
+}
+
+async fn body_text(response: axum::response::Response) -> String {
+    let body = to_bytes(response.into_body(), usize::MAX)
+        .await
+        .expect("read the body");
+    String::from_utf8_lossy(&body).into_owned()
+}
+
+#[tokio::test]
+async fn the_admin_page_links_to_each_project() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let page = router
+        .oneshot(get_request("/admin", Some(&cookie)))
+        .await
+        .expect("send the admin request");
+    assert_eq!(page.status(), StatusCode::OK);
+    assert!(body_text(page).await.contains("/admin/project/traxor"));
+}
+
+#[tokio::test]
+async fn the_edit_page_prefills_the_current_description() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    router
+        .clone()
+        .oneshot(edit_request("traxor", "PREFILLMARKER", Some(&cookie)))
+        .await
+        .expect("send the edit");
+
+    let page = router
+        .oneshot(get_request("/admin/project/traxor", Some(&cookie)))
+        .await
+        .expect("send the edit-page request");
+    assert_eq!(page.status(), StatusCode::OK);
+    assert!(body_text(page).await.contains("PREFILLMARKER"));
+}
+
+#[tokio::test]
+async fn the_edit_page_redirects_a_signed_out_visitor() {
+    let (router, _database) = app_with_owner().await;
+
+    let response = router
+        .oneshot(get_request("/admin/project/traxor", None))
+        .await
+        .expect("send the request");
+
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(response.headers()[header::LOCATION], "/login");
+}
+
+#[tokio::test]
+async fn the_edit_page_for_an_unknown_project_is_not_found() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let response = router
+        .oneshot(get_request("/admin/project/ghost", Some(&cookie)))
+        .await
+        .expect("send the request");
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
 #[tokio::test]
 async fn an_owner_can_edit_a_project_and_the_page_updates() {
     let (router, _database) = app_with_owner().await;

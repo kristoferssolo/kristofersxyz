@@ -24,7 +24,10 @@ pub fn route(state: AppState) -> Router {
         .route("/login", get(auth::login_form).post(auth::login))
         .route("/logout", post(auth::logout))
         .route("/admin", get(auth::admin))
-        .route("/admin/project/{slug}", post(auth::edit_project))
+        .route(
+            "/admin/project/{slug}",
+            get(auth::project_form).post(auth::edit_project),
+        )
         .leptos_routes(&state, routes, {
             let leptos_options = state.leptos_options.clone();
             move || shell(leptos_options.clone(), server_content().as_ref())
