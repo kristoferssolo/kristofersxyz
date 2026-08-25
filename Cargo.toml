@@ -16,7 +16,10 @@ console_error_panic_hook = { version = "0.1", optional = true }
 leptos_axum = { version = "0.8", optional = true }
 leptos_meta = { version = "0.8" }
 pulldown-cmark = "0.13"
-tokio = { version = "1", features = ["rt-multi-thread", "macros"], optional = true }
+tokio = { version = "1", features = [
+  "rt-multi-thread",
+  "macros",
+], optional = true }
 wasm-bindgen = { version = "0.2.106", optional = true }
 sqlx = { version = "0.9", features = [
   "runtime-tokio",
@@ -25,7 +28,9 @@ sqlx = { version = "0.9", features = [
   "migrate",
 ], optional = true }
 serde = { version = "1.0", features = ["derive"] }
-config = { version = "0.15", default-features = false, features = ["toml"], optional = true }
+config = { version = "0.15", default-features = false, features = [
+  "toml",
+], optional = true }
 dotenvy = { version = "0.15", optional = true }
 thiserror = "2.0"
 arc-swap = { version = "1", optional = true }
@@ -36,7 +41,10 @@ rpassword = { version = "7", optional = true }
 secrecy = { version = "0.10", features = ["serde"], optional = true }
 uuid = { version = "1", features = ["v4", "serde"], optional = true }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"], optional = true }
+tracing-subscriber = { version = "0.3", features = [
+  "registry",
+  "env-filter",
+], optional = true }
 tracing-bunyan-formatter = { version = "0.3", optional = true }
 tracing-log = { version = "0.2", optional = true }
 tower-sessions = { version = "0.15", optional = true }
@@ -78,7 +86,19 @@ tower = { version = "0.5", features = ["util"] }
 large_futures = "allow"
 nursery = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
-unwrap_used = "warn"
+unwrap_used = "deny"
+expect_used = "deny"
+indexing_slicing = "deny"
+arithmetic_side_effects = "deny"
+unreachable = "deny"
+unimplemented = "deny"
+unchecked_time_subtraction = "deny"
+todo = "deny"
+string_slice = "deny"
+panic_in_result_fn = "deny"
+panic = "deny"
+exit = "deny"
+as_conversions = "deny"
 
 # Defines a size-optimized profile for the WASM bundle in release mode
 [profile.wasm-release]
