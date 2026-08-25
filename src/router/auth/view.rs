@@ -71,6 +71,7 @@ dd b{color:#e2a340;font-weight:500}
 .name{font-size:15px;color:#fff}
 .projects a:hover .name{color:#e2a340}
 .edit{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#3c424a}
+.edit .arr{letter-spacing:0;margin-left:.6em}
 .projects a:hover .edit{color:#e2a340}
 .sum{margin:.5rem 0 0;font-size:13px;line-height:1.55;color:#8b939d}
 .meta{margin:.6rem 0 0;font-size:11px;letter-spacing:.04em;color:#4c525a}
@@ -174,7 +175,7 @@ pub(super) fn admin_page(name: &str) -> String {
                 rows,
                 "<li><a href=\"/admin/project/{slug}\">\
                    <div class=\"row\"><span class=\"name\">{title}</span>\
-                     <span class=\"edit\">Edit &rarr;</span></div>\
+                     <span class=\"edit\">Edit<span class=\"arr\">-&gt;</span></span></div>\
                    <p class=\"sum\">{summary}</p>\
                    <p class=\"meta\"><b>{techs}</b> tech &middot; <b>{links}</b> {link_label} \
                      &middot; <b>{words}</b> words &middot; \
@@ -219,15 +220,15 @@ pub(super) fn admin_page(name: &str) -> String {
              <ul class=\"projects\">\
                <li><a href=\"/admin/profile\">\
                  <div class=\"row\"><span class=\"name\">Profile</span>\
-                   <span class=\"edit\">Edit &rarr;</span></div>\
+                   <span class=\"edit\">Edit<span class=\"arr\">-&gt;</span></span></div>\
                  <p class=\"meta\">name, title, summary, about, email</p></a></li>\
                <li><a href=\"/admin/contact\">\
                  <div class=\"row\"><span class=\"name\">Contact</span>\
-                   <span class=\"edit\">Edit &rarr;</span></div>\
+                   <span class=\"edit\">Edit<span class=\"arr\">-&gt;</span></span></div>\
                  <p class=\"meta\">name, body</p></a></li>\
                <li><a href=\"/admin/site\">\
                  <div class=\"row\"><span class=\"name\">Site metadata</span>\
-                   <span class=\"edit\">Edit &rarr;</span></div>\
+                   <span class=\"edit\">Edit<span class=\"arr\">-&gt;</span></span></div>\
                  <p class=\"meta\">url, title, description, OpenGraph image</p></a></li>\
              </ul>\
            </div>\
