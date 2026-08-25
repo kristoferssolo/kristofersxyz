@@ -75,8 +75,9 @@ tempfile = "3"
 tower = { version = "0.5", features = ["util"] }
 
 [lints.clippy]
-nursery = "warn"
-pedantic = "warn"
+large_futures = "allow"
+nursery = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
 unwrap_used = "warn"
 
 # Defines a size-optimized profile for the WASM bundle in release mode
