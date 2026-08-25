@@ -161,7 +161,12 @@ async fn the_admin_page_links_to_each_project() {
         .await
         .expect("send the admin request");
     assert_eq!(page.status(), StatusCode::OK);
-    assert!(body_text(page).await.contains("/admin/project/traxor"));
+
+    let body = body_text(page).await;
+    // Each project links to its edit form, and the panel names the signed-in
+    // owner it stored at login.
+    assert!(body.contains("/admin/project/traxor"));
+    assert!(body.contains("owner"));
 }
 
 #[tokio::test]

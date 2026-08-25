@@ -25,6 +25,9 @@ use uuid::Uuid;
 
 /// Session key under which the authenticated user's id lives.
 const USER_ID_KEY: &str = "user_id";
+/// Session key under which the authenticated user's name lives, shown on the
+/// admin panel.
+const USERNAME_KEY: &str = "username";
 
 #[derive(Deserialize)]
 pub struct LoginForm {
@@ -45,13 +48,14 @@ pub async fn login(
     State(state): State<AppState>,
     Form(form): Form<LoginForm>,
 ) -> Response {
+    let username = form.username.clone();
     let credentials = Credentials {
         username: form.username,
         password: SecretString::from(form.password),
     };
 
     match validate_credentials(credentials, &state.pool).await {
-        Ok(user_id) => match establish_session(&session, user_id).await {
+        Ok(user_id) => match establish_session(&session, user_id, &username).await {
             Ok(()) => Redirect::to("/admin").into_response(),
             Err(_) => error_page(
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -77,11 +81,13 @@ pub async fn logout(session: Session) -> Redirect {
 /// The admin area, reachable only with a session. A signed-out visitor is
 /// sent to the login form.
 pub async fn admin(session: Session) -> Response {
-    if owner(&session).await.is_some() {
-        Html(admin_page()).into_response()
-    } else {
-        Redirect::to("/login").into_response()
+    if owner(&session).await.is_none() {
+        return Redirect::to("/login").into_response();
     }
+    let name = username(&session)
+        .await
+        .unwrap_or_else(|| "owner".to_owned());
+    Html(admin_page(&name)).into_response()
 }
 
 /// The edit page for a single project: a textarea prefilled with the project's
@@ -155,10 +161,21 @@ async fn owner(session: &Session) -> Option<Uuid> {
     session.get::<Uuid>(USER_ID_KEY).await.ok().flatten()
 }
 
-/// Rotates the session id to defeat fixation, then records the user.
-async fn establish_session(session: &Session, user_id: Uuid) -> Result<(), session::Error> {
+/// The authenticated user's name, if the session holds one.
+async fn username(session: &Session) -> Option<String> {
+    session.get::<String>(USERNAME_KEY).await.ok().flatten()
+}
+
+/// Rotates the session id to defeat fixation, then records the user's id and
+/// name.
+async fn establish_session(
+    session: &Session,
+    user_id: Uuid,
+    username: &str,
+) -> Result<(), session::Error> {
     session.cycle_id().await?;
-    session.insert(USER_ID_KEY, user_id).await
+    session.insert(USER_ID_KEY, user_id).await?;
+    session.insert(USERNAME_KEY, username).await
 }
 
 fn error_page(status: StatusCode, message: &str) -> Response {
@@ -210,12 +227,21 @@ dd b{color:#e2a340;font-weight:500}
 .admin button{width:auto;align-self:flex-start;padding:.55rem 1.4rem}
 .eyebrow a{color:inherit;text-decoration:none}
 .eyebrow a:hover{color:#8b939d}
-.projects{list-style:none;margin:1.6rem 0 0;padding:0}
-.projects a{display:flex;justify-content:space-between;align-items:baseline;gap:2ch;
-  padding:.75rem 0;border-bottom:1px solid #1e2126;color:#d4d7db;text-decoration:none}
-.projects a:hover{color:#e2a340}
-.projects .slug{font-size:11px;color:#4c525a}
-.signout{margin-top:2.5rem}
+.dash{display:grid;grid-template-columns:320px 1fr;min-height:100dvh}
+.bottom{margin-top:auto;padding-top:2.5rem}
+.bottom button{width:auto;padding:.55rem 1.4rem}
+.projects{list-style:none;margin:1.4rem 0 0;padding:0;max-width:720px}
+.projects li{border-bottom:1px solid #1e2126}
+.projects a{display:block;padding:1.25rem 0;text-decoration:none;color:inherit}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:2ch}
+.name{font-size:15px;color:#fff}
+.projects a:hover .name{color:#e2a340}
+.edit{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#3c424a}
+.projects a:hover .edit{color:#e2a340}
+.sum{margin:.5rem 0 0;font-size:13px;line-height:1.55;color:#8b939d}
+.meta{margin:.6rem 0 0;font-size:11px;letter-spacing:.04em;color:#4c525a}
+.meta b{color:#8b939d;font-weight:400}
+.meta .path{color:#3c424a}
 :focus-visible{outline:2px solid #e2a340;outline-offset:2px}
 @media (max-width:720px){.login{grid-template-columns:1fr}.stage{display:none}aside{border-right:none}}
 "#;
@@ -298,34 +324,67 @@ fn login_page(error: Option<&str>) -> String {
     document("Sign in", &body)
 }
 
-/// The admin landing page: every project as a link to its edit form, drawn from
-/// the live portfolio so the list tracks content changes.
-fn admin_page() -> String {
+/// The admin landing page: a session and content readout beside every project
+/// as a link to its edit form. Everything is drawn from the live portfolio, so
+/// the list and counts track content changes. `name` is the signed-in user.
+fn admin_page(name: &str) -> String {
     let content = server_content();
 
-    let projects = content
+    let rows = content
         .projects
         .iter()
         .map(|project| {
+            let words = project.description.as_str().split_whitespace().count();
+            let links = project.links.len();
             format!(
-                "<li><a href=\"/admin/project/{slug}\">{title}\
-                 <span class=\"slug\">{slug}</span></a></li>",
+                "<li><a href=\"/admin/project/{slug}\">\
+                   <div class=\"row\"><span class=\"name\">{title}</span>\
+                     <span class=\"edit\">Edit &rarr;</span></div>\
+                   <p class=\"sum\">{summary}</p>\
+                   <p class=\"meta\"><b>{techs}</b> tech &middot; <b>{links}</b> {link_label} \
+                     &middot; <b>{words}</b> words &middot; \
+                     <span class=\"path\">{path}</span></p>\
+                 </a></li>",
                 slug = escape(project.slug.as_str()),
                 title = escape(&project.title),
+                summary = escape(&project.summary),
+                techs = project.technologies.len(),
+                link_label = if links == 1 { "link" } else { "links" },
+                path = escape(&project.path()),
             )
         })
         .collect::<String>();
 
+    // The public site is the projects plus the profile and contact pages, the
+    // same count the login readout reports.
+    let projects = content.projects.len();
+    let pages = projects + 2;
+
     let body = format!(
-        "<main class=\"admin\">\
-           <p class=\"eyebrow\">Admin</p>\
-           <h1>Projects</h1>\
-           <p class=\"lede\">Select a project to edit its description.</p>\
-           <ul class=\"projects\">{projects}</ul>\
-           <form class=\"signout\" method=\"post\" action=\"/logout\">\
-             <button type=\"submit\">Sign out</button>\
-           </form>\
-         </main>"
+        "<div class=\"dash\">\
+           <aside>\
+             <p class=\"eyebrow\">Admin</p>\
+             <h1>Signed in</h1>\
+             <p class=\"lede\">Owner session. Pick a project to edit its description.</p>\
+             <p class=\"grp\">Session</p>\
+             <dl><dt>status</dt><dd>active</dd><dt>as</dt><dd>{name}</dd>\
+               <dt>idle limit</dt><dd>1 hour</dd></dl>\
+             <p class=\"grp\">Content</p>\
+             <dl><dt>store</dt><dd>SQLite</dd><dt>projects</dt><dd><b>{projects}</b></dd>\
+               <dt>pages</dt><dd><b>{pages}</b></dd></dl>\
+             <div class=\"bottom\">\
+               <form method=\"post\" action=\"/logout\">\
+                 <button type=\"submit\">Sign out</button>\
+               </form>\
+               <p class=\"foot\">kristofers.xyz</p>\
+             </div>\
+           </aside>\
+           <div class=\"stage\">\
+             <p class=\"eyebrow\">Projects</p>\
+             <ul class=\"projects\">{rows}</ul>\
+           </div>\
+         </div>",
+        name = escape(name),
     );
     document("Admin", &body)
 }
