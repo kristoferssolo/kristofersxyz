@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE site SET title = 'edited' WHERE id = 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "b0740a1589d4bd08615a632f20ec7be1310485366f13e61b4f84693987ba723d"
+}

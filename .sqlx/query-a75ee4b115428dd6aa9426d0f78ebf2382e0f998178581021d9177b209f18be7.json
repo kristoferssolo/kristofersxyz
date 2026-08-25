@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT label, href, rel FROM social_link ORDER BY sort_order",
+  "describe": {
+    "columns": [
+      {
+        "name": "label",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "social_link",
+            "name": "label"
+          }
+        }
+      },
+      {
+        "name": "href",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "social_link",
+            "name": "href"
+          }
+        }
+      },
+      {
+        "name": "rel",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "social_link",
+            "name": "rel"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a75ee4b115428dd6aa9426d0f78ebf2382e0f998178581021d9177b209f18be7"
+}

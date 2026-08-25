@@ -26,24 +26,26 @@ impl SqliteSessionStore {
 
     /// Checks for an id collision before insertion.
     async fn id_taken(&self, id: &Id) -> session_store::Result<bool> {
-        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sessions WHERE id = ?1")
-            .bind(id.to_string())
-            .fetch_one(&self.pool)
-            .await
-            .map_err(backend)?;
+        let count = sqlx::query_scalar!(
+            "SELECT COUNT(*) FROM sessions WHERE id = ?1",
+            id.to_string()
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(backend)?;
         Ok(count > 0)
     }
 
     async fn upsert(&self, record: &Record) -> session_store::Result<()> {
         let data = serde_json::to_string(record)
             .map_err(|error| session_store::Error::Encode(error.to_string()))?;
-        sqlx::query(
+        sqlx::query!(
             "INSERT INTO sessions (id, data, expiry_date) VALUES (?1, ?2, ?3)
              ON CONFLICT(id) DO UPDATE SET data = excluded.data, expiry_date = excluded.expiry_date",
+            record.id.to_string(),
+            data,
+            record.expiry_date.unix_timestamp()
         )
-        .bind(record.id.to_string())
-        .bind(data)
-        .bind(record.expiry_date.unix_timestamp())
         .execute(&self.pool)
         .await
         .map_err(backend)?;
@@ -66,24 +68,24 @@ impl SessionStore for SqliteSessionStore {
 
     async fn load(&self, session_id: &Id) -> session_store::Result<Option<Record>> {
         let now = OffsetDateTime::now_utc().unix_timestamp();
-        let row: Option<(String,)> =
-            sqlx::query_as("SELECT data FROM sessions WHERE id = ?1 AND expiry_date > ?2")
-                .bind(session_id.to_string())
-                .bind(now)
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(backend)?;
+        let row = sqlx::query!(
+            "SELECT data FROM sessions WHERE id = ?1 AND expiry_date > ?2",
+            session_id.to_string(),
+            now
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(backend)?;
 
-        row.map(|(data,)| {
-            serde_json::from_str::<Record>(&data)
+        row.map(|row| {
+            serde_json::from_str::<Record>(&row.data)
                 .map_err(|error| session_store::Error::Decode(error.to_string()))
         })
         .transpose()
     }
 
     async fn delete(&self, session_id: &Id) -> session_store::Result<()> {
-        sqlx::query("DELETE FROM sessions WHERE id = ?1")
-            .bind(session_id.to_string())
+        sqlx::query!("DELETE FROM sessions WHERE id = ?1", session_id.to_string())
             .execute(&self.pool)
             .await
             .map_err(backend)?;

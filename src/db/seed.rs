@@ -13,7 +13,7 @@ use super::DbPool;
 ///
 /// Returns [`sqlx::Error`] if the emptiness check or the seed fails.
 pub async fn seed_if_empty(pool: &DbPool) -> Result<(), sqlx::Error> {
-    let existing: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM site")
+    let existing = sqlx::query_scalar!("SELECT COUNT(*) FROM site")
         .fetch_one(pool)
         .await?;
     if existing > 0 {
@@ -48,7 +48,7 @@ mod tests {
         let pool = migrated_pool().await;
         seed_if_empty(&pool).await.expect("seed the empty database");
 
-        let projects: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM project")
+        let projects = sqlx::query_scalar!("SELECT COUNT(*) FROM project")
             .fetch_one(&pool)
             .await
             .expect("count projects");
@@ -61,13 +61,13 @@ mod tests {
         let pool = migrated_pool().await;
         seed_if_empty(&pool).await.expect("first seed");
 
-        sqlx::query("UPDATE site SET title = 'edited' WHERE id = 1")
+        sqlx::query!("UPDATE site SET title = 'edited' WHERE id = 1")
             .execute(&pool)
             .await
             .expect("edit the seeded content");
         seed_if_empty(&pool).await.expect("second seed is a no-op");
 
-        let title: String = sqlx::query_scalar("SELECT title FROM site WHERE id = 1")
+        let title = sqlx::query_scalar!("SELECT title FROM site WHERE id = 1")
             .fetch_one(&pool)
             .await
             .expect("read the title back");

@@ -47,13 +47,13 @@ pub async fn set_password(
     let pool = db::connect(&settings.database.url).await?;
     db::migrate(&pool).await?;
 
-    sqlx::query(
+    sqlx::query!(
         "INSERT INTO users (user_id, username, password_hash) VALUES (?1, ?2, ?3)
          ON CONFLICT(username) DO UPDATE SET password_hash = excluded.password_hash",
+        Uuid::new_v4().to_string(),
+        username,
+        hash.expose_secret()
     )
-    .bind(Uuid::new_v4().to_string())
-    .bind(username)
-    .bind(hash.expose_secret())
     .execute(&pool)
     .await?;
 

@@ -93,15 +93,20 @@ async fn get_stored_credentials(
     username: &str,
     pool: &DbPool,
 ) -> Result<Option<(Uuid, SecretString)>, AuthError> {
-    let row = sqlx::query_as::<_, (String, String)>(
+    let row = sqlx::query!(
         "SELECT user_id, password_hash FROM users WHERE username = ?1",
+        username
     )
-    .bind(username)
     .fetch_optional(pool)
     .await?;
 
-    row.map(|(id, hash)| Ok((Uuid::parse_str(&id)?, SecretString::from(hash))))
-        .transpose()
+    row.map(|row| {
+        Ok((
+            Uuid::parse_str(&row.user_id)?,
+            SecretString::from(row.password_hash),
+        ))
+    })
+    .transpose()
 }
 
 #[cfg(test)]
@@ -122,13 +127,15 @@ mod tests {
         let id = Uuid::new_v4();
         let hash = compute_password_hash(&SecretString::from(password.to_owned()))
             .expect("hash the password");
-        sqlx::query("INSERT INTO users (user_id, username, password_hash) VALUES (?1, ?2, ?3)")
-            .bind(id.to_string())
-            .bind(username)
-            .bind(hash.expose_secret())
-            .execute(&pool)
-            .await
-            .expect("insert the user");
+        sqlx::query!(
+            "INSERT INTO users (user_id, username, password_hash) VALUES (?1, ?2, ?3)",
+            id.to_string(),
+            username,
+            hash.expose_secret()
+        )
+        .execute(&pool)
+        .await
+        .expect("insert the user");
         (pool, id)
     }
 

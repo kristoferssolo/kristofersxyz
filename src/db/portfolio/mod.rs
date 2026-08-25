@@ -40,36 +40,40 @@ pub enum LoadError {
 ///
 /// Returns [`sqlx::Error`] if a query fails or a singleton row is missing.
 pub async fn load(pool: &DbPool) -> Result<PortfolioContent, LoadError> {
-    let site = sqlx::query_as::<_, SiteRow>(
+    let site = sqlx::query_as!(
+        SiteRow,
         "SELECT url, title, description, og_image FROM site WHERE id = 1",
     )
     .fetch_one(pool)
     .await?;
 
-    let profile = sqlx::query_as::<_, ProfileRow>(
+    let profile = sqlx::query_as!(
+        ProfileRow,
         "SELECT name, title, summary, about, email FROM profile WHERE id = 1",
     )
     .fetch_one(pool)
     .await?;
 
     let technologies =
-        sqlx::query_scalar::<_, String>("SELECT item FROM profile_technology ORDER BY sort_order")
+        sqlx::query_scalar!("SELECT item FROM profile_technology ORDER BY sort_order")
             .fetch_all(pool)
             .await?;
 
-    let working_style = sqlx::query_as::<_, FocusRow>(
+    let working_style = sqlx::query_as!(
+        FocusRow,
         "SELECT label, detail FROM working_principle ORDER BY sort_order",
     )
     .fetch_all(pool)
     .await?;
 
-    let links = sqlx::query_as::<_, SocialRow>(
+    let links = sqlx::query_as!(
+        SocialRow,
         "SELECT label, href, rel FROM social_link ORDER BY sort_order",
     )
     .fetch_all(pool)
     .await?;
 
-    let contact = sqlx::query_as::<_, ContactRow>("SELECT name, body FROM contact WHERE id = 1")
+    let contact = sqlx::query_as!(ContactRow, "SELECT name, body FROM contact WHERE id = 1")
         .fetch_one(pool)
         .await?;
 

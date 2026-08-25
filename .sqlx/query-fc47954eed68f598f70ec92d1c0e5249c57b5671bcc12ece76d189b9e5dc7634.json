@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT data FROM sessions WHERE id = ?1 AND expiry_date > ?2",
+  "describe": {
+    "columns": [
+      {
+        "name": "data",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "data"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fc47954eed68f598f70ec92d1c0e5249c57b5671bcc12ece76d189b9e5dc7634"
+}

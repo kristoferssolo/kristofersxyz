@@ -11,30 +11,35 @@ pub(super) async fn set_description(
     slug: &str,
     markdown: &str,
 ) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query("UPDATE project SET description_markdown = ?1 WHERE slug = ?2")
-        .bind(markdown)
-        .bind(slug)
-        .execute(pool)
-        .await?;
+    let result = sqlx::query!(
+        "UPDATE project SET description_markdown = ?1 WHERE slug = ?2",
+        markdown,
+        slug
+    )
+    .execute(pool)
+    .await?;
     Ok(result.rows_affected() > 0)
 }
 
 /// Loads projects with Technologies and links grouped in memory, avoiding
 /// queries per project.
 pub(super) async fn load(pool: &DbPool) -> Result<Vec<Project>, super::LoadError> {
-    let rows = sqlx::query_as::<_, ProjectRow>(
+    let rows = sqlx::query_as!(
+        ProjectRow,
         "SELECT id, slug, title, summary, description_markdown FROM project ORDER BY sort_order",
     )
     .fetch_all(pool)
     .await?;
 
-    let technologies = sqlx::query_as::<_, ProjectItemRow>(
+    let technologies = sqlx::query_as!(
+        ProjectItemRow,
         "SELECT project_id, item FROM project_technology ORDER BY project_id, sort_order",
     )
     .fetch_all(pool)
     .await?;
 
-    let links = sqlx::query_as::<_, ProjectLinkRow>(
+    let links = sqlx::query_as!(
+        ProjectLinkRow,
         "SELECT project_id, label, href FROM project_link ORDER BY project_id, sort_order",
     )
     .fetch_all(pool)

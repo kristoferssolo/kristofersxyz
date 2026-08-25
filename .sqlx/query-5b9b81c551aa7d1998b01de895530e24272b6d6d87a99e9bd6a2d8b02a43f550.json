@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT title FROM site WHERE id = 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "title",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "site",
+            "name": "title"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5b9b81c551aa7d1998b01de895530e24272b6d6d87a99e9bd6a2d8b02a43f550"
+}
