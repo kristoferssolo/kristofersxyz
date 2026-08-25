@@ -56,9 +56,12 @@ dd b{color:#e2a340;font-weight:500}
 .eyebrow a:hover{color:#8b939d}
 .dash{display:grid;grid-template-columns:320px 1fr;min-height:100dvh}
 .nav{list-style:none;margin:1rem 0 0;padding:0}
-.nav a{display:block;padding:.45rem 0;font-size:13px;color:#8b939d;text-decoration:none}
+.nav a{display:flex;align-items:center;gap:1.1ch;padding:.45rem 0;font-size:13px;
+  color:#8b939d;text-decoration:none}
 .nav a:hover{color:#e2a340}
+.nav a:hover .ico{color:#e2a340}
 .nav a[aria-current]{color:#fff}
+.nav a[aria-current] .ico{color:#8b939d}
 .editor{max-width:640px}
 .editor form{margin-top:1.6rem}
 .editor button{width:auto;padding:.55rem 1.4rem}
@@ -269,14 +272,14 @@ pub(super) fn admin_page(name: &str) -> String {
 fn nav_aside(active: &str) -> String {
     let content = server_content();
 
-    let link = |href: &str, label: &str| {
+    let link = |href: &str, label: &str, icon: &str| {
         let current = if href == active {
             " aria-current=\"page\""
         } else {
             ""
         };
         format!(
-            "<li><a href=\"{href}\"{current}>{label}</a></li>",
+            "<li><a href=\"{href}\"{current}>{icon}<span>{label}</span></a></li>",
             href = escape(href),
             label = escape(label),
         )
@@ -285,7 +288,7 @@ fn nav_aside(active: &str) -> String {
     let projects = content
         .projects
         .iter()
-        .map(|project| link(&project_href(project), &project.title))
+        .map(|project| link(&project_href(project), &project.title, ICON_PROJECT))
         .collect::<String>();
 
     format!(
@@ -304,9 +307,9 @@ fn nav_aside(active: &str) -> String {
            </div>\
          </aside>",
         singletons = [
-            link("/admin/profile", "Profile"),
-            link("/admin/contact", "Contact"),
-            link("/admin/site", "Site metadata"),
+            link("/admin/profile", "Profile", ICON_PROFILE),
+            link("/admin/contact", "Contact", ICON_CONTACT),
+            link("/admin/site", "Site metadata", ICON_SITE),
         ]
         .concat(),
     )
