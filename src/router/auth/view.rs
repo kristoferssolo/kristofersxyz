@@ -6,7 +6,10 @@
 //! drawn from content reads the live portfolio, so counts and lists stay true
 //! as content changes.
 
-use crate::{app::content::server_content, domain::Project};
+use crate::{
+    app::content::{Contact, Profile, Site, server_content},
+    domain::Project,
+};
 use std::fmt::Write as _;
 
 /// The styles for the admin surface. Inlined so the pages do not depend on the
@@ -208,6 +211,21 @@ pub(super) fn admin_page(name: &str) -> String {
            <div class=\"stage\">\
              <p class=\"eyebrow\">Projects</p>\
              <ul class=\"projects\">{rows}</ul>\
+             <p class=\"eyebrow\">Site</p>\
+             <ul class=\"projects\">\
+               <li><a href=\"/admin/profile\">\
+                 <div class=\"row\"><span class=\"name\">Profile</span>\
+                   <span class=\"edit\">Edit &rarr;</span></div>\
+                 <p class=\"meta\">name, title, summary, about, email</p></a></li>\
+               <li><a href=\"/admin/contact\">\
+                 <div class=\"row\"><span class=\"name\">Contact</span>\
+                   <span class=\"edit\">Edit &rarr;</span></div>\
+                 <p class=\"meta\">name, body</p></a></li>\
+               <li><a href=\"/admin/site\">\
+                 <div class=\"row\"><span class=\"name\">Site metadata</span>\
+                   <span class=\"edit\">Edit &rarr;</span></div>\
+                 <p class=\"meta\">url, title, description, OpenGraph image</p></a></li>\
+             </ul>\
            </div>\
          </div>",
         name = escape(name),
@@ -233,6 +251,62 @@ pub(super) fn project_page(project: &Project) -> String {
         description = area("Description (Markdown)", "markdown", project.description.as_str()),
     );
     document(&escape(&project.title), &body)
+}
+
+/// The profile edit form, prefilled with its current scalar fields.
+pub(super) fn profile_page(profile: &Profile) -> String {
+    let body = format!(
+        "<main class=\"admin\">\
+           <p class=\"eyebrow\"><a href=\"/admin\">Admin</a> / profile</p>\
+           <h1>Edit profile</h1>\
+           <form method=\"post\" action=\"/admin/profile\">\
+             {name}{title}{summary}{about}{email}\
+             <button type=\"submit\">Save</button>\
+           </form>\
+         </main>",
+        name = field("Name", "name", &profile.name),
+        title = field("Title", "title", &profile.title),
+        summary = field("Summary", "summary", &profile.summary),
+        about = area("About", "about", &profile.about),
+        email = field("Email", "email", &profile.email),
+    );
+    document("Edit profile", &body)
+}
+
+/// The contact edit form, prefilled with its current fields.
+pub(super) fn contact_page(contact: &Contact) -> String {
+    let body = format!(
+        "<main class=\"admin\">\
+           <p class=\"eyebrow\"><a href=\"/admin\">Admin</a> / contact</p>\
+           <h1>Edit contact</h1>\
+           <form method=\"post\" action=\"/admin/contact\">\
+             {name}{body_area}\
+             <button type=\"submit\">Save</button>\
+           </form>\
+         </main>",
+        name = field("Name", "name", &contact.name),
+        body_area = area("Body", "body", &contact.body),
+    );
+    document("Edit contact", &body)
+}
+
+/// The site metadata edit form, prefilled with its current fields.
+pub(super) fn site_page(site: &Site) -> String {
+    let body = format!(
+        "<main class=\"admin\">\
+           <p class=\"eyebrow\"><a href=\"/admin\">Admin</a> / site</p>\
+           <h1>Edit site metadata</h1>\
+           <form method=\"post\" action=\"/admin/site\">\
+             {url}{title}{description}{og_image}\
+             <button type=\"submit\">Save</button>\
+           </form>\
+         </main>",
+        url = field("URL", "url", &site.url),
+        title = field("Title", "title", &site.title),
+        description = field("Description", "description", &site.description),
+        og_image = field("OpenGraph image", "og_image", &site.og_image),
+    );
+    document("Edit site metadata", &body)
 }
 
 /// A labeled single-line text input carrying its current value.

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE profile SET name = ?1, title = ?2, summary = ?3, about = ?4, email = ?5 WHERE id = 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "031dbff4d3cb6c6dcb6076161826d4974ffe0b119ec411c615165dea422c6c33"
+}

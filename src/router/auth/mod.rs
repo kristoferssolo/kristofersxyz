@@ -24,7 +24,7 @@ use tower_sessions::Session;
 
 use self::{
     session::{establish_session, owner, username},
-    view::{admin_page, login_page, project_page},
+    view::{admin_page, contact_page, login_page, profile_page, project_page, site_page},
 };
 
 #[derive(Deserialize)]
@@ -131,6 +131,133 @@ pub async fn edit_project(
     {
         Ok(true) => apply(&state).await,
         Ok(false) => (StatusCode::NOT_FOUND, "No such project.").into_response(),
+        Err(_) => internal(),
+    }
+}
+
+/// The profile edit form.
+pub async fn profile_form(session: Session) -> Response {
+    if owner(&session).await.is_none() {
+        return Redirect::to("/login").into_response();
+    }
+    Html(profile_page(&server_content().profile)).into_response()
+}
+
+#[derive(Deserialize)]
+pub struct ProfileEdit {
+    name: String,
+    title: String,
+    summary: String,
+    about: String,
+    email: String,
+}
+
+/// Saves the profile singleton, then refreshes the cached portfolio. Requires
+/// an owner session and non-empty fields.
+pub async fn edit_profile(
+    session: Session,
+    State(state): State<AppState>,
+    Form(form): Form<ProfileEdit>,
+) -> Response {
+    if owner(&session).await.is_none() {
+        return Redirect::to("/login").into_response();
+    }
+    if !all_filled(&[
+        &form.name,
+        &form.title,
+        &form.summary,
+        &form.about,
+        &form.email,
+    ]) {
+        return unprocessable();
+    }
+    match db::portfolio::set_profile(
+        &state.pool,
+        &form.name,
+        &form.title,
+        &form.summary,
+        &form.about,
+        &form.email,
+    )
+    .await
+    {
+        Ok(()) => apply(&state).await,
+        Err(_) => internal(),
+    }
+}
+
+/// The contact edit form.
+pub async fn contact_form(session: Session) -> Response {
+    if owner(&session).await.is_none() {
+        return Redirect::to("/login").into_response();
+    }
+    Html(contact_page(&server_content().contact)).into_response()
+}
+
+#[derive(Deserialize)]
+pub struct ContactEdit {
+    name: String,
+    body: String,
+}
+
+/// Saves the contact singleton, then refreshes the cached portfolio. Requires
+/// an owner session and non-empty fields.
+pub async fn edit_contact(
+    session: Session,
+    State(state): State<AppState>,
+    Form(form): Form<ContactEdit>,
+) -> Response {
+    if owner(&session).await.is_none() {
+        return Redirect::to("/login").into_response();
+    }
+    if !all_filled(&[&form.name, &form.body]) {
+        return unprocessable();
+    }
+    match db::portfolio::set_contact(&state.pool, &form.name, &form.body).await {
+        Ok(()) => apply(&state).await,
+        Err(_) => internal(),
+    }
+}
+
+/// The site metadata edit form.
+pub async fn site_form(session: Session) -> Response {
+    if owner(&session).await.is_none() {
+        return Redirect::to("/login").into_response();
+    }
+    Html(site_page(&server_content().site)).into_response()
+}
+
+#[derive(Deserialize)]
+pub struct SiteEdit {
+    url: String,
+    title: String,
+    description: String,
+    og_image: String,
+}
+
+/// Saves the site singleton, then refreshes the cached portfolio. Requires an
+/// owner session and non-empty fields.
+pub async fn edit_site(
+    session: Session,
+    State(state): State<AppState>,
+    Form(form): Form<SiteEdit>,
+) -> Response {
+    if owner(&session).await.is_none() {
+        return Redirect::to("/login").into_response();
+    }
+    if !all_filled(&[&form.url, &form.title, &form.description, &form.og_image]) {
+        return unprocessable();
+    }
+    match db::portfolio::set_site(
+        &state.pool,
+        &form.url,
+        &form.title,
+        &form.description,
+        &form.og_image,
+    )
+    .await
+    {
+        Ok(()) => apply(&state).await,
         Err(_) => internal(),
     }
 }

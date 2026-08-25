@@ -132,6 +132,76 @@ pub async fn set_project(
     projects::set(pool, slug, title, summary, description).await
 }
 
+/// Replaces the profile singleton's scalar fields. The caller reloads and
+/// re-caches the portfolio afterward.
+///
+/// # Errors
+///
+/// Returns [`sqlx::Error`] if the update fails.
+pub async fn set_profile(
+    pool: &DbPool,
+    name: &str,
+    title: &str,
+    summary: &str,
+    about: &str,
+    email: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE profile SET name = ?1, title = ?2, summary = ?3, about = ?4, email = ?5 \
+         WHERE id = 1",
+        name,
+        title,
+        summary,
+        about,
+        email
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Replaces the contact singleton's fields. The caller reloads and re-caches
+/// the portfolio afterward.
+///
+/// # Errors
+///
+/// Returns [`sqlx::Error`] if the update fails.
+pub async fn set_contact(pool: &DbPool, name: &str, body: &str) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE contact SET name = ?1, body = ?2 WHERE id = 1",
+        name,
+        body
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Replaces the site singleton's metadata. The caller reloads and re-caches the
+/// portfolio afterward.
+///
+/// # Errors
+///
+/// Returns [`sqlx::Error`] if the update fails.
+pub async fn set_site(
+    pool: &DbPool,
+    url: &str,
+    title: &str,
+    description: &str,
+    og_image: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE site SET url = ?1, title = ?2, description = ?3, og_image = ?4 WHERE id = 1",
+        url,
+        title,
+        description,
+        og_image
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

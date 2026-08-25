@@ -293,6 +293,112 @@ async fn an_empty_title_is_rejected() {
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
+fn form_post(uri: &str, body: &str, cookie: Option<&str>) -> Request<Body> {
+    let mut builder =
+        Request::post(uri).header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
+    if let Some(cookie) = cookie {
+        builder = builder.header(header::COOKIE, cookie);
+    }
+    builder
+        .body(Body::from(body.to_owned()))
+        .expect("build the form post")
+}
+
+#[tokio::test]
+async fn an_owner_can_edit_the_profile() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let save = router
+        .clone()
+        .oneshot(form_post(
+            "/admin/profile",
+            "name=New Name&title=A title&summary=A summary&about=About me&email=me@example.com",
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the edit");
+    assert_eq!(save.status(), StatusCode::SEE_OTHER);
+
+    let page = router
+        .oneshot(get_request("/admin/profile", Some(&cookie)))
+        .await
+        .expect("send the profile-page request");
+    assert!(body_text(page).await.contains("New Name"));
+}
+
+#[tokio::test]
+async fn an_owner_can_edit_the_contact() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let save = router
+        .clone()
+        .oneshot(form_post(
+            "/admin/contact",
+            "name=Reach out&body=Send an email",
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the edit");
+    assert_eq!(save.status(), StatusCode::SEE_OTHER);
+
+    let page = router
+        .oneshot(get_request("/admin/contact", Some(&cookie)))
+        .await
+        .expect("send the contact-page request");
+    assert!(body_text(page).await.contains("Reach out"));
+}
+
+#[tokio::test]
+async fn an_owner_can_edit_the_site_metadata() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let save = router
+        .clone()
+        .oneshot(form_post(
+            "/admin/site",
+            "url=https://example.com&title=New Title&description=A description&og_image=/og.png",
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the edit");
+    assert_eq!(save.status(), StatusCode::SEE_OTHER);
+
+    let page = router
+        .oneshot(get_request("/admin/site", Some(&cookie)))
+        .await
+        .expect("send the site-page request");
+    assert!(body_text(page).await.contains("New Title"));
+}
+
+#[tokio::test]
+async fn a_singleton_edit_form_redirects_a_signed_out_visitor() {
+    let (router, _database) = app_with_owner().await;
+
+    let response = router
+        .oneshot(get_request("/admin/profile", None))
+        .await
+        .expect("send the request");
+
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(response.headers()[header::LOCATION], "/login");
+}
+
+#[tokio::test]
+async fn an_empty_singleton_field_is_rejected() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let response = router
+        .oneshot(form_post("/admin/contact", "name=&body=x", Some(&cookie)))
+        .await
+        .expect("send the edit");
+
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+}
+
 #[tokio::test]
 async fn an_unauthenticated_edit_is_rejected() {
     let (router, _database) = app_with_owner().await;

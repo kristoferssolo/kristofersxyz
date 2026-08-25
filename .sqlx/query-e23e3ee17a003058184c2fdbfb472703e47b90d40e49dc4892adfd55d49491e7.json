@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE contact SET name = ?1, body = ?2 WHERE id = 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "e23e3ee17a003058184c2fdbfb472703e47b90d40e49dc4892adfd55d49491e7"
+}
