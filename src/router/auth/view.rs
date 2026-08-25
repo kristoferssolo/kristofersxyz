@@ -52,12 +52,16 @@ dd b{color:#e2a340;font-weight:500}
 .pages .n{color:#3c424a;margin-right:1.5ch}
 .mark{margin-top:auto;font-family:"IBM Plex Sans",sans-serif;font-weight:600;
   letter-spacing:-.04em;line-height:.9;font-size:clamp(2rem,4vw,3.2rem);color:#0e1116}
-.admin{max-width:680px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;
-  padding:3rem 2.25rem}
-.admin button{width:auto;align-self:flex-start;padding:.55rem 1.4rem}
 .eyebrow a{color:inherit;text-decoration:none}
 .eyebrow a:hover{color:#8b939d}
 .dash{display:grid;grid-template-columns:320px 1fr;min-height:100dvh}
+.nav{list-style:none;margin:1rem 0 0;padding:0}
+.nav a{display:block;padding:.45rem 0;font-size:13px;color:#8b939d;text-decoration:none}
+.nav a:hover{color:#e2a340}
+.nav a[aria-current]{color:#fff}
+.editor{max-width:640px}
+.editor form{margin-top:1.6rem}
+.editor button{width:auto;padding:.55rem 1.4rem}
 .bottom{margin-top:auto;padding-top:2.5rem}
 .bottom button{width:auto;padding:.55rem 1.4rem}
 .projects{list-style:none;margin:1.4rem 0 0;padding:0;max-width:720px}
@@ -233,80 +237,152 @@ pub(super) fn admin_page(name: &str) -> String {
     document("Admin", &body)
 }
 
+/// The edit sidebar: every editable entry as a link, with `active` (an href)
+/// marked, so a switch is one click away while editing. Drawn from the live
+/// portfolio, so the project list tracks content changes.
+fn nav_aside(active: &str) -> String {
+    let content = server_content();
+
+    let link = |href: &str, label: &str| {
+        let current = if href == active {
+            " aria-current=\"page\""
+        } else {
+            ""
+        };
+        format!(
+            "<li><a href=\"{href}\"{current}>{label}</a></li>",
+            href = escape(href),
+            label = escape(label),
+        )
+    };
+
+    let projects = content
+        .projects
+        .iter()
+        .map(|project| link(&project_href(project), &project.title))
+        .collect::<String>();
+
+    format!(
+        "<aside>\
+           <p class=\"eyebrow\"><a href=\"/admin\">Admin</a></p>\
+           <h1>Edit</h1>\
+           <p class=\"grp\">Projects</p>\
+           <ul class=\"nav\">{projects}</ul>\
+           <p class=\"grp\">Site</p>\
+           <ul class=\"nav\">{singletons}</ul>\
+           <div class=\"bottom\">\
+             <form method=\"post\" action=\"/logout\">\
+               <button type=\"submit\">Sign out</button>\
+             </form>\
+             <p class=\"foot\">kristofers.xyz</p>\
+           </div>\
+         </aside>",
+        singletons = [
+            link("/admin/profile", "Profile"),
+            link("/admin/contact", "Contact"),
+            link("/admin/site", "Site metadata"),
+        ]
+        .concat(),
+    )
+}
+
+/// Wraps an edit form beside the entry sidebar, so the other entries stay one
+/// click away. `active` is the current page's href, `breadcrumb` is trusted
+/// markup, and `form` is the pre-rendered form.
+fn edit_shell(active: &str, title: &str, breadcrumb: &str, form: &str) -> String {
+    let body = format!(
+        "<div class=\"dash\">{aside}\
+           <div class=\"stage\">\
+             <p class=\"eyebrow\">{breadcrumb}</p>\
+             <h1>{title}</h1>\
+             <div class=\"editor\">{form}</div>\
+           </div>\
+         </div>",
+        aside = nav_aside(active),
+        title = escape(title),
+    );
+    document(title, &body)
+}
+
 /// A project's edit form, prefilled with its current fields. The slug is the
 /// route identity, so it is shown but not editable.
 pub(super) fn project_page(project: &Project) -> String {
     let slug = escape(project.slug.as_str());
-    let body = format!(
-        "<main class=\"admin\">\
-           <p class=\"eyebrow\"><a href=\"/admin\">Admin</a> / {slug}</p>\
-           <h1>Edit project</h1>\
-           <form method=\"post\" action=\"/admin/project/{slug}\">\
-             {title}{summary}{description}\
-             <button type=\"submit\">Save</button>\
-           </form>\
-         </main>",
+    let form = format!(
+        "<form method=\"post\" action=\"/admin/project/{slug}\">\
+           {title}{summary}{description}\
+           <button type=\"submit\">Save</button>\
+         </form>",
         title = field("Title", "title", &project.title),
         summary = field("Summary", "summary", &project.summary),
         description = area("Description (Markdown)", "markdown", project.description.as_str()),
     );
-    document(&escape(&project.title), &body)
+    let breadcrumb = format!("<a href=\"/admin\">Admin</a> / {slug}");
+    edit_shell(&project_href(project), "Edit project", &breadcrumb, &form)
+}
+
+/// The admin edit route for a project.
+fn project_href(project: &Project) -> String {
+    format!("/admin/project/{}", project.slug.as_str())
 }
 
 /// The profile edit form, prefilled with its current scalar fields.
 pub(super) fn profile_page(profile: &Profile) -> String {
-    let body = format!(
-        "<main class=\"admin\">\
-           <p class=\"eyebrow\"><a href=\"/admin\">Admin</a> / profile</p>\
-           <h1>Edit profile</h1>\
-           <form method=\"post\" action=\"/admin/profile\">\
-             {name}{title}{summary}{about}{email}\
-             <button type=\"submit\">Save</button>\
-           </form>\
-         </main>",
+    let form = format!(
+        "<form method=\"post\" action=\"/admin/profile\">\
+           {name}{title}{summary}{about}{email}\
+           <button type=\"submit\">Save</button>\
+         </form>",
         name = field("Name", "name", &profile.name),
         title = field("Title", "title", &profile.title),
         summary = field("Summary", "summary", &profile.summary),
         about = area("About", "about", &profile.about),
         email = field("Email", "email", &profile.email),
     );
-    document("Edit profile", &body)
+    edit_shell(
+        "/admin/profile",
+        "Edit profile",
+        "<a href=\"/admin\">Admin</a> / profile",
+        &form,
+    )
 }
 
 /// The contact edit form, prefilled with its current fields.
 pub(super) fn contact_page(contact: &Contact) -> String {
-    let body = format!(
-        "<main class=\"admin\">\
-           <p class=\"eyebrow\"><a href=\"/admin\">Admin</a> / contact</p>\
-           <h1>Edit contact</h1>\
-           <form method=\"post\" action=\"/admin/contact\">\
-             {name}{body_area}\
-             <button type=\"submit\">Save</button>\
-           </form>\
-         </main>",
+    let form = format!(
+        "<form method=\"post\" action=\"/admin/contact\">\
+           {name}{body_area}\
+           <button type=\"submit\">Save</button>\
+         </form>",
         name = field("Name", "name", &contact.name),
         body_area = area("Body", "body", &contact.body),
     );
-    document("Edit contact", &body)
+    edit_shell(
+        "/admin/contact",
+        "Edit contact",
+        "<a href=\"/admin\">Admin</a> / contact",
+        &form,
+    )
 }
 
 /// The site metadata edit form, prefilled with its current fields.
 pub(super) fn site_page(site: &Site) -> String {
-    let body = format!(
-        "<main class=\"admin\">\
-           <p class=\"eyebrow\"><a href=\"/admin\">Admin</a> / site</p>\
-           <h1>Edit site metadata</h1>\
-           <form method=\"post\" action=\"/admin/site\">\
-             {url}{title}{description}{og_image}\
-             <button type=\"submit\">Save</button>\
-           </form>\
-         </main>",
+    let form = format!(
+        "<form method=\"post\" action=\"/admin/site\">\
+           {url}{title}{description}{og_image}\
+           <button type=\"submit\">Save</button>\
+         </form>",
         url = field("URL", "url", &site.url),
         title = field("Title", "title", &site.title),
         description = field("Description", "description", &site.description),
         og_image = field("OpenGraph image", "og_image", &site.og_image),
     );
-    document("Edit site metadata", &body)
+    edit_shell(
+        "/admin/site",
+        "Edit site metadata",
+        "<a href=\"/admin\">Admin</a> / site",
+        &form,
+    )
 }
 
 /// A labeled single-line text input carrying its current value.

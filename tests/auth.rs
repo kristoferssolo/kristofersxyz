@@ -256,6 +256,23 @@ async fn an_owner_can_edit_a_project_and_the_page_updates() {
 }
 
 #[tokio::test]
+async fn the_edit_sidebar_links_to_the_other_entries() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let page = router
+        .oneshot(get_request("/admin/project/traxor", Some(&cookie)))
+        .await
+        .expect("send the edit-page request");
+    let body = body_text(page).await;
+
+    // Another project, a singleton, and the current entry marked active.
+    assert!(body.contains("/admin/project/guenther"));
+    assert!(body.contains("/admin/profile"));
+    assert!(body.contains("aria-current"));
+}
+
+#[tokio::test]
 async fn an_owner_can_edit_the_title_and_summary() {
     let (router, _database) = app_with_owner().await;
     let cookie = sign_in(&router).await;
