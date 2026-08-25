@@ -94,14 +94,14 @@ pub async fn project_form(session: Session, Path(slug): Path<String>) -> Respons
     }
 
     let content = server_content();
-    match content
+    content
         .projects
         .iter()
         .find(|project| project.slug.as_str() == slug)
-    {
-        Some(project) => Html(project_page(project)).into_response(),
-        None => (StatusCode::NOT_FOUND, "No such project.").into_response(),
-    }
+        .map_or_else(
+            || (StatusCode::NOT_FOUND, "No such project.").into_response(),
+            |project| Html(project_page(project)).into_response(),
+        )
 }
 
 #[derive(Deserialize)]
@@ -130,17 +130,19 @@ pub async fn edit_project(
     }
 
     match db::portfolio::set_project_description(&state.pool, &slug, &form.markdown).await {
-        Ok(true) => match db::portfolio::load(&state.pool).await {
-            Ok(content) => {
+        Ok(true) => db::portfolio::load(&state.pool).await.map_or_else(
+            |_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Saved, but the portfolio could not be reloaded.",
+                )
+                    .into_response()
+            },
+            |content| {
                 store_server_content(content);
                 Redirect::to("/admin").into_response()
-            }
-            Err(_) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Saved, but the portfolio could not be reloaded.",
-            )
-                .into_response(),
-        },
+            },
+        ),
         Ok(false) => (StatusCode::NOT_FOUND, "No such project.").into_response(),
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,

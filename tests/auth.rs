@@ -3,6 +3,7 @@
 //! carries its cookie back into the admin area.
 
 #![cfg(feature = "ssr")]
+#![allow(clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
 use axum::{
     Router,

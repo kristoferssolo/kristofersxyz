@@ -7,6 +7,7 @@
 //! as content changes.
 
 use crate::{app::content::server_content, domain::Project};
+use std::fmt::Write as _;
 
 /// The styles for the admin surface. Inlined so the pages do not depend on the
 /// portfolio's Tailwind build.
@@ -90,7 +91,7 @@ pub(super) fn login_page(error: Option<&str>) -> String {
     let content = server_content();
     let projects = content.projects.len();
 
-    let mut names = Vec::with_capacity(projects + 2);
+    let mut names = Vec::with_capacity(projects.saturating_add(2));
     names.push(content.profile.name.clone());
     names.extend(content.projects.iter().map(|project| project.title.clone()));
     names.push(content.contact.name.clone());
@@ -98,14 +99,15 @@ pub(super) fn login_page(error: Option<&str>) -> String {
     let pages = names
         .iter()
         .enumerate()
-        .map(|(index, name)| {
-            format!(
+        .fold(String::new(), |mut pages, (index, name)| {
+            let _ = write!(
+                pages,
                 "<p><span class=\"n\">{}</span>{}</p>",
-                index + 1,
+                index.saturating_add(1),
                 escape(name)
-            )
-        })
-        .collect::<String>();
+            );
+            pages
+        });
 
     let error = error.map_or_else(String::new, |message| {
         format!("<p class=\"err\">{}</p>", escape(message))
@@ -158,10 +160,11 @@ pub(super) fn admin_page(name: &str) -> String {
     let rows = content
         .projects
         .iter()
-        .map(|project| {
+        .fold(String::new(), |mut rows, project| {
             let words = project.description.as_str().split_whitespace().count();
             let links = project.links.len();
-            format!(
+            let _ = write!(
+                rows,
                 "<li><a href=\"/admin/project/{slug}\">\
                    <div class=\"row\"><span class=\"name\">{title}</span>\
                      <span class=\"edit\">Edit &rarr;</span></div>\
@@ -176,12 +179,12 @@ pub(super) fn admin_page(name: &str) -> String {
                 techs = project.technologies.len(),
                 link_label = if links == 1 { "link" } else { "links" },
                 path = escape(&project.path()),
-            )
-        })
-        .collect::<String>();
+            );
+            rows
+        });
 
     let projects = content.projects.len();
-    let pages = projects + 2;
+    let pages = projects.saturating_add(2);
 
     let body = format!(
         "<div class=\"dash\">\

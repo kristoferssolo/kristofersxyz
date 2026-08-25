@@ -198,7 +198,10 @@ fn project_neighbours(
         .checked_sub(1)
         .and_then(|previous| projects.get(previous))
         .cloned();
-    let next = projects.get(index + 1).cloned();
+    let next = index
+        .checked_add(1)
+        .and_then(|next| projects.get(next))
+        .cloned();
     (previous, next)
 }
 

@@ -39,7 +39,12 @@ pub(super) fn reduce(state: &EditorState, input: KeyInput, buffer: &Buffer) -> T
         Key::Char('K') => select(buffer.previous_section(current)),
         Key::Char('g') => select(buffer.first()),
         Key::Char('G') => select(buffer.last()),
-        Key::Char(digit @ '1'..='9') => select(buffer.by_number(digit as usize - '0' as usize)),
+        Key::Char(digit @ '1'..='9') => {
+            let number = digit
+                .to_digit(10)
+                .and_then(|value| usize::try_from(value).ok());
+            select(number.and_then(|number| buffer.by_number(number)))
+        }
         Key::Enter => open(state, buffer),
         Key::Char('/') => enter_mode(state, Mode::Search(String::new())),
         Key::Char(':') => enter_mode(state, Mode::Command(String::new())),

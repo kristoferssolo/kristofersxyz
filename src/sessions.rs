@@ -32,7 +32,7 @@ impl SqliteSessionStore {
         )
         .fetch_one(&self.pool)
         .await
-        .map_err(backend)?;
+        .map_err(|error| backend(&error))?;
         Ok(count > 0)
     }
 
@@ -48,7 +48,7 @@ impl SqliteSessionStore {
         )
         .execute(&self.pool)
         .await
-        .map_err(backend)?;
+        .map_err(|error| backend(&error))?;
         Ok(())
     }
 }
@@ -75,7 +75,7 @@ impl SessionStore for SqliteSessionStore {
         )
         .fetch_optional(&self.pool)
         .await
-        .map_err(backend)?;
+        .map_err(|error| backend(&error))?;
 
         row.map(|row| {
             serde_json::from_str::<Record>(&row.data)
@@ -88,13 +88,13 @@ impl SessionStore for SqliteSessionStore {
         sqlx::query!("DELETE FROM sessions WHERE id = ?1", session_id.to_string())
             .execute(&self.pool)
             .await
-            .map_err(backend)?;
+            .map_err(|error| backend(&error))?;
         Ok(())
     }
 }
 
 /// Converts a sqlx failure into the session store's backend error.
-fn backend(error: sqlx::Error) -> session_store::Error {
+fn backend(error: &sqlx::Error) -> session_store::Error {
     session_store::Error::Backend(error.to_string())
 }
 
@@ -121,7 +121,9 @@ mod tests {
         Record {
             id: Id::default(),
             data,
-            expiry_date: OffsetDateTime::now_utc() + offset,
+            expiry_date: OffsetDateTime::now_utc()
+                .checked_add(offset)
+                .unwrap_or_else(|| panic!("session expiry fits in OffsetDateTime")),
         }
     }
 

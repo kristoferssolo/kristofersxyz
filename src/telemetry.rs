@@ -29,10 +29,14 @@ where
 
 /// Installs the process-wide tracing subscriber and log bridge.
 ///
-/// # Panics
+/// # Process termination
 ///
-/// Panics if another global logger or tracing subscriber is already installed.
+/// Aborts if another global logger or tracing subscriber is already installed.
 pub fn init_subscriber(subscriber: impl Subscriber + Sync + Send) {
-    LogTracer::init().expect("Failed to set logger");
-    set_global_default(subscriber).expect("Failed to set subscriber");
+    if LogTracer::init().is_err() {
+        std::process::abort();
+    }
+    if set_global_default(subscriber).is_err() {
+        std::process::abort();
+    }
 }

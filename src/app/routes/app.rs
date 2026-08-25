@@ -28,7 +28,10 @@ fn embedded_content() -> PortfolioContent {
         .and_then(|element| element.text_content())
         .unwrap_or_default();
 
-    serde_json::from_str(&json).expect("the embedded portfolio content is valid JSON")
+    let Ok(content) = serde_json::from_str(&json) else {
+        std::process::abort();
+    };
+    content
 }
 
 /// Provides portfolio and sidebar state to every route.

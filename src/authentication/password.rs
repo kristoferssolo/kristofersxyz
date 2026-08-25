@@ -28,9 +28,10 @@ pub enum AuthError {
     Join(#[from] tokio::task::JoinError),
 }
 
-/// Verifies a username and password against the stored hash, returning the
-/// authenticated user's id. Unknown usernames still run Argon2 verification
-/// so they follow the same expensive path as wrong passwords.
+/// Verifies credentials and returns the authenticated user's id.
+///
+/// Unknown usernames still run Argon2 verification so they follow the same
+/// expensive path as wrong passwords.
 ///
 /// # Errors
 ///
@@ -41,17 +42,18 @@ pub async fn validate_credentials(
     credentials: Credentials,
     pool: &DbPool,
 ) -> Result<Uuid, AuthError> {
-    let mut user_id = None;
-    let mut expected_hash = SecretString::from(
-        "$argon2id$v=19$m=15000,t=2,p=1$gZiV/M1gPc22ELAH/Jh1Hw$CWOrkoo7oJBQ/iyh7uJ0LO2aLEfrHwTWllSAxT0zRno".to_owned(),
+    let stored = get_stored_credentials(&credentials.username, pool).await?;
+    let (user_id, expected_hash) = stored.map_or_else(
+        || {
+            (
+                None,
+                SecretString::from(
+                    "$argon2id$v=19$m=15000,t=2,p=1$gZiV/M1gPc22ELAH/Jh1Hw$CWOrkoo7oJBQ/iyh7uJ0LO2aLEfrHwTWllSAxT0zRno".to_owned(),
+                ),
+            )
+        },
+        |(id, hash)| (Some(id), hash),
     );
-
-    if let Some((stored_id, stored_hash)) =
-        get_stored_credentials(&credentials.username, pool).await?
-    {
-        user_id = Some(stored_id);
-        expected_hash = stored_hash;
-    }
 
     let password = credentials.password;
     tokio::task::spawn_blocking(move || verify_password_hash(&expected_hash, &password)).await??;

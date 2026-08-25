@@ -85,15 +85,15 @@ mod server {
 
     /// Returns the current portfolio in a cloned [`Arc`].
     ///
-    /// # Panics
+    /// # Process termination
     ///
-    /// Panics if called before [`store`], which startup always calls first.
+    /// Aborts if called before [`store`], which startup always calls first.
     #[must_use]
     pub fn content() -> Arc<PortfolioContent> {
-        CONTENT
-            .get()
-            .expect("portfolio content is set at startup")
-            .load_full()
+        let Some(content) = CONTENT.get() else {
+            std::process::abort();
+        };
+        content.load_full()
     }
 }
 

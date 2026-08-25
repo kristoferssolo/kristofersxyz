@@ -219,7 +219,7 @@ impl Buffer {
     /// The 1-based position, for the statusline counter and the number keys.
     #[must_use]
     pub fn number_of(&self, id: &EntryId) -> Option<usize> {
-        self.index_of(id).map(|index| index + 1)
+        self.index_of(id).and_then(|index| index.checked_add(1))
     }
 
     #[must_use]
@@ -348,7 +348,10 @@ impl Buffer {
         let len = self.entries.len();
 
         (1..=len).find_map(|offset| {
-            let index = (start + offset) % len;
+            let index = start
+                .wrapping_add(offset)
+                .checked_rem(len)
+                .unwrap_or_default();
             let entry = self.entries.get(index)?;
             entry.matches(&needle).then(|| SearchHit {
                 selection: entry.selection(),

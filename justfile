@@ -50,8 +50,8 @@ docs:
 # Run tests with nextest
 [group("dev")]
 test:
-    cargo nextest run --all-features
-    cargo leptos test
+    cargo nextest run --no-default-features --features ssr
+    RUST_TEST_THREADS=1 cargo leptos test
 
 # Clean build artifacts
 [group("dev")]

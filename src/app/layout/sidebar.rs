@@ -105,7 +105,7 @@ pub(super) fn Sidebar(
                                                     }
                                                 }
                                             >
-                                                {index + 1}
+                                            {index.saturating_add(1)}
                                             </span>
                                             <span
                                                 class=move || {

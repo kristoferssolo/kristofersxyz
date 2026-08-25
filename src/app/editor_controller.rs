@@ -220,7 +220,8 @@ impl EditorController {
     }
 
     fn notify(self, message: String) {
-        self.issued.update_value(|count| *count += 1);
+        self.issued
+            .update_value(|count| *count = count.saturating_add(1));
         let id = self.issued.get_value();
         self.notice.set(Some(Notice { id, message }));
 
