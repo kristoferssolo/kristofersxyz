@@ -1,186 +1,12 @@
-//! The owner login flow: a form, its verification, a session guard for the
-//! admin area, and logout.
+//! HTML for the admin surface: the login, admin landing, and project-edit
+//! pages, plus the shared document shell and its inline styles.
 //!
-//! These are plain Axum handlers rather than Leptos server functions. The
-//! pages carry their own inline styles rather than the portfolio's compiled
-//! Tailwind, so this admin surface renders independently of that build.
+//! The pages carry their own styles rather than the portfolio's compiled
+//! Tailwind, so this surface renders independently of that build. Everything
+//! drawn from content reads the live portfolio, so counts and lists stay true
+//! as content changes.
 
-use crate::{
-    app::content::{server_content, store_server_content},
-    authentication::{AuthError, Credentials, validate_credentials},
-    db,
-    domain::{Project, ProjectDescription},
-    startup::AppState,
-};
-use axum::{
-    Form,
-    extract::{Path, State},
-    http::StatusCode,
-    response::{Html, IntoResponse, Redirect, Response},
-};
-use secrecy::SecretString;
-use serde::Deserialize;
-use tower_sessions::{Session, session};
-use uuid::Uuid;
-
-/// Session key under which the authenticated user's id lives.
-const USER_ID_KEY: &str = "user_id";
-/// Session key under which the authenticated user's name lives, shown on the
-/// admin panel.
-const USERNAME_KEY: &str = "username";
-
-#[derive(Deserialize)]
-pub struct LoginForm {
-    username: String,
-    password: String,
-}
-
-/// Renders the empty login form.
-pub async fn login_form() -> Html<String> {
-    Html(login_page(None))
-}
-
-/// Verifies the submitted credentials and, on success, starts a session and
-/// sends the owner to the admin area. A failure re-renders the form with a
-/// fixed message, never echoing the submitted values.
-pub async fn login(
-    session: Session,
-    State(state): State<AppState>,
-    Form(form): Form<LoginForm>,
-) -> Response {
-    let username = form.username.clone();
-    let credentials = Credentials {
-        username: form.username,
-        password: SecretString::from(form.password),
-    };
-
-    match validate_credentials(credentials, &state.pool).await {
-        Ok(user_id) => match establish_session(&session, user_id, &username).await {
-            Ok(()) => Redirect::to("/admin").into_response(),
-            Err(_) => error_page(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Could not start a session.",
-            ),
-        },
-        Err(AuthError::InvalidCredentials) => {
-            error_page(StatusCode::UNAUTHORIZED, "Invalid username or password.")
-        }
-        Err(_) => error_page(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Something went wrong. Please try again.",
-        ),
-    }
-}
-
-/// Ends the session and returns to the portfolio.
-pub async fn logout(session: Session) -> Redirect {
-    let _ = session.delete().await;
-    Redirect::to("/")
-}
-
-/// The admin area, reachable only with a session. A signed-out visitor is
-/// sent to the login form.
-pub async fn admin(session: Session) -> Response {
-    if owner(&session).await.is_none() {
-        return Redirect::to("/login").into_response();
-    }
-    let name = username(&session)
-        .await
-        .unwrap_or_else(|| "owner".to_owned());
-    Html(admin_page(&name)).into_response()
-}
-
-/// The edit page for a single project: a textarea prefilled with the project's
-/// current description Markdown. Owner only; an unknown slug is a 404. The form
-/// posts back to [`edit_project`].
-pub async fn project_form(session: Session, Path(slug): Path<String>) -> Response {
-    if owner(&session).await.is_none() {
-        return Redirect::to("/login").into_response();
-    }
-
-    let content = server_content();
-    match content
-        .projects
-        .iter()
-        .find(|project| project.slug.as_str() == slug)
-    {
-        Some(project) => Html(project_page(project)).into_response(),
-        None => (StatusCode::NOT_FOUND, "No such project.").into_response(),
-    }
-}
-
-#[derive(Deserialize)]
-pub struct ProjectEdit {
-    markdown: String,
-}
-
-/// Saves an edit to a project's description Markdown, then reloads and
-/// re-caches the portfolio so the change shows on the next request. Only the
-/// owner may edit; the markdown must be non-empty; the slug must exist.
-pub async fn edit_project(
-    session: Session,
-    State(state): State<AppState>,
-    Path(slug): Path<String>,
-    Form(form): Form<ProjectEdit>,
-) -> Response {
-    if owner(&session).await.is_none() {
-        return Redirect::to("/login").into_response();
-    }
-
-    if form.markdown.parse::<ProjectDescription>().is_err() {
-        return (
-            StatusCode::UNPROCESSABLE_ENTITY,
-            "A project description cannot be empty.",
-        )
-            .into_response();
-    }
-
-    match db::portfolio::set_project_description(&state.pool, &slug, &form.markdown).await {
-        Ok(true) => match db::portfolio::load(&state.pool).await {
-            Ok(content) => {
-                store_server_content(content);
-                Redirect::to("/admin").into_response()
-            }
-            Err(_) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Saved, but the portfolio could not be reloaded.",
-            )
-                .into_response(),
-        },
-        Ok(false) => (StatusCode::NOT_FOUND, "No such project.").into_response(),
-        Err(_) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Could not save the edit.",
-        )
-            .into_response(),
-    }
-}
-
-/// The authenticated user's id, if the session holds one.
-async fn owner(session: &Session) -> Option<Uuid> {
-    session.get::<Uuid>(USER_ID_KEY).await.ok().flatten()
-}
-
-/// The authenticated user's name, if the session holds one.
-async fn username(session: &Session) -> Option<String> {
-    session.get::<String>(USERNAME_KEY).await.ok().flatten()
-}
-
-/// Rotates the session id to defeat fixation, then records the user's id and
-/// name.
-async fn establish_session(
-    session: &Session,
-    user_id: Uuid,
-    username: &str,
-) -> Result<(), session::Error> {
-    session.cycle_id().await?;
-    session.insert(USER_ID_KEY, user_id).await?;
-    session.insert(USERNAME_KEY, username).await
-}
-
-fn error_page(status: StatusCode, message: &str) -> Response {
-    (status, Html(login_page(Some(message)))).into_response()
-}
+use crate::{app::content::server_content, domain::Project};
 
 /// The styles for the admin surface. Inlined so the pages do not depend on the
 /// portfolio's Tailwind build.
@@ -260,7 +86,7 @@ fn document(title: &str, body: &str) -> String {
 
 /// The login page. The right pane is a read-only status readout drawn from the
 /// live portfolio, so the counts and page list stay true as content changes.
-fn login_page(error: Option<&str>) -> String {
+pub(super) fn login_page(error: Option<&str>) -> String {
     let content = server_content();
     let projects = content.projects.len();
 
@@ -325,9 +151,8 @@ fn login_page(error: Option<&str>) -> String {
 }
 
 /// The admin landing page: a session and content readout beside every project
-/// as a link to its edit form. Everything is drawn from the live portfolio, so
-/// the list and counts track content changes. `name` is the signed-in user.
-fn admin_page(name: &str) -> String {
+/// as a link to its edit form. `name` is the signed-in user.
+pub(super) fn admin_page(name: &str) -> String {
     let content = server_content();
 
     let rows = content
@@ -390,7 +215,7 @@ fn admin_page(name: &str) -> String {
 }
 
 /// A project's edit form, its textarea prefilled with the current description.
-fn project_page(project: &Project) -> String {
+pub(super) fn project_page(project: &Project) -> String {
     let body = format!(
         "<main class=\"admin\">\
            <p class=\"eyebrow\"><a href=\"/admin\">Admin</a> / edit</p>\
