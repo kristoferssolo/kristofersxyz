@@ -2,8 +2,8 @@
 //! admin area, and logout.
 //!
 //! These are plain Axum handlers rather than Leptos server functions. The
-//! login and admin pages are minimal functional HTML, not a designed
-//! interface; the visual pass is deferred.
+//! pages carry their own inline styles rather than the portfolio's compiled
+//! Tailwind, so this admin surface renders independently of that build.
 
 use crate::{
     authentication::{AuthError, Credentials, validate_credentials},
@@ -90,38 +90,145 @@ fn error_page(status: StatusCode, message: &str) -> Response {
     (status, Html(login_page(Some(message)))).into_response()
 }
 
+/// The styles for the admin surface. Inlined so the pages do not depend on the
+/// portfolio's Tailwind build.
+const ADMIN_STYLE: &str = r#"
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:#000;color:#d4d7db;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;text-rendering:optimizeLegibility}
+.login{display:grid;grid-template-columns:360px 1fr;min-height:100dvh}
+aside{border-right:1px solid #1e2126;padding:3rem 2.25rem;display:flex;flex-direction:column;min-height:0}
+.eyebrow{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#4c525a}
+h1{margin:.7rem 0 0;font-family:"IBM Plex Sans",sans-serif;font-weight:600;font-size:1.5rem;color:#fff}
+.lede{margin:.6rem 0 0;font-size:13px;line-height:1.6;color:#8b939d}
+form{margin-top:2.2rem}
+label{display:block;margin-top:1.3rem;font-size:12px;color:#8b939d}
+input{margin-top:.4rem;display:block;width:100%;background:#0b0e11;color:#fff;
+  border:1px solid #2b3037;padding:.5rem .65rem;font:inherit;font-size:13px}
+input:focus{outline:none;border-color:#e2a340}
+.err{margin-top:1.2rem;font-size:12px;color:#e2a340}
+button{margin-top:1.6rem;width:100%;background:#080a0d;color:#fff;border:1px solid #30363d;
+  padding:.55rem;font:inherit;font-size:13px;cursor:pointer}
+button:hover{border-color:#e2a340}
+.foot{margin-top:auto;padding-top:2rem;font-size:11px;color:#4c525a}
+.stage{position:relative;overflow:hidden;display:flex;flex-direction:column;padding:3rem 3.25rem}
+.tag{position:absolute;top:1.5rem;right:2rem;font-size:11px;letter-spacing:.18em;
+  text-transform:uppercase;color:#2b3037}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:0 3rem}
+.grp{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#59616a;margin:2rem 0 .8rem}
+.grp:first-child{margin-top:0}
+dl{display:grid;grid-template-columns:13ch 1fr;gap:.55rem 2ch;margin:0;font-size:13px}
+dt{color:#8b939d}
+dd{margin:0;color:#c3c9cf}
+dd b{color:#e2a340;font-weight:500}
+.pages{margin:.2rem 0 0;font-size:13px}
+.pages p{margin:.35rem 0;color:#8b939d}
+.pages .n{color:#3c424a;margin-right:1.5ch}
+.mark{margin-top:auto;font-family:"IBM Plex Sans",sans-serif;font-weight:600;
+  letter-spacing:-.04em;line-height:.9;font-size:clamp(2rem,4vw,3.2rem);color:#0e1116}
+.admin{max-width:420px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;
+  justify-content:center;padding:0 2.25rem}
+.admin button{width:auto;align-self:flex-start;padding:.55rem 1.4rem}
+:focus-visible{outline:2px solid #e2a340;outline-offset:2px}
+@media (max-width:720px){.login{grid-template-columns:1fr}.stage{display:none}aside{border-right:none}}
+"#;
+
 fn document(title: &str, body: &str) -> String {
     format!(
         "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">\
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
-         <title>{title}</title><link rel=\"stylesheet\" href=\"/pkg/kristofersxyz.css\"></head>\
-         <body class=\"grid min-h-dvh place-items-center bg-black font-mono text-[#d4d7db]\">{body}</body></html>"
+         <title>{title}</title>\
+         <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\
+         <link href=\"https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&\
+         family=IBM+Plex+Sans:wght@500;600&display=swap\" rel=\"stylesheet\">\
+         <style>{ADMIN_STYLE}</style></head><body>{body}</body></html>"
     )
 }
 
+/// The login page. The right pane is a read-only status readout drawn from the
+/// live portfolio, so the counts and page list stay true as content changes.
 fn login_page(error: Option<&str>) -> String {
+    let content = crate::app::content::server_content();
+    let projects = content.projects.len();
+
+    let mut names = Vec::with_capacity(projects + 2);
+    names.push(content.profile.name.clone());
+    names.extend(content.projects.iter().map(|project| project.title.clone()));
+    names.push(content.contact.name.clone());
+
+    let pages = names
+        .iter()
+        .enumerate()
+        .map(|(index, name)| {
+            format!(
+                "<p><span class=\"n\">{}</span>{}</p>",
+                index + 1,
+                escape(name)
+            )
+        })
+        .collect::<String>();
+
     let error = error.map_or_else(String::new, |message| {
-        format!("<p class=\"mt-4 text-[12px] text-[#e2a340]\">{message}</p>")
+        format!("<p class=\"err\">{}</p>", escape(message))
     });
+
     let body = format!(
-        "<form method=\"post\" action=\"/login\" class=\"w-full max-w-[320px] px-6\">\
-         <p class=\"text-[10px] tracking-[0.24em] text-[#4c525a] uppercase\">Admin</p>\
-         <h1 class=\"mt-3 font-sans text-2xl font-semibold text-white\">Sign in</h1>{error}\
-         <label class=\"mt-6 block text-[12px] text-[#8b939d]\">Username\
-         <input name=\"username\" autocomplete=\"username\" class=\"mt-1 block w-full border border-[#2b3037] bg-[#0b0e11] px-2.5 py-1.5 text-white focus-visible:outline-none\"></label>\
-         <label class=\"mt-4 block text-[12px] text-[#8b939d]\">Password\
-         <input name=\"password\" type=\"password\" autocomplete=\"current-password\" class=\"mt-1 block w-full border border-[#2b3037] bg-[#0b0e11] px-2.5 py-1.5 text-white focus-visible:outline-none\"></label>\
-         <button type=\"submit\" class=\"mt-6 w-full border border-[#30363d] bg-[#080a0d] px-3 py-1.5 text-[13px] text-white hover:border-[#3d444d]\">Sign in</button></form>"
+        "<div class=\"login\">\
+           <aside>\
+             <p class=\"eyebrow\">Admin</p>\
+             <h1>Sign in</h1>\
+             <p class=\"lede\">The editing surface for the portfolio. Owner access only.</p>\
+             <form method=\"post\" action=\"/login\">\
+               <label>Username<input name=\"username\" autocomplete=\"username\"></label>\
+               <label>Password<input name=\"password\" type=\"password\" \
+                 autocomplete=\"current-password\"></label>\
+               {error}\
+               <button type=\"submit\">Sign in</button>\
+             </form>\
+             <p class=\"foot\">kristofers.xyz</p>\
+           </aside>\
+           <div class=\"stage\">\
+             <span class=\"tag\">~/admin</span>\
+             <div class=\"cols\">\
+               <div>\
+                 <p class=\"grp\">Session</p>\
+                 <dl><dt>status</dt><dd>signed out</dd><dt>method</dt><dd>server-side</dd>\
+                   <dt>idle limit</dt><dd>1 hour</dd></dl>\
+                 <p class=\"grp\">Content</p>\
+                 <dl><dt>store</dt><dd>SQLite</dd><dt>pages</dt><dd><b>{pages_count}</b></dd>\
+                   <dt>projects</dt><dd><b>{projects}</b></dd></dl>\
+               </div>\
+               <div>\
+                 <p class=\"grp\">Pages</p>\
+                 <div class=\"pages\">{pages}</div>\
+               </div>\
+             </div>\
+             <div class=\"mark\">kristofers.xyz</div>\
+           </div>\
+         </div>",
+        pages_count = names.len(),
     );
     document("Sign in", &body)
 }
 
 fn admin_page() -> String {
-    let body = "<div class=\"w-full max-w-[320px] px-6\">\
-         <p class=\"text-[10px] tracking-[0.24em] text-[#4c525a] uppercase\">Admin</p>\
-         <h1 class=\"mt-3 font-sans text-2xl font-semibold text-white\">Signed in</h1>\
-         <p class=\"mt-4 text-[13px] text-[#aab2bb]\">Content editing lands here next.</p>\
-         <form method=\"post\" action=\"/logout\" class=\"mt-6\">\
-         <button type=\"submit\" class=\"border border-[#30363d] bg-[#080a0d] px-3 py-1.5 text-[13px] text-white hover:border-[#3d444d]\">Sign out</button></form></div>";
+    let body = "<main class=\"admin\">\
+         <p class=\"eyebrow\">Admin</p>\
+         <h1>Signed in</h1>\
+         <p class=\"lede\">Content editing lands here next.</p>\
+         <form method=\"post\" action=\"/logout\"><button type=\"submit\">Sign out</button></form>\
+         </main>";
     document("Admin", body)
+}
+
+/// Escapes the handful of characters that would otherwise break out of the
+/// surrounding HTML text. Content is author-supplied, but escaping keeps a
+/// title with a `<` or `&` from corrupting the markup.
+fn escape(input: &str) -> String {
+    input
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
 }
