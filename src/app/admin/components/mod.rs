@@ -1,7 +1,7 @@
 use crate::app::{
     admin::server_functions::Logout,
     content::Portfolio,
-    layout::{CollapsibleSidebar, SidebarPreference},
+    layout::{CollapsibleSidebar, SidebarPreference, StatusShell},
     markdown,
 };
 use leptos::{form::ActionForm, prelude::*};
@@ -98,6 +98,7 @@ pub fn EditorLayout(
 ) -> impl IntoView {
     let sidebar = use_context::<SidebarPreference>().unwrap_or_default();
     let open = Signal::derive(move || sidebar.open());
+    let filename = active.trim_start_matches('/').to_owned();
     let wrap = if wide {
         "mx-auto w-full max-w-[1200px]"
     } else {
@@ -105,7 +106,8 @@ pub fn EditorLayout(
     };
 
     view! {
-        <div class="h-dvh overflow-hidden bg-black font-mono text-[#d4d7db]">
+        <StatusShell filename=filename>
+        <div class="h-full overflow-hidden bg-black font-mono text-[#d4d7db]">
             <AdminSidebarShortcut sidebar />
             <CollapsibleSidebar
                 id="admin-navigation"
@@ -128,6 +130,7 @@ pub fn EditorLayout(
                 </main>
             </CollapsibleSidebar>
         </div>
+        </StatusShell>
     }
 }
 

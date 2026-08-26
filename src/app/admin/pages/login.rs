@@ -1,5 +1,5 @@
 use super::super::server_functions::Login;
-use crate::app::content::Portfolio;
+use crate::app::{content::Portfolio, layout::StatusShell};
 use leptos::{form::ActionForm, prelude::*};
 use leptos_meta::Title;
 
@@ -34,8 +34,9 @@ pub fn LoginPage() -> impl IntoView {
 
     view! {
         <Title text="Sign in" />
-        <div class="grid min-h-dvh grid-cols-1 bg-black font-mono text-[#d4d7db] min-[721px]:grid-cols-[360px_1fr]">
-            <aside class="flex min-h-0 flex-col px-9 py-12 min-[721px]:border-r min-[721px]:border-[#1e2126]">
+        <StatusShell filename="login">
+        <div class="grid h-full grid-cols-1 overflow-hidden bg-black font-mono text-[#d4d7db] min-[721px]:grid-cols-[360px_1fr]">
+            <aside class="flex min-h-0 flex-col overflow-y-auto px-9 py-12 min-[721px]:border-r min-[721px]:border-[#1e2126]">
                 <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">"Admin"</p>
                 <h1 class="mt-[.7rem] font-sans text-2xl font-semibold text-white">"Sign in"</h1>
                 <p class="mt-[.6rem] text-[13px] leading-[1.6] text-[#8b939d]">"The editing surface for the portfolio. Owner access only."</p>
@@ -92,5 +93,6 @@ pub fn LoginPage() -> impl IntoView {
                 <div class="mt-auto font-sans text-[clamp(2rem,4vw,3.2rem)] leading-[.9] font-semibold tracking-[-.04em] text-[#0e1116]">"kristofers.xyz"</div>
             </main>
         </div>
+        </StatusShell>
     }
 }
