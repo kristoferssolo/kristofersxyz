@@ -24,13 +24,6 @@ impl Username {
         Ok(Self(value))
     }
 
-    /// Creates a username without validating its domain invariants.
-    #[cfg(test)]
-    #[must_use]
-    pub const fn new_unchecked(value: String) -> Self {
-        Self(value)
-    }
-
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0

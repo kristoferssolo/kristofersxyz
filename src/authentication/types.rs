@@ -21,13 +21,6 @@ impl Password {
         }
     }
 
-    /// Creates a password without validating its domain invariants.
-    #[cfg(test)]
-    #[must_use]
-    pub const fn new_unchecked(value: SecretString) -> Self {
-        Self(value)
-    }
-
     pub(crate) fn expose_secret(&self) -> &str {
         self.0.expose_secret()
     }

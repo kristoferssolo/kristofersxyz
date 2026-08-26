@@ -102,8 +102,8 @@ mod tests {
 
     fn credentials(username: &str, password: &str) -> Credentials {
         Credentials {
-            username: Username::new_unchecked(username.to_owned()),
-            password: Password::new_unchecked(SecretString::from(password.to_owned())),
+            username: assert_ok!(Username::new(username.to_owned())),
+            password: assert_ok!(Password::new(SecretString::from(password.to_owned()))),
         }
     }
 
@@ -114,8 +114,8 @@ mod tests {
 
         set_password(
             &settings,
-            &Username::new_unchecked("owner".to_owned()),
-            &Password::new_unchecked(SecretString::from("first pw".to_owned())),
+            &assert_ok!(Username::new("owner".to_owned())),
+            &assert_ok!(Password::new(SecretString::from("first pw".to_owned()))),
         )
         .await
         .expect("create the user");
@@ -125,8 +125,8 @@ mod tests {
 
         set_password(
             &settings,
-            &Username::new_unchecked("owner".to_owned()),
-            &Password::new_unchecked(SecretString::from("second pw".to_owned())),
+            &assert_ok!(Username::new("owner".to_owned())),
+            &assert_ok!(Password::new(SecretString::from("second pw".to_owned()))),
         )
         .await
         .expect("replace the password");
