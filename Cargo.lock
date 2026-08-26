@@ -1311,6 +1311,7 @@ dependencies = [
  "leptos_axum",
  "leptos_meta",
  "leptos_router",
+ "lucide-leptos",
  "pulldown-cmark",
  "rpassword",
  "rstest",
@@ -1610,6 +1611,15 @@ name = "log"
 version = "0.4.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
+
+[[package]]
+name = "lucide-leptos"
+version = "3.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "026a05a6629194c67a6b54441602012d6ae7e37fc1e3d5c76a6ef6a5ac547b69"
+dependencies = [
+ "leptos",
+]
 
 [[package]]
 name = "manyhow"

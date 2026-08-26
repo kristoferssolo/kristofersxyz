@@ -1,7 +1,7 @@
-use super::server_functions::Logout;
-use crate::app::{content::Portfolio, markdown};
+use crate::app::{admin::server_functions::Logout, content::Portfolio, markdown};
 use leptos::{form::ActionForm, prelude::*};
 use leptos_router::components::A;
+use lucide_leptos::{Box as BoxIcon, ChevronRight, Globe, Mail, User};
 
 #[derive(Clone, Copy)]
 pub enum EntryIcon {
@@ -13,50 +13,45 @@ pub enum EntryIcon {
 
 #[component]
 pub fn Icon(kind: EntryIcon) -> impl IntoView {
-    let class = "h-4 w-4 shrink-0 fill-none stroke-current text-[#767d87] \
-        [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.75] \
+    let class = "inline-flex h-4 w-4 shrink-0 text-[#767d87] \
         group-hover:text-[#e2a340] group-aria-[current=page]:text-[#8b939d]";
 
     match kind {
         EntryIcon::Project => view! {
-            <svg class=class viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                <path d="m3.3 7 8.7 5 8.7-5" />
-                <path d="M12 22V12" />
-            </svg>
-        }.into_any(),
+            <span class=class aria-hidden="true">
+                <BoxIcon size=16 />
+            </span>
+        }
+        .into_any(),
         EntryIcon::Profile => view! {
-            <svg class=class viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-            </svg>
-        }.into_any(),
+            <span class=class aria-hidden="true">
+                <User size=16 />
+            </span>
+        }
+        .into_any(),
         EntryIcon::Contact => view! {
-            <svg class=class viewBox="0 0 24 24" aria-hidden="true">
-                <rect width="20" height="16" x="2" y="4" rx="2" />
-                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-            </svg>
-        }.into_any(),
+            <span class=class aria-hidden="true">
+                <Mail size=16 />
+            </span>
+        }
+        .into_any(),
         EntryIcon::Site => view! {
-            <svg class=class viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-                <path d="M2 12h20" />
-            </svg>
-        }.into_any(),
+            <span class=class aria-hidden="true">
+                <Globe size=16 />
+            </span>
+        }
+        .into_any(),
     }
 }
 
 #[component]
 pub fn Affordance() -> impl IntoView {
     view! {
-        <span class="inline-flex items-center text-[#6b7280] group-hover:text-[#e2a340]" aria-hidden="true">
-            <svg
-                class="h-3.5 w-3.5 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:2]"
-                viewBox="0 0 24 24"
-            >
-                <path d="m9 18 6-6-6-6" />
-            </svg>
+        <span
+            class="inline-flex items-center text-[#6b7280] group-hover:text-[#e2a340]"
+            aria-hidden="true"
+        >
+            <ChevronRight size=14 />
         </span>
     }
 }
@@ -107,8 +102,12 @@ pub fn EditorLayout(
             <EditorNavigation active />
             <main class="relative flex flex-col overflow-x-hidden overflow-y-auto px-[3.25rem] py-12">
                 <div class=wrap>
-                    <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">{breadcrumb}</p>
-                    <h1 class="mt-[.7rem] font-sans text-2xl font-semibold text-white">{heading}</h1>
+                    <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">
+                        {breadcrumb}
+                    </p>
+                    <h1 class="mt-[.7rem] font-sans text-2xl font-semibold text-white">
+                        {heading}
+                    </h1>
                     {children()}
                 </div>
             </main>
@@ -143,16 +142,37 @@ fn EditorNavigation(active: String) -> impl IntoView {
     view! {
         <aside class="flex min-h-0 flex-col border-r border-[#1e2126] px-9 py-12">
             <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">
-                <A href="/admin" attr:class="text-inherit no-underline hover:text-[#8b939d]">"Admin"</A>
+                <A href="/admin" attr:class="text-inherit no-underline hover:text-[#8b939d]">
+                    "Admin"
+                </A>
             </p>
             <h1 class="mt-[.7rem] font-sans text-2xl font-semibold text-white">"Edit"</h1>
-            <p class="mt-8 mb-[.8rem] text-[10px] tracking-[.2em] text-[#767d87] uppercase">"Projects"</p>
+            <p class="mt-8 mb-[.8rem] text-[10px] tracking-[.2em] text-[#767d87] uppercase">
+                "Projects"
+            </p>
             <ul class="m-0 list-none p-0">{projects}</ul>
-            <p class="mt-8 mb-[.8rem] text-[10px] tracking-[.2em] text-[#767d87] uppercase">"Site"</p>
+            <p class="mt-8 mb-[.8rem] text-[10px] tracking-[.2em] text-[#767d87] uppercase">
+                "Site"
+            </p>
             <ul class="m-0 list-none p-0">
-                <NavigationLink active=active.clone() href="/admin/profile" label="Profile" icon=EntryIcon::Profile />
-                <NavigationLink active=active.clone() href="/admin/contact" label="Contact" icon=EntryIcon::Contact />
-                <NavigationLink active href="/admin/site" label="Site metadata" icon=EntryIcon::Site />
+                <NavigationLink
+                    active=active.clone()
+                    href="/admin/profile"
+                    label="Profile"
+                    icon=EntryIcon::Profile
+                />
+                <NavigationLink
+                    active=active.clone()
+                    href="/admin/contact"
+                    label="Contact"
+                    icon=EntryIcon::Contact
+                />
+                <NavigationLink
+                    active
+                    href="/admin/site"
+                    label="Site metadata"
+                    icon=EntryIcon::Site
+                />
             </ul>
             <div class="mt-auto pt-10">
                 <LogoutForm />
@@ -238,15 +258,15 @@ pub fn MarkdownEditor(value: String) -> impl IntoView {
                     <div
                         id="pv"
                         class="font-sans text-sm leading-[1.65] text-[#c3c9cf]
-                            [&>:first-child]:mt-0
-                            [&_h1]:mt-[1.4em] [&_h1]:mb-[.5em] [&_h1]:font-semibold [&_h1]:leading-[1.3] [&_h1]:text-white
-                            [&_h2]:mt-[1.4em] [&_h2]:mb-[.5em] [&_h2]:font-semibold [&_h2]:leading-[1.3] [&_h2]:text-[1.1rem] [&_h2]:text-white
-                            [&_h3]:mt-[1.4em] [&_h3]:mb-[.5em] [&_h3]:font-semibold [&_h3]:leading-[1.3] [&_h3]:text-base [&_h3]:text-white
-                            [&_p]:my-[.8em] [&_a]:text-[#e2a340] [&_strong]:text-white
-                            [&_code]:rounded-[3px] [&_code]:border [&_code]:border-[#1e2126] [&_code]:bg-[#0b0e11] [&_code]:px-[.35em] [&_code]:py-[.1em] [&_code]:font-mono [&_code]:text-[.85em]
-                            [&_pre]:overflow-auto [&_pre]:rounded-sm [&_pre]:border [&_pre]:border-[#1e2126] [&_pre]:bg-[#0b0e11] [&_pre]:p-[.9rem]
-                            [&_pre_code]:border-0 [&_pre_code]:bg-transparent [&_pre_code]:p-0
-                            [&_ul]:my-[.8em] [&_ul]:pl-[1.4em] [&_ol]:my-[.8em] [&_ol]:pl-[1.4em] [&_li]:my-[.3em]"
+                        [&>:first-child]:mt-0
+                        [&_h1]:mt-[1.4em] [&_h1]:mb-[.5em] [&_h1]:font-semibold [&_h1]:leading-[1.3] [&_h1]:text-white
+                        [&_h2]:mt-[1.4em] [&_h2]:mb-[.5em] [&_h2]:font-semibold [&_h2]:leading-[1.3] [&_h2]:text-[1.1rem] [&_h2]:text-white
+                        [&_h3]:mt-[1.4em] [&_h3]:mb-[.5em] [&_h3]:font-semibold [&_h3]:leading-[1.3] [&_h3]:text-base [&_h3]:text-white
+                        [&_p]:my-[.8em] [&_a]:text-[#e2a340] [&_strong]:text-white
+                        [&_code]:rounded-[3px] [&_code]:border [&_code]:border-[#1e2126] [&_code]:bg-[#0b0e11] [&_code]:px-[.35em] [&_code]:py-[.1em] [&_code]:font-mono [&_code]:text-[.85em]
+                        [&_pre]:overflow-auto [&_pre]:rounded-sm [&_pre]:border [&_pre]:border-[#1e2126] [&_pre]:bg-[#0b0e11] [&_pre]:p-[.9rem]
+                        [&_pre_code]:border-0 [&_pre_code]:bg-transparent [&_pre_code]:p-0
+                        [&_ul]:my-[.8em] [&_ul]:pl-[1.4em] [&_ol]:my-[.8em] [&_ol]:pl-[1.4em] [&_li]:my-[.3em]"
                         inner_html=move || markdown::render_source(&source.get())
                     ></div>
                 </div>

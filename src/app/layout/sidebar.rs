@@ -5,6 +5,7 @@ use crate::app::{
 };
 use leptos::prelude::*;
 use leptos_router::components::A;
+use lucide_leptos::PanelLeft;
 
 #[derive(Clone)]
 struct NavigationEntry {
@@ -152,18 +153,7 @@ pub fn SidebarToggle(editor: EditorController) -> impl IntoView {
             on:click=move |_| editor.toggle_sidebar()
             class="absolute top-2 left-2 z-10 flex h-7 items-center gap-[1ch] border border-[#30363d] bg-[#080a0d] px-1.5 text-[10px] text-[#b8bfc7] hover:border-[#3d444d] hover:text-white"
         >
-            <svg
-                width="14"
-                height="14"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.4"
-                aria-hidden="true"
-            >
-                <rect x="1.5" y="2.5" width="13" height="11"></rect>
-                <line x1="6" y1="2.5" x2="6" y2="13.5"></line>
-            </svg>
+            <span aria-hidden="true"><PanelLeft size=14 /></span>
             <span aria-hidden="true" class="text-[#e2a340]">"^B"</span>
         </button>
     }
