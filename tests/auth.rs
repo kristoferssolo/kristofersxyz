@@ -19,6 +19,16 @@ use kristofersxyz::{
 use tempfile::NamedTempFile;
 use tower::ServiceExt;
 
+fn username(value: &str) -> Username {
+    Username::new(value.to_owned())
+        .unwrap_or_else(|error| panic!("invalid username in test fixture: {error}"))
+}
+
+fn password(value: &str) -> Password {
+    Password::try_from(value.to_owned())
+        .unwrap_or_else(|error| panic!("invalid password in test fixture: {error}"))
+}
+
 async fn app_with_owner() -> (Router, NamedTempFile) {
     let database = NamedTempFile::new().expect("create a temporary database");
     let settings = Settings {
@@ -29,13 +39,9 @@ async fn app_with_owner() -> (Router, NamedTempFile) {
             secure_cookie: false,
         },
     };
-    set_password(
-        &settings,
-        &Username::from("owner"),
-        &Password::from("s3cret".to_owned()),
-    )
-    .await
-    .expect("create the owner");
+    set_password(&settings, &username("owner"), &password("s3cret"))
+        .await
+        .expect("create the owner");
     let app = App::new(&settings).await.expect("build the application");
     (route(app), database)
 }

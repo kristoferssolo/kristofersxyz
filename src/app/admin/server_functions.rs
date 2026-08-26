@@ -43,19 +43,17 @@ pub async fn login(username: String, password: String) -> Result<(), AdminError>
         SessionState::Anonymous(session) => session,
     };
     let state = expect_context::<AppState>();
-    let username = Username::from(username);
+    let username = Username::new(username).map_err(|_| invalid_credentials())?;
+    let password = Password::try_from(password).map_err(|_| invalid_credentials())?;
     let credentials = Credentials {
         username: username.clone(),
-        password: Password::from(password),
+        password,
     };
 
     let owner_id = validate_credentials(credentials, &state.pool)
         .await
         .map_err(|error| match error {
-            AuthError::InvalidCredentials => with_status(
-                axum::http::StatusCode::UNAUTHORIZED,
-                AdminError::InvalidCredentials,
-            ),
+            AuthError::InvalidCredentials => invalid_credentials(),
             _ => AdminError::Internal,
         })?;
     session
@@ -214,4 +212,12 @@ async fn reload(state: &crate::startup::AppState) -> Result<PortfolioContent, Ad
 fn with_status(status: axum::http::StatusCode, error: AdminError) -> AdminError {
     expect_context::<leptos_axum::ResponseOptions>().set_status(status);
     error
+}
+
+#[cfg(feature = "ssr")]
+fn invalid_credentials() -> AdminError {
+    with_status(
+        axum::http::StatusCode::UNAUTHORIZED,
+        AdminError::InvalidCredentials,
+    )
 }

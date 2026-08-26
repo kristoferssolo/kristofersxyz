@@ -4,24 +4,55 @@ use std::fmt;
 use uuid::Uuid;
 
 /// A plaintext password supplied by the owner.
+#[derive(Debug)]
 pub struct Password(SecretString);
 
 impl Password {
+    /// Creates a password containing at least one non-whitespace character.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PasswordError::Empty`] if `value` is blank.
+    pub fn new(value: SecretString) -> Result<Self, PasswordError> {
+        if value.expose_secret().trim().is_empty() {
+            Err(PasswordError::Empty)
+        } else {
+            Ok(Self(value))
+        }
+    }
+
+    /// Creates a password without validating its domain invariants.
+    #[cfg(test)]
+    #[must_use]
+    pub const fn new_unchecked(value: SecretString) -> Self {
+        Self(value)
+    }
+
     pub(crate) fn expose_secret(&self) -> &str {
         self.0.expose_secret()
     }
 }
 
-impl From<String> for Password {
-    fn from(value: String) -> Self {
-        Self(SecretString::from(value))
+impl TryFrom<String> for Password {
+    type Error = PasswordError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(SecretString::from(value))
     }
 }
 
-impl From<SecretString> for Password {
-    fn from(value: SecretString) -> Self {
-        Self(value)
+impl TryFrom<SecretString> for Password {
+    type Error = PasswordError;
+
+    fn try_from(value: SecretString) -> Result<Self, Self::Error> {
+        Self::new(value)
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, thiserror::Error)]
+pub enum PasswordError {
+    #[error("a password cannot be empty")]
+    Empty,
 }
 
 /// An encoded password hash suitable for persistent storage.
@@ -74,5 +105,18 @@ impl TryFrom<&str> for OwnerId {
 impl fmt::Display for OwnerId {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(formatter)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use claims::{assert_err, assert_ok};
+
+    #[test]
+    fn passwords_require_visible_content() {
+        assert_err!(Password::try_from(String::new()));
+        assert_err!(Password::try_from(" \t".to_owned()));
+        assert_ok!(Password::try_from("correct horse".to_owned()));
     }
 }

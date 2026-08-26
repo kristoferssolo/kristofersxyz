@@ -3,10 +3,10 @@
 //! No arguments starts the server. A subcommand runs its task and exits.
 
 use crate::{
-    authentication::{AuthError, OwnerId, Password, compute_password_hash},
+    authentication::{AuthError, OwnerId, Password, PasswordError, compute_password_hash},
     configuration::Settings,
     db,
-    domain::Username,
+    domain::{Username, UsernameError},
 };
 use sqlx::migrate::MigrateError;
 
@@ -20,8 +20,10 @@ pub enum AdminCliError {
     Io(#[from] std::io::Error),
     #[error("the passwords did not match")]
     Mismatch,
-    #[error("the password must not be empty")]
-    Empty,
+    #[error(transparent)]
+    Username(#[from] UsernameError),
+    #[error(transparent)]
+    Password(#[from] PasswordError),
     #[error("failed to reach the database")]
     Database(#[from] sqlx::Error),
     #[error("failed to run migrations")]
@@ -65,17 +67,14 @@ pub async fn set_password(
 ///
 /// Returns [`AdminCliError::Io`] if the terminal cannot be read,
 /// [`AdminCliError::Mismatch`] if the entries differ, or
-/// [`AdminCliError::Empty`] if the password is blank.
+/// [`AdminCliError::Password`] if the password is blank.
 pub fn read_new_password() -> Result<Password, AdminCliError> {
     let password = rpassword::prompt_password("New password: ")?;
     let confirm = rpassword::prompt_password("Confirm password: ")?;
     if password != confirm {
         return Err(AdminCliError::Mismatch);
     }
-    if password.trim().is_empty() {
-        return Err(AdminCliError::Empty);
-    }
-    Ok(Password::from(password))
+    Ok(Password::try_from(password)?)
 }
 
 #[cfg(test)]
@@ -87,6 +86,7 @@ mod tests {
         domain::Username,
     };
     use claims::{assert_err, assert_ok};
+    use secrecy::SecretString;
     use tempfile::NamedTempFile;
 
     fn settings_for(database: &NamedTempFile) -> Settings {
@@ -102,8 +102,8 @@ mod tests {
 
     fn credentials(username: &str, password: &str) -> Credentials {
         Credentials {
-            username: Username::from(username),
-            password: Password::from(password.to_owned()),
+            username: Username::new_unchecked(username.to_owned()),
+            password: Password::new_unchecked(SecretString::from(password.to_owned())),
         }
     }
 
@@ -114,8 +114,8 @@ mod tests {
 
         set_password(
             &settings,
-            &Username::from("owner"),
-            &Password::from("first pw".to_owned()),
+            &Username::new_unchecked("owner".to_owned()),
+            &Password::new_unchecked(SecretString::from("first pw".to_owned())),
         )
         .await
         .expect("create the user");
@@ -125,8 +125,8 @@ mod tests {
 
         set_password(
             &settings,
-            &Username::from("owner"),
-            &Password::from("second pw".to_owned()),
+            &Username::new_unchecked("owner".to_owned()),
+            &Password::new_unchecked(SecretString::from("second pw".to_owned())),
         )
         .await
         .expect("replace the password");

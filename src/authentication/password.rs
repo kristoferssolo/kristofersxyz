@@ -113,6 +113,7 @@ mod tests {
     use super::*;
     use crate::db::{DbPoolOptions, migrate};
     use claims::assert_ok_eq;
+    use secrecy::SecretString;
 
     /// A migrated in-memory database holding one user with a known password.
     async fn pool_with_user(username: &str, password: &str) -> (DbPool, OwnerId) {
@@ -124,8 +125,8 @@ mod tests {
         migrate(&pool).await.expect("run the migrations");
 
         let id = OwnerId::new();
-        let hash =
-            compute_password_hash(&Password::from(password.to_owned())).expect("hash the password");
+        let password = Password::new_unchecked(SecretString::from(password.to_owned()));
+        let hash = compute_password_hash(&password).expect("hash the password");
         sqlx::query!(
             "INSERT INTO users (user_id, username, password_hash) VALUES (?1, ?2, ?3)",
             id.to_string(),
@@ -140,8 +141,8 @@ mod tests {
 
     fn credentials(username: &str, password: &str) -> Credentials {
         Credentials {
-            username: Username::from(username),
-            password: Password::from(password.to_owned()),
+            username: Username::new_unchecked(username.to_owned()),
+            password: Password::new_unchecked(SecretString::from(password.to_owned())),
         }
     }
 

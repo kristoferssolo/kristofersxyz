@@ -138,10 +138,10 @@ mod tests {
         let session = assert_some!(anonymous(state));
         let authenticated = assert_ok!(
             session
-                .sign_in(OwnerId::new(), Username::from("owner"))
+                .sign_in(OwnerId::new(), Username::new_unchecked("owner".to_owned()))
                 .await
         );
-        assert_eq!(authenticated.username(), &Username::from("owner"));
+        assert_eq!(authenticated.username().as_str(), "owner");
 
         let anonymous = assert_ok!(authenticated.sign_out().await);
         let state = assert_ok!(AuthSession::new(anonymous.inner).resolve().await);
