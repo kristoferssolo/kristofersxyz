@@ -23,7 +23,7 @@ body{margin:0;min-height:100dvh;background:#000;color:#d4d7db;
   padding:.55rem;font:inherit;font-size:13px;cursor:pointer}
 .admin-button:hover{border-color:#e2a340}
 .foot{margin-top:auto;padding-top:2rem;font-size:11px;color:#767d87}
-.stage{position:relative;overflow:hidden;display:flex;flex-direction:column;padding:3rem 3.25rem}
+.stage{position:relative;overflow-x:hidden;overflow-y:auto;display:flex;flex-direction:column;padding:3rem 3.25rem}
 .tag{position:absolute;top:1.5rem;right:2rem;font-size:11px;letter-spacing:.18em;
   text-transform:uppercase;color:#2b3037}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:0 3rem}
@@ -40,7 +40,7 @@ body{margin:0;min-height:100dvh;background:#000;color:#d4d7db;
   letter-spacing:-.04em;line-height:.9;font-size:clamp(2rem,4vw,3.2rem);color:#0e1116}
 .eyebrow a{color:inherit;text-decoration:none}
 .eyebrow a:hover{color:#8b939d}
-.dash{display:grid;grid-template-columns:320px 1fr;min-height:100dvh}
+.dash{display:grid;grid-template-columns:320px 1fr;height:100dvh;overflow:hidden}
 .nav{list-style:none;margin:1rem 0 0;padding:0}
 .nav a{display:flex;align-items:center;gap:1.1ch;padding:.45rem 0;font-size:13px;
   color:#8b939d;text-decoration:none}
