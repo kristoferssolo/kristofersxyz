@@ -61,20 +61,24 @@ pub async fn set_password(
     Ok(())
 }
 
-/// Reads the same non-empty password twice without terminal echo.
+/// Reads the same password twice without terminal echo and enforces the owner
+/// strength policy.
 ///
 /// # Errors
 ///
 /// Returns [`AdminCliError::Io`] if the terminal cannot be read,
 /// [`AdminCliError::Mismatch`] if the entries differ, or
-/// [`AdminCliError::Password`] if the password is blank.
+/// [`AdminCliError::Password`] if the password is blank, too long, or too
+/// short.
 pub fn read_new_password() -> Result<Password, AdminCliError> {
     let password = rpassword::prompt_password("New password: ")?;
     let confirm = rpassword::prompt_password("Confirm password: ")?;
     if password != confirm {
         return Err(AdminCliError::Mismatch);
     }
-    Ok(Password::try_from(password)?)
+    let password = Password::try_from(password)?;
+    password.ensure_owner_strength()?;
+    Ok(password)
 }
 
 #[cfg(test)]

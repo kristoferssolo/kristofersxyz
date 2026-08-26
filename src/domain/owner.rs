@@ -1,7 +1,17 @@
 use serde::{Deserialize, Deserializer, Serialize, de};
 use std::fmt;
+use unicode_segmentation::UnicodeSegmentation;
 #[cfg(feature = "ssr")]
 use uuid::Uuid;
+
+/// The longest username, in grapheme clusters. Long enough for any real name
+/// while bounding what the login path stores and compares.
+const MAX_USERNAME_GRAPHEMES: usize = 256;
+
+/// Characters that have structural meaning in paths, markup, or shells, kept
+/// out of usernames as a defensive measure. Mirrors the set used for names in
+/// *Zero to Production in Rust*.
+const FORBIDDEN_CHARACTERS: [char; 9] = ['/', '(', ')', '"', '<', '>', '\\', '{', '}'];
 
 /// The name that identifies the portfolio owner during authentication.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -9,19 +19,25 @@ use uuid::Uuid;
 pub struct Username(String);
 
 impl Username {
-    /// Creates a non-empty username without surrounding whitespace.
+    /// Creates a validated username.
     ///
     /// # Errors
     ///
-    /// Returns [`UsernameError::Empty`] if `value` is blank, or
-    /// [`UsernameError::SurroundingWhitespace`] if it starts or ends with
-    /// whitespace.
+    /// Returns the matching [`UsernameError`] when `value` is blank, starts or
+    /// ends with whitespace, exceeds [`MAX_USERNAME_GRAPHEMES`], or contains a
+    /// [forbidden character](FORBIDDEN_CHARACTERS).
     pub fn new(value: String) -> Result<Self, UsernameError> {
         if value.trim().is_empty() {
             return Err(UsernameError::Empty);
         }
         if value.trim() != value {
             return Err(UsernameError::SurroundingWhitespace);
+        }
+        if value.graphemes(true).count() > MAX_USERNAME_GRAPHEMES {
+            return Err(UsernameError::TooLong);
+        }
+        if let Some(character) = value.chars().find(|c| FORBIDDEN_CHARACTERS.contains(c)) {
+            return Err(UsernameError::ForbiddenCharacter(character));
         }
         Ok(Self(value))
     }
@@ -69,6 +85,10 @@ pub enum UsernameError {
     Empty,
     #[error("a username cannot start or end with whitespace")]
     SurroundingWhitespace,
+    #[error("a username cannot be longer than {MAX_USERNAME_GRAPHEMES} characters")]
+    TooLong,
+    #[error("a username cannot contain the character '{0}'")]
+    ForbiddenCharacter(char),
 }
 
 /// The stable identifier of the portfolio owner.
@@ -132,5 +152,18 @@ mod tests {
         assert_err!(Username::new(" owner".to_owned()));
         assert_err!(Username::new("owner ".to_owned()));
         assert_ok!(Username::new("site owner".to_owned()));
+    }
+
+    #[test]
+    fn usernames_reject_forbidden_characters() {
+        for character in FORBIDDEN_CHARACTERS {
+            assert_err!(Username::new(format!("own{character}er")));
+        }
+    }
+
+    #[test]
+    fn usernames_are_bounded_in_length() {
+        assert_ok!(Username::new("a".repeat(MAX_USERNAME_GRAPHEMES)));
+        assert_err!(Username::new("a".repeat(MAX_USERNAME_GRAPHEMES + 1)));
     }
 }

@@ -28,6 +28,7 @@ sqlx = { version = "0.9", features = [
   "migrate",
 ], optional = true }
 serde = { version = "1.0", features = ["derive"] }
+unicode-segmentation = "1"
 config = { version = "0.15", default-features = false, features = [
   "toml",
 ], optional = true }

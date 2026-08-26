@@ -5,21 +5,53 @@ use argon2::{
 };
 use secrecy::{ExposeSecret, SecretString};
 
+/// The longest password accepted anywhere. A bound on the hasher's input, so a
+/// login attempt cannot force Argon2 to chew through an unbounded string.
+/// Matches the OWASP guidance used in *Zero to Production in Rust*.
+const MAX_PASSWORD_LENGTH: usize = 128;
+
+/// The shortest password the owner may choose. Enforced only when a password is
+/// set (see [`Password::ensure_owner_strength`]), never at login, so verifying
+/// an existing password never reveals the policy.
+const MIN_OWNER_PASSWORD_LENGTH: usize = 12;
+
 /// A plaintext password supplied by the owner.
 #[derive(Debug)]
 pub struct Password(SecretString);
 
 impl Password {
-    /// Creates a password containing at least one non-whitespace character.
+    /// Creates a password that is non-blank and within the length bound.
+    ///
+    /// This is the lenient constructor used for both login and creation: it
+    /// does not impose the minimum-length policy, so verifying an existing
+    /// password never leaks it.
     ///
     /// # Errors
     ///
-    /// Returns [`PasswordError::Empty`] if `value` is blank.
+    /// Returns [`PasswordError::Empty`] if `value` is blank, or
+    /// [`PasswordError::TooLong`] if it exceeds [`MAX_PASSWORD_LENGTH`].
     pub fn new(value: SecretString) -> Result<Self, PasswordError> {
-        if value.expose_secret().trim().is_empty() {
-            Err(PasswordError::Empty)
+        let exposed = value.expose_secret();
+        if exposed.trim().is_empty() {
+            return Err(PasswordError::Empty);
+        }
+        if exposed.chars().count() > MAX_PASSWORD_LENGTH {
+            return Err(PasswordError::TooLong);
+        }
+        Ok(Self(value))
+    }
+
+    /// Checks the strength policy applied when the owner sets a new password.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PasswordError::TooShort`] if the password is shorter than
+    /// [`MIN_OWNER_PASSWORD_LENGTH`].
+    pub fn ensure_owner_strength(&self) -> Result<(), PasswordError> {
+        if self.expose_secret().chars().count() < MIN_OWNER_PASSWORD_LENGTH {
+            Err(PasswordError::TooShort)
         } else {
-            Ok(Self(value))
+            Ok(())
         }
     }
 
@@ -48,6 +80,10 @@ impl TryFrom<SecretString> for Password {
 pub enum PasswordError {
     #[error("a password cannot be empty")]
     Empty,
+    #[error("a password cannot be longer than {MAX_PASSWORD_LENGTH} characters")]
+    TooLong,
+    #[error("a password must be at least {MIN_OWNER_PASSWORD_LENGTH} characters")]
+    TooShort,
 }
 
 /// An encoded password hash suitable for persistent storage.
@@ -106,5 +142,20 @@ mod tests {
         assert_err!(Password::try_from(String::new()));
         assert_err!(Password::try_from(" \t".to_owned()));
         assert_ok!(Password::try_from("correct horse".to_owned()));
+    }
+
+    #[test]
+    fn passwords_are_bounded_in_length() {
+        assert_ok!(Password::try_from("a".repeat(MAX_PASSWORD_LENGTH)));
+        assert_err!(Password::try_from("a".repeat(MAX_PASSWORD_LENGTH + 1)));
+    }
+
+    #[test]
+    fn the_owner_strength_policy_sets_a_minimum() {
+        let short = Password::try_from("a".repeat(MIN_OWNER_PASSWORD_LENGTH - 1)).unwrap();
+        assert_err!(short.ensure_owner_strength());
+
+        let long_enough = Password::try_from("a".repeat(MIN_OWNER_PASSWORD_LENGTH)).unwrap();
+        assert_ok!(long_enough.ensure_owner_strength());
     }
 }
