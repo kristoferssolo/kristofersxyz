@@ -7,7 +7,7 @@ use super::{
 };
 
 /// Reduces one key press in Normal mode.
-pub(super) fn reduce(state: &EditorState, input: KeyInput, buffer: &Buffer) -> Transition {
+pub fn reduce(state: &EditorState, input: KeyInput, buffer: &Buffer) -> Transition {
     if input.ctrl {
         return match input.key {
             Key::Char('f' | 'F') => enter_mode(state, Mode::Search(String::new())),

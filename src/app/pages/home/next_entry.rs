@@ -2,7 +2,7 @@ use super::view_model::HomeViewModel;
 use leptos::prelude::*;
 
 #[component]
-pub(super) fn NextEntry() -> impl IntoView {
+pub fn NextEntry() -> impl IntoView {
     let view_model = expect_context::<HomeViewModel>();
 
     view! {

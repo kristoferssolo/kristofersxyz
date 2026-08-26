@@ -5,7 +5,7 @@ use super::{
 use leptos::prelude::*;
 
 #[component]
-pub(super) fn ContentPane() -> impl IntoView {
+pub fn ContentPane() -> impl IntoView {
     view! {
         <section
             id="buffer-content"

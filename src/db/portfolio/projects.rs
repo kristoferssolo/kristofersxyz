@@ -6,7 +6,7 @@ use crate::{
 
 /// Replaces a project's editable fields by slug, returning whether a row
 /// matched. The slug is the route identity and stays fixed.
-pub(super) async fn set(
+pub async fn set(
     pool: &DbPool,
     slug: &str,
     title: &str,
@@ -27,7 +27,7 @@ pub(super) async fn set(
 
 /// Loads projects with Technologies and links grouped in memory, avoiding
 /// queries per project.
-pub(super) async fn load(pool: &DbPool) -> Result<Vec<Project>, super::LoadError> {
+pub async fn load(pool: &DbPool) -> Result<Vec<Project>, super::LoadError> {
     let rows = sqlx::query_as!(
         ProjectRow,
         "SELECT id, slug, title, summary, description_markdown FROM project ORDER BY sort_order",

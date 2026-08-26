@@ -4,7 +4,7 @@ use leptos::{form::ActionForm, prelude::*};
 use leptos_router::components::A;
 
 #[derive(Clone, Copy)]
-pub(super) enum EntryIcon {
+pub enum EntryIcon {
     Project,
     Profile,
     Contact,
@@ -12,7 +12,7 @@ pub(super) enum EntryIcon {
 }
 
 #[component]
-pub(super) fn Icon(kind: EntryIcon) -> impl IntoView {
+pub fn Icon(kind: EntryIcon) -> impl IntoView {
     match kind {
         EntryIcon::Project => view! {
             <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
@@ -44,7 +44,7 @@ pub(super) fn Icon(kind: EntryIcon) -> impl IntoView {
 }
 
 #[component]
-pub(super) fn Affordance() -> impl IntoView {
+pub fn Affordance() -> impl IntoView {
     view! {
         <span class="edit" aria-hidden="true">
             <svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg>
@@ -53,7 +53,7 @@ pub(super) fn Affordance() -> impl IntoView {
 }
 
 #[component]
-pub(super) fn LogoutForm() -> impl IntoView {
+pub fn LogoutForm() -> impl IntoView {
     let action = ServerAction::<Logout>::new();
     view! {
         <ActionForm action>
@@ -63,7 +63,7 @@ pub(super) fn LogoutForm() -> impl IntoView {
 }
 
 #[component]
-pub(super) fn EditorLayout(
+pub fn EditorLayout(
     active: String,
     heading: &'static str,
     breadcrumb: String,
@@ -145,7 +145,7 @@ fn NavigationLink(
 }
 
 #[component]
-pub(super) fn TextInput(label: &'static str, name: &'static str, value: String) -> impl IntoView {
+pub fn TextInput(label: &'static str, name: &'static str, value: String) -> impl IntoView {
     view! {
         <label class="admin-label">
             {label}
@@ -155,7 +155,7 @@ pub(super) fn TextInput(label: &'static str, name: &'static str, value: String) 
 }
 
 #[component]
-pub(super) fn TextArea(label: &'static str, name: &'static str, value: String) -> impl IntoView {
+pub fn TextArea(label: &'static str, name: &'static str, value: String) -> impl IntoView {
     view! {
         <label class="admin-label">
             {label}
@@ -165,7 +165,7 @@ pub(super) fn TextArea(label: &'static str, name: &'static str, value: String) -
 }
 
 #[component]
-pub(super) fn MarkdownEditor(value: String) -> impl IntoView {
+pub fn MarkdownEditor(value: String) -> impl IntoView {
     let source = RwSignal::new(value);
 
     view! {

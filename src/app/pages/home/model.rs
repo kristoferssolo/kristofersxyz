@@ -9,23 +9,23 @@ use crate::{
 };
 
 /// A link as it is rendered: visible label, destination, relationship.
-pub(super) struct Link {
-    pub(super) label: String,
-    pub(super) href: String,
-    pub(super) rel: String,
+pub struct Link {
+    pub label: String,
+    pub href: String,
+    pub rel: String,
 }
 
 /// Where an entry's links come from. `Contact` leads with the address itself
 /// so the mail entry shows something you can read rather than the word "Email".
 #[derive(Clone)]
-pub(super) enum Links {
+pub enum Links {
     Social(Vec<SocialLink>),
     Project(Vec<ProjectLink>),
     Contact(Profile),
 }
 
 impl Links {
-    pub(super) fn resolve(self) -> Vec<Link> {
+    pub fn resolve(self) -> Vec<Link> {
         let social = |link: SocialLink| Link {
             label: link.label,
             href: link.href,
@@ -64,29 +64,29 @@ impl Links {
 
 /// One item in the profile pane's action row.
 #[derive(Clone)]
-pub(super) struct Action {
-    pub(super) label: String,
-    pub(super) href: String,
-    pub(super) target: Option<EntryId>,
-    pub(super) download: Option<&'static str>,
+pub struct Action {
+    pub label: String,
+    pub href: String,
+    pub target: Option<EntryId>,
+    pub download: Option<&'static str>,
 }
 
 /// One navigable line in the buffer, with everything the content pane renders.
 #[derive(Clone)]
-pub(super) struct Entry {
-    pub(super) id: EntryId,
-    pub(super) section: SectionId,
-    pub(super) name: String,
-    pub(super) lead: Option<String>,
-    pub(super) body: String,
-    pub(super) focus: Vec<FocusArea>,
-    pub(super) meta: Vec<String>,
-    pub(super) links: Links,
+pub struct Entry {
+    pub id: EntryId,
+    pub section: SectionId,
+    pub name: String,
+    pub lead: Option<String>,
+    pub body: String,
+    pub focus: Vec<FocusArea>,
+    pub meta: Vec<String>,
+    pub links: Links,
 }
 
 /// Flattens the portfolio into the buffer's line list, in the same order and
 /// under the same ids as the editor's own [`Buffer`].
-pub(super) fn entries(content: &PortfolioContent) -> Vec<Entry> {
+pub fn entries(content: &PortfolioContent) -> Vec<Entry> {
     let profile = &content.profile;
     let mut entries = vec![Entry {
         id: EntryId::Profile,
@@ -126,7 +126,7 @@ pub(super) fn entries(content: &PortfolioContent) -> Vec<Entry> {
 
 /// The profile pane's explicit next steps, ordered by what a hiring reader
 /// wants first.
-pub(super) fn actions(entries: &[Entry]) -> Vec<Action> {
+pub fn actions(entries: &[Entry]) -> Vec<Action> {
     let find = |section| {
         entries
             .iter()

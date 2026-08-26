@@ -2,7 +2,7 @@ use crate::app::editor_controller::EditorController;
 use leptos::prelude::*;
 
 #[component]
-pub(super) fn NoticeView(editor: EditorController) -> impl IntoView {
+pub fn NoticeView(editor: EditorController) -> impl IntoView {
     view! {
         <div aria-live="polite" class="pointer-events-none fixed top-4 right-4 z-30 text-[12.5px]">
             {move || {

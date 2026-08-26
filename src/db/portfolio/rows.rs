@@ -1,49 +1,49 @@
-pub(super) struct SiteRow {
-    pub(super) url: String,
-    pub(super) title: String,
-    pub(super) description: String,
-    pub(super) og_image: String,
+pub struct SiteRow {
+    pub url: String,
+    pub title: String,
+    pub description: String,
+    pub og_image: String,
 }
 
-pub(super) struct ProfileRow {
-    pub(super) name: String,
-    pub(super) title: String,
-    pub(super) summary: String,
-    pub(super) about: String,
-    pub(super) email: String,
+pub struct ProfileRow {
+    pub name: String,
+    pub title: String,
+    pub summary: String,
+    pub about: String,
+    pub email: String,
 }
 
-pub(super) struct FocusRow {
-    pub(super) label: String,
-    pub(super) detail: String,
+pub struct FocusRow {
+    pub label: String,
+    pub detail: String,
 }
 
-pub(super) struct SocialRow {
-    pub(super) label: String,
-    pub(super) href: String,
-    pub(super) rel: String,
+pub struct SocialRow {
+    pub label: String,
+    pub href: String,
+    pub rel: String,
 }
 
-pub(super) struct ContactRow {
-    pub(super) name: String,
-    pub(super) body: String,
+pub struct ContactRow {
+    pub name: String,
+    pub body: String,
 }
 
-pub(super) struct ProjectRow {
-    pub(super) id: i64,
-    pub(super) slug: String,
-    pub(super) title: String,
-    pub(super) summary: String,
-    pub(super) description_markdown: String,
+pub struct ProjectRow {
+    pub id: i64,
+    pub slug: String,
+    pub title: String,
+    pub summary: String,
+    pub description_markdown: String,
 }
 
-pub(super) struct ProjectItemRow {
-    pub(super) project_id: i64,
-    pub(super) item: String,
+pub struct ProjectItemRow {
+    pub project_id: i64,
+    pub item: String,
 }
 
-pub(super) struct ProjectLinkRow {
-    pub(super) project_id: i64,
-    pub(super) label: String,
-    pub(super) href: String,
+pub struct ProjectLinkRow {
+    pub project_id: i64,
+    pub label: String,
+    pub href: String,
 }

@@ -12,7 +12,7 @@ const STACK_BELOW_PX: f64 = 768.0;
 
 /// Navigates inside the portfolio or opens an external destination in a new
 /// tab.
-pub(super) fn navigate(destination: &Destination) {
+pub fn navigate(destination: &Destination) {
     let Some(window) = web_sys::window() else {
         return;
     };
@@ -28,14 +28,14 @@ pub(super) fn navigate(destination: &Destination) {
 }
 
 /// Opens one entry in the portfolio's ordered page sequence.
-pub(super) fn navigate_to(entry: &EntryId) {
+pub fn navigate_to(entry: &EntryId) {
     navigate(&Destination::Internal(entry.path()));
 }
 
 /// Whether the key press landed on a control that activates itself, such as
 /// the sidebar toggle or a navigation row. Both are tab stops, so the editor
 /// has to leave their `Enter` alone.
-pub(super) fn activates_a_control(event: &KeyboardEvent) -> bool {
+pub fn activates_a_control(event: &KeyboardEvent) -> bool {
     event.key() == "Enter"
         && event
             .target()
@@ -45,7 +45,7 @@ pub(super) fn activates_a_control(event: &KeyboardEvent) -> bool {
 }
 
 /// Returns the current URL fragment when it addresses part of the homepage.
-pub(super) fn current_fragment() -> Option<String> {
+pub fn current_fragment() -> Option<String> {
     web_sys::window()?
         .location()
         .hash()
@@ -55,7 +55,7 @@ pub(super) fn current_fragment() -> Option<String> {
 
 /// Moves keyboard focus onto a sidebar entry so assistive technology announces
 /// the row selected by an editor command.
-pub(super) fn focus_row(entry: &EntryId) {
+pub fn focus_row(entry: &EntryId) {
     if let Some(element) = document().get_element_by_id(&row_id(entry))
         && let Ok(element) = element.dyn_into::<web_sys::HtmlElement>()
     {
@@ -65,7 +65,7 @@ pub(super) fn focus_row(entry: &EntryId) {
 
 /// On the stacked phone layout, selected homepage content sits below the
 /// sidebar and must be brought into view.
-pub(super) fn reveal_content() {
+pub fn reveal_content() {
     if viewport_is_stacked()
         && let Some(section) = document().get_element_by_id("buffer-content")
     {

@@ -23,7 +23,7 @@ const NAVIGATION_ID: &str = "portfolio-navigation";
 /// `visibility` is in the collapse transition, so the entries stay painted
 /// through the fade and leave the tab order only once it ends.
 #[component]
-pub(super) fn Sidebar(
+pub fn Sidebar(
     #[prop(into)] active: Signal<EntryId>,
     #[prop(into)] visible: Signal<bool>,
     on_select: Option<Callback<EntryId>>,
@@ -133,7 +133,7 @@ pub(super) fn Sidebar(
 /// The navigation's visibility control. It sits outside the `<nav>` so it
 /// survives the collapse, and dispatches the transition `Ctrl+B` dispatches.
 #[component]
-pub(super) fn SidebarToggle(editor: EditorController) -> impl IntoView {
+pub fn SidebarToggle(editor: EditorController) -> impl IntoView {
     let open = Signal::derive(move || editor.sidebar());
 
     view! {

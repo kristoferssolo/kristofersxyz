@@ -5,13 +5,13 @@ use serde::{Deserialize, Serialize};
 
 /// The owner identity exposed to authenticated Leptos routes.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub(super) struct SessionUser {
-    pub(super) username: String,
+pub struct SessionUser {
+    pub username: String,
 }
 
 /// Returns the owner for a complete authenticated session.
 #[server(endpoint = "admin_session")]
-pub(super) async fn current_user() -> Result<Option<SessionUser>, AdminError> {
+pub async fn current_user() -> Result<Option<SessionUser>, AdminError> {
     use crate::authentication::SessionState;
     use leptos_axum::redirect;
 
@@ -28,7 +28,7 @@ pub(super) async fn current_user() -> Result<Option<SessionUser>, AdminError> {
 
 /// Verifies credentials and starts an owner session.
 #[server(endpoint = "login")]
-pub(super) async fn login(username: String, password: String) -> Result<(), AdminError> {
+pub async fn login(username: String, password: String) -> Result<(), AdminError> {
     use crate::{
         authentication::{AuthError, Credentials, SessionState, validate_credentials},
         startup::AppState,
@@ -68,7 +68,7 @@ pub(super) async fn login(username: String, password: String) -> Result<(), Admi
 
 /// Ends an authenticated owner session.
 #[server(endpoint = "logout")]
-pub(super) async fn logout() -> Result<(), AdminError> {
+pub async fn logout() -> Result<(), AdminError> {
     use crate::authentication::SessionState;
     use leptos_axum::redirect;
 
@@ -81,7 +81,7 @@ pub(super) async fn logout() -> Result<(), AdminError> {
 
 /// Saves the editable project fields and returns the refreshed portfolio.
 #[server(endpoint = "save_project")]
-pub(super) async fn save_project(
+pub async fn save_project(
     slug: String,
     title: String,
     summary: String,
@@ -106,7 +106,7 @@ pub(super) async fn save_project(
 
 /// Saves the editable profile fields and returns the refreshed portfolio.
 #[server(endpoint = "save_profile")]
-pub(super) async fn save_profile(
+pub async fn save_profile(
     name: String,
     title: String,
     summary: String,
@@ -126,10 +126,7 @@ pub(super) async fn save_profile(
 
 /// Saves the editable contact fields and returns the refreshed portfolio.
 #[server(endpoint = "save_contact")]
-pub(super) async fn save_contact(
-    name: String,
-    body: String,
-) -> Result<PortfolioContent, AdminError> {
+pub async fn save_contact(name: String, body: String) -> Result<PortfolioContent, AdminError> {
     use crate::{db, startup::AppState};
 
     let _session = authenticated_session().await?;
@@ -143,7 +140,7 @@ pub(super) async fn save_contact(
 
 /// Saves the editable site metadata and returns the refreshed portfolio.
 #[server(endpoint = "save_site")]
-pub(super) async fn save_site(
+pub async fn save_site(
     url: String,
     title: String,
     description: String,

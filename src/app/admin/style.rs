@@ -1,6 +1,6 @@
 /// Admin-only styles. The route owns this sheet, so leaving the admin area
 /// removes it from the document.
-pub(super) const ADMIN_STYLE: &str = r#"
+pub const ADMIN_STYLE: &str = r#"
 :root{color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;min-height:100dvh;background:#000;color:#d4d7db;

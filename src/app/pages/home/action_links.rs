@@ -3,7 +3,7 @@ use crate::app::editor::SectionId;
 use leptos::prelude::*;
 
 #[component]
-pub(super) fn ActionLinks() -> impl IntoView {
+pub fn ActionLinks() -> impl IntoView {
     let view_model = expect_context::<HomeViewModel>();
 
     move || {

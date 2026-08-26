@@ -2,7 +2,7 @@ use super::{model::Links, view_model::HomeViewModel};
 use leptos::prelude::*;
 
 #[component]
-pub(super) fn ExternalLinks() -> impl IntoView {
+pub fn ExternalLinks() -> impl IntoView {
     let view_model = expect_context::<HomeViewModel>();
 
     view! {

@@ -96,7 +96,7 @@ impl StatusBarState {
 }
 
 #[component]
-pub(super) fn StatusBar(#[prop(into)] state: Signal<StatusBarState>) -> impl IntoView {
+pub fn StatusBar(#[prop(into)] state: Signal<StatusBarState>) -> impl IntoView {
     view! {
         <footer class="flex h-7 shrink-0 overflow-hidden" style="background:#0d1013">
             {move || match state.get().0 {

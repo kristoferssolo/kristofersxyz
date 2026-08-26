@@ -5,7 +5,7 @@ use leptos_router::hooks::use_location;
 
 /// Route-aware title, description, canonical URL, and Open Graph tags.
 #[component]
-pub(super) fn SiteMeta() -> impl IntoView {
+pub fn SiteMeta() -> impl IntoView {
     let portfolio = expect_context::<Portfolio>();
     let pathname = use_location().pathname;
 

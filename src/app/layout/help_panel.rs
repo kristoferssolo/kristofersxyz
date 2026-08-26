@@ -3,7 +3,7 @@ use leptos::prelude::*;
 
 /// Keyboard reference opened by `?` or `:help`.
 #[component]
-pub(super) fn HelpPanel(editor: EditorController) -> impl IntoView {
+pub fn HelpPanel(editor: EditorController) -> impl IntoView {
     view! {
         {move || {
             editor.help().then(|| {

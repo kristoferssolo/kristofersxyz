@@ -85,12 +85,14 @@ pub struct Transition {
 }
 
 impl Transition {
-    pub(super) const fn new(state: EditorState, effects: Vec<Effect>) -> Self {
+    #[must_use]
+    pub const fn new(state: EditorState, effects: Vec<Effect>) -> Self {
         Self { state, effects }
     }
 
     /// Returns an unchanged state with no effects.
-    pub(super) fn unchanged(state: &EditorState) -> Self {
+    #[must_use]
+    pub fn unchanged(state: &EditorState) -> Self {
         Self::new(state.clone(), Vec::new())
     }
 }

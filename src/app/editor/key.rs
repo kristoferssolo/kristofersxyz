@@ -68,7 +68,8 @@ impl KeyInput {
     }
 
     /// Whether the browser should handle this modified key.
-    pub(super) const fn foreign(self) -> bool {
+    #[must_use]
+    pub const fn foreign(self) -> bool {
         self.alt || self.meta
     }
 }

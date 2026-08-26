@@ -6,22 +6,12 @@ use super::{
 };
 
 /// Reduces one key press in the command line.
-pub(super) fn command(
-    state: &EditorState,
-    input: KeyInput,
-    buffer: &Buffer,
-    text: &str,
-) -> Transition {
+pub fn command(state: &EditorState, input: KeyInput, buffer: &Buffer, text: &str) -> Transition {
     line(state, input, buffer, text, Line::Command)
 }
 
 /// Reduces one key press in the search line.
-pub(super) fn search(
-    state: &EditorState,
-    input: KeyInput,
-    buffer: &Buffer,
-    query: &str,
-) -> Transition {
+pub fn search(state: &EditorState, input: KeyInput, buffer: &Buffer, query: &str) -> Transition {
     line(state, input, buffer, query, Line::Search)
 }
 
