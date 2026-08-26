@@ -1,4 +1,9 @@
-use crate::app::{admin::server_functions::Logout, content::Portfolio, markdown};
+use crate::app::{
+    admin::server_functions::Logout,
+    content::Portfolio,
+    layout::{CollapsibleSidebar, SidebarPreference},
+    markdown,
+};
 use leptos::{form::ActionForm, prelude::*};
 use leptos_router::components::A;
 use lucide_leptos::{Box as BoxIcon, ChevronRight, Globe, Mail, User};
@@ -91,6 +96,8 @@ pub fn EditorLayout(
     wide: bool,
     children: Children,
 ) -> impl IntoView {
+    let sidebar = use_context::<SidebarPreference>().unwrap_or_default();
+    let open = Signal::derive(move || sidebar.open());
     let wrap = if wide {
         "mx-auto w-full max-w-[1200px]"
     } else {
@@ -98,21 +105,47 @@ pub fn EditorLayout(
     };
 
     view! {
-        <div class="grid h-dvh grid-cols-[320px_1fr] overflow-hidden bg-black font-mono text-[#d4d7db]">
-            <EditorNavigation active />
-            <main class="relative flex flex-col overflow-x-hidden overflow-y-auto px-[3.25rem] py-12">
-                <div class=wrap>
-                    <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">
-                        {breadcrumb}
-                    </p>
-                    <h1 class="mt-[.7rem] font-sans text-2xl font-semibold text-white">
-                        {heading}
-                    </h1>
-                    {children()}
-                </div>
-            </main>
+        <div class="h-dvh overflow-hidden bg-black font-mono text-[#d4d7db]">
+            <AdminSidebarShortcut sidebar />
+            <CollapsibleSidebar
+                id="admin-navigation"
+                label="admin navigation"
+                width="320px"
+                open
+                on_toggle=Callback::new(move |()| sidebar.toggle())
+                navigation=view! { <EditorNavigation active /> }.into_any()
+            >
+                <main class="relative flex h-full flex-col overflow-x-hidden overflow-y-auto px-[3.25rem] py-12">
+                    <div class=wrap>
+                        <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">
+                            {breadcrumb}
+                        </p>
+                        <h1 class="mt-[.7rem] font-sans text-2xl font-semibold text-white">
+                            {heading}
+                        </h1>
+                        {children()}
+                    </div>
+                </main>
+            </CollapsibleSidebar>
         </div>
     }
+}
+
+#[component]
+fn AdminSidebarShortcut(sidebar: SidebarPreference) -> impl IntoView {
+    Effect::new(move |_| {
+        let handle = window_event_listener(leptos::ev::keydown, move |event| {
+            if event.ctrl_key()
+                && !event.alt_key()
+                && !event.meta_key()
+                && event.key().eq_ignore_ascii_case("b")
+            {
+                event.prevent_default();
+                sidebar.toggle();
+            }
+        });
+        on_cleanup(move || handle.remove());
+    });
 }
 
 #[component]
@@ -140,7 +173,7 @@ fn EditorNavigation(active: String) -> impl IntoView {
         .collect_view();
 
     view! {
-        <aside class="flex min-h-0 flex-col border-r border-[#1e2126] px-9 py-12">
+        <aside class="flex min-h-0 flex-col border-b border-[#1e2126] px-9 py-12 md:h-full md:border-r md:border-b-0">
             <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">
                 <A href="/admin" attr:class="text-inherit no-underline hover:text-[#8b939d]">
                     "Admin"

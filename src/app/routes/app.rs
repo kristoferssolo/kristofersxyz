@@ -8,7 +8,7 @@ use crate::app::{
         AuthenticatedAdmin, ContactEditorPage, DashboardPage, LoginPage, ProfileEditorPage,
         ProjectEditorPage, SiteEditorPage,
     },
-    editor_controller::SidebarPreference,
+    layout::SidebarPreference,
     pages::{HomePage, NotFoundPage, ProjectPage},
 };
 use leptos::prelude::*;

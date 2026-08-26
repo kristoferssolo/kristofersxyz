@@ -184,6 +184,8 @@ async fn project_editor_is_a_leptos_form_with_local_preview() {
     assert!(body.contains("id=\"md\""));
     assert!(body.contains("id=\"pv\""));
     assert!(body.contains("/admin/profile"));
+    assert!(body.contains("id=\"admin-navigation\""));
+    assert!(body.contains("aria-controls=\"admin-navigation\""));
 }
 
 #[tokio::test]

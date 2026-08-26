@@ -2,7 +2,7 @@ use super::{
     StatusBarState,
     help_panel::HelpPanel,
     notice_view::NoticeView,
-    sidebar::{Sidebar, SidebarToggle},
+    sidebar::{CollapsibleSidebar, PortfolioNavigation},
     status_bar::StatusBar,
 };
 use crate::app::{editor::EntryId, editor_controller::EditorController};
@@ -32,23 +32,16 @@ pub fn BlankPage(
         <main class="grid h-dvh grid-rows-[minmax(0,1fr)_1.75rem] overflow-hidden bg-black font-mono text-[#d4d7db]">
             <NoticeView editor />
             <HelpPanel editor />
-            <div class=move || {
-                if sidebar.get() {
-                    "relative grid min-h-0 grid-rows-[auto_minmax(0,1fr)] transition-[grid-template-columns] duration-150 ease-out md:grid-cols-[340px_minmax(0,1fr)] md:grid-rows-1"
-                } else {
-                    "relative grid min-h-0 grid-rows-[minmax(0,1fr)] transition-[grid-template-columns] duration-150 ease-out md:grid-cols-[0px_minmax(0,1fr)] md:grid-rows-1"
-                }
-            }>
-                <SidebarToggle editor />
-                <Sidebar active visible=sidebar on_select=on_select />
-                <div class=move || {
-                    if sidebar.get() {
-                        "flex min-h-0 min-w-0 flex-col"
-                    } else {
-                        "flex min-h-0 min-w-0 flex-col pt-10 md:pt-0"
-                    }
-                }>{children()}</div>
-            </div>
+            <CollapsibleSidebar
+                id="portfolio-navigation"
+                label="portfolio navigation"
+                width="340px"
+                open=sidebar
+                on_toggle=Callback::new(move |()| editor.toggle_sidebar())
+                navigation=view! { <PortfolioNavigation active on_select /> }.into_any()
+            >
+                <div class="flex h-full min-h-0 min-w-0 flex-col">{children()}</div>
+            </CollapsibleSidebar>
             <StatusBar state=status />
         </main>
     }

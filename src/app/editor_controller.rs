@@ -7,6 +7,7 @@ use crate::app::{
         Buffer, BufferEntry, EditorState, Effect, EntryId, Key, KeyInput, Mode, Transition, reduce,
         select, toggle_sidebar,
     },
+    layout::SidebarPreference,
 };
 use leptos::{prelude::*, web_sys::KeyboardEvent};
 use std::time::Duration;
@@ -20,20 +21,6 @@ enum SelectionBehavior {
     Homepage,
     /// Every selection follows its canonical route.
     Routes,
-}
-
-/// The reader's sidebar choice, carried across route changes.
-///
-/// Every page builds its own [`EditorController`], so without somewhere to
-/// leave it, a collapse would spring back open on the next navigation. The
-/// reducer still decides; this only remembers what it last decided.
-#[derive(Clone, Copy)]
-pub struct SidebarPreference(RwSignal<bool>);
-
-impl Default for SidebarPreference {
-    fn default() -> Self {
-        Self(RwSignal::new(true))
-    }
 }
 
 #[derive(Clone)]
@@ -76,7 +63,7 @@ impl EditorController {
             .map_or_else(Default::default, BufferEntry::selection);
         let sidebar_preference = use_context::<SidebarPreference>().unwrap_or_default();
         let state = EditorState {
-            sidebar: sidebar_preference.0.get_untracked(),
+            sidebar: sidebar_preference.open_untracked(),
             ..EditorState::new(selection)
         };
 
@@ -194,7 +181,7 @@ impl EditorController {
 
     fn advance(self, transition: Transition) {
         if transition.state.sidebar != self.state.get_untracked().sidebar {
-            self.sidebar_preference.0.set(transition.state.sidebar);
+            self.sidebar_preference.set(transition.state.sidebar);
         }
 
         self.state.set(transition.state);

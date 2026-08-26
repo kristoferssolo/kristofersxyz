@@ -7,4 +7,5 @@ mod sidebar;
 mod status_bar;
 
 pub use blank_page::BlankPage;
+pub use sidebar::{CollapsibleSidebar, SidebarPreference};
 pub use status_bar::{StatusBarState, StatusLocation};
