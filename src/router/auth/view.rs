@@ -62,9 +62,6 @@ dd b{color:#e2a340;font-weight:500}
 .nav a:hover .ico{color:#e2a340}
 .nav a[aria-current]{color:#fff}
 .nav a[aria-current] .ico{color:#8b939d}
-.editor{max-width:640px}
-.editor form{margin-top:1.6rem}
-.editor button{width:auto;padding:.55rem 1.4rem}
 .bottom{margin-top:auto;padding-top:2.5rem}
 .bottom button{width:auto;padding:.55rem 1.4rem}
 .projects{list-style:none;margin:1.4rem 0 0;padding:0;max-width:720px}
@@ -86,6 +83,7 @@ dd b{color:#e2a340;font-weight:500}
 .meta b{color:#8b939d;font-weight:400}
 .meta .path{color:#6b7280}
 .wrap{width:100%;max-width:1200px;margin-inline:auto}
+.wrap.narrow{max-width:760px}
 .wrap button{width:auto;padding:.55rem 1.4rem}
 .mdlabel{font-size:12px;color:#8b939d;margin:1.3rem 0 0}
 .md{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:.5rem}
@@ -337,58 +335,107 @@ fn nav_aside(active: &str) -> String {
     )
 }
 
-/// Wraps an edit form beside the entry sidebar, so the other entries stay one
-/// click away. `active` is the current page's href, `breadcrumb` is trusted
-/// markup, and `form` is the pre-rendered form.
-fn edit_shell(active: &str, title: &str, breadcrumb: &str, form: &str) -> String {
-    let body = format!(
-        "<div class=\"dash\">{aside}\
-           <div class=\"stage\">\
-             <p class=\"eyebrow\">{breadcrumb}</p>\
-             <h1>{title}</h1>\
-             <div class=\"editor\">{form}</div>\
-           </div>\
-         </div>",
-        aside = nav_aside(active),
-        title = escape(title),
-    );
-    document(title, &body)
+/// One field in an edit form. Every editable entry is described as a list of
+/// these, so all edit pages share a single renderer.
+enum Field<'a> {
+    /// A single-line text input.
+    Text {
+        label: &'a str,
+        name: &'a str,
+        value: &'a str,
+    },
+    /// A multi-line plain-text area.
+    Multiline {
+        label: &'a str,
+        name: &'a str,
+        value: &'a str,
+    },
+    /// A Markdown editor paired with a live preview.
+    Markdown {
+        label: &'a str,
+        name: &'a str,
+        value: &'a str,
+    },
 }
 
-/// A project's edit form: title and summary above a Markdown editor paired with
-/// a live preview. The slug is the route identity, so it is shown but not
-/// editable. The layout is centered so a wide viewport stays balanced.
-pub(super) fn project_page(project: &Project) -> String {
-    let slug = escape(project.slug.as_str());
+/// The one edit page every entry uses: the entry sidebar beside a centered form
+/// built from `fields`. `active` is the current href, `breadcrumb` and `action`
+/// are trusted markup. A Markdown field widens the layout and wires the preview
+/// script; without one the form stays a narrow single column.
+fn edit_page(
+    active: &str,
+    heading: &str,
+    breadcrumb: &str,
+    action: &str,
+    fields: &[Field],
+) -> String {
+    let has_markdown = fields.iter().any(|field| matches!(field, Field::Markdown { .. }));
+    let inputs = fields.iter().map(render_field).collect::<String>();
+    let wrap = if has_markdown { "wrap" } else { "wrap narrow" };
+    let script = if has_markdown { PREVIEW_SCRIPT } else { "" };
+
     let body = format!(
         "<div class=\"dash\">{aside}\
            <div class=\"stage\">\
-             <div class=\"wrap\">\
-               <p class=\"eyebrow\"><a href=\"/admin\">Admin</a> / {slug}</p>\
-               <h1>Edit project</h1>\
-               <form method=\"post\" action=\"/admin/project/{slug}\">\
-                 {title}{summary}\
-                 <p class=\"mdlabel\">Description (Markdown)</p>\
-                 <div class=\"md\">\
-                   <div><p class=\"panelabel\">Markdown</p>\
-                     <textarea id=\"md\" name=\"markdown\" spellcheck=\"false\">{source}</textarea>\
-                   </div>\
-                   <div><p class=\"panelabel\">Preview</p>\
-                     <div class=\"preview\"><div id=\"pv\" class=\"prose\">{preview}</div></div>\
-                   </div>\
-                 </div>\
+             <div class=\"{wrap}\">\
+               <p class=\"eyebrow\">{breadcrumb}</p>\
+               <h1>{heading}</h1>\
+               <form method=\"post\" action=\"{action}\">\
+                 {inputs}\
                  <button type=\"submit\">Save</button>\
                </form>\
              </div>\
            </div>\
-         </div>{PREVIEW_SCRIPT}",
-        aside = nav_aside(&project_href(project)),
-        title = field("Title", "title", &project.title),
-        summary = field("Summary", "summary", &project.summary),
-        source = escape(project.description.as_str()),
-        preview = crate::app::markdown::render(&project.description),
+         </div>{script}",
+        aside = nav_aside(active),
+        heading = escape(heading),
     );
-    document(&escape(&project.title), &body)
+    document(heading, &body)
+}
+
+fn render_field(field: &Field) -> String {
+    match *field {
+        Field::Text { label, name, value } => text_input(label, name, value),
+        Field::Multiline { label, name, value } => text_area(label, name, value),
+        Field::Markdown { label, name, value } => markdown_field(label, name, value),
+    }
+}
+
+/// A labeled single-line text input carrying its current value.
+fn text_input(label: &str, name: &str, value: &str) -> String {
+    format!(
+        "<label>{label}<input name=\"{name}\" value=\"{value}\"></label>",
+        label = escape(label),
+        value = escape(value),
+    )
+}
+
+/// A labeled multi-line plain-text area carrying its current value.
+fn text_area(label: &str, name: &str, value: &str) -> String {
+    format!(
+        "<label>{label}\
+           <textarea name=\"{name}\" spellcheck=\"false\">{value}</textarea>\
+         </label>",
+        label = escape(label),
+        value = escape(value),
+    )
+}
+
+/// A Markdown editor beside a live preview. The initial preview is rendered
+/// server-side; [`PREVIEW_SCRIPT`] keeps it current as the source changes.
+fn markdown_field(label: &str, name: &str, value: &str) -> String {
+    format!(
+        "<p class=\"mdlabel\">{label}</p>\
+         <div class=\"md\">\
+           <div><p class=\"panelabel\">Markdown</p>\
+             <textarea id=\"md\" name=\"{name}\" spellcheck=\"false\">{source}</textarea></div>\
+           <div><p class=\"panelabel\">Preview</p>\
+             <div class=\"preview\"><div id=\"pv\" class=\"prose\">{preview}</div></div></div>\
+         </div>",
+        label = escape(label),
+        source = escape(value),
+        preview = crate::app::markdown::render_source(value),
+    )
 }
 
 /// The inline script driving the Markdown editor: a debounced live preview
@@ -420,82 +467,123 @@ fn project_href(project: &Project) -> String {
     format!("/admin/project/{}", project.slug.as_str())
 }
 
+/// A project's edit form: title and summary above the Markdown description
+/// editor. The slug is the route identity, so it is shown but not editable.
+pub(super) fn project_page(project: &Project) -> String {
+    let slug = escape(project.slug.as_str());
+    edit_page(
+        &project_href(project),
+        "Edit project",
+        &format!("<a href=\"/admin\">Admin</a> / {slug}"),
+        &format!("/admin/project/{slug}"),
+        &[
+            Field::Text {
+                label: "Title",
+                name: "title",
+                value: &project.title,
+            },
+            Field::Text {
+                label: "Summary",
+                name: "summary",
+                value: &project.summary,
+            },
+            Field::Markdown {
+                label: "Description (Markdown)",
+                name: "markdown",
+                value: project.description.as_str(),
+            },
+        ],
+    )
+}
+
 /// The profile edit form, prefilled with its current scalar fields.
 pub(super) fn profile_page(profile: &Profile) -> String {
-    let form = format!(
-        "<form method=\"post\" action=\"/admin/profile\">\
-           {name}{title}{summary}{about}{email}\
-           <button type=\"submit\">Save</button>\
-         </form>",
-        name = field("Name", "name", &profile.name),
-        title = field("Title", "title", &profile.title),
-        summary = field("Summary", "summary", &profile.summary),
-        about = area("About", "about", &profile.about),
-        email = field("Email", "email", &profile.email),
-    );
-    edit_shell(
+    edit_page(
         "/admin/profile",
         "Edit profile",
         "<a href=\"/admin\">Admin</a> / profile",
-        &form,
+        "/admin/profile",
+        &[
+            Field::Text {
+                label: "Name",
+                name: "name",
+                value: &profile.name,
+            },
+            Field::Text {
+                label: "Title",
+                name: "title",
+                value: &profile.title,
+            },
+            Field::Text {
+                label: "Summary",
+                name: "summary",
+                value: &profile.summary,
+            },
+            Field::Multiline {
+                label: "About",
+                name: "about",
+                value: &profile.about,
+            },
+            Field::Text {
+                label: "Email",
+                name: "email",
+                value: &profile.email,
+            },
+        ],
     )
 }
 
 /// The contact edit form, prefilled with its current fields.
 pub(super) fn contact_page(contact: &Contact) -> String {
-    let form = format!(
-        "<form method=\"post\" action=\"/admin/contact\">\
-           {name}{body_area}\
-           <button type=\"submit\">Save</button>\
-         </form>",
-        name = field("Name", "name", &contact.name),
-        body_area = area("Body", "body", &contact.body),
-    );
-    edit_shell(
+    edit_page(
         "/admin/contact",
         "Edit contact",
         "<a href=\"/admin\">Admin</a> / contact",
-        &form,
+        "/admin/contact",
+        &[
+            Field::Text {
+                label: "Name",
+                name: "name",
+                value: &contact.name,
+            },
+            Field::Multiline {
+                label: "Body",
+                name: "body",
+                value: &contact.body,
+            },
+        ],
     )
 }
 
 /// The site metadata edit form, prefilled with its current fields.
 pub(super) fn site_page(site: &Site) -> String {
-    let form = format!(
-        "<form method=\"post\" action=\"/admin/site\">\
-           {url}{title}{description}{og_image}\
-           <button type=\"submit\">Save</button>\
-         </form>",
-        url = field("URL", "url", &site.url),
-        title = field("Title", "title", &site.title),
-        description = field("Description", "description", &site.description),
-        og_image = field("OpenGraph image", "og_image", &site.og_image),
-    );
-    edit_shell(
+    edit_page(
         "/admin/site",
         "Edit site metadata",
         "<a href=\"/admin\">Admin</a> / site",
-        &form,
-    )
-}
-
-/// A labeled single-line text input carrying its current value.
-fn field(label: &str, name: &str, value: &str) -> String {
-    format!(
-        "<label>{label}<input name=\"{name}\" value=\"{value}\"></label>",
-        label = escape(label),
-        value = escape(value),
-    )
-}
-
-/// A labeled multi-line text area carrying its current value.
-fn area(label: &str, name: &str, value: &str) -> String {
-    format!(
-        "<label>{label}\
-           <textarea name=\"{name}\" spellcheck=\"false\">{value}</textarea>\
-         </label>",
-        label = escape(label),
-        value = escape(value),
+        "/admin/site",
+        &[
+            Field::Text {
+                label: "URL",
+                name: "url",
+                value: &site.url,
+            },
+            Field::Text {
+                label: "Title",
+                name: "title",
+                value: &site.title,
+            },
+            Field::Text {
+                label: "Description",
+                name: "description",
+                value: &site.description,
+            },
+            Field::Text {
+                label: "OpenGraph image",
+                name: "og_image",
+                value: &site.og_image,
+            },
+        ],
     )
 }
 
