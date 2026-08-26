@@ -16,9 +16,11 @@ sqlx. Built with [cargo-leptos](https://github.com/leptos-rs/cargo-leptos).
 
 ```text
 src/app/editor/   pure reducer over key input, no web_sys, no DOM
-src/app/pages/    the Leptos adapter that renders editor state
-src/app/content.rs  the portfolio as static data
-src/db/           connection pool, unused until content moves to SQLite
+src/app/pages/    public Leptos route components
+src/app/admin/    authenticated Leptos routes, forms, and server functions
+src/app/content.rs  reactive portfolio content shared across routes
+src/authentication/  credentials and typed owner-session transitions
+src/db/           SQLite content and session persistence
 migrations/       SQLite schema
 end2end/          Playwright tests
 ```
@@ -36,8 +38,8 @@ just check    # fmt, clippy, sqruff, docs, test
 just end2end  # Playwright
 ```
 
-`DATABASE_URL` is optional. Without it the site boots and serves its static
-content.
+`DATABASE_URL` selects the SQLite database. Startup applies migrations and
+loads the portfolio content before serving requests.
 
 ## License
 

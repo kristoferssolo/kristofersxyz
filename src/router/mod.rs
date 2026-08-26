@@ -1,14 +1,9 @@
-mod auth;
-
 use crate::{
     app::{App, content::server_content, shell},
     sessions::SqliteSessionStore,
     startup::AppState,
 };
-use axum::{
-    Router,
-    routing::{get, post},
-};
+use axum::Router;
 use leptos_axum::{LeptosRoutes, file_and_error_handler, generate_route_list};
 use time::Duration;
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::SameSite};
@@ -17,23 +12,6 @@ pub fn route(state: AppState) -> Router {
     let routes = generate_route_list(App);
 
     Router::new()
-        .route("/login", get(auth::login_form).post(auth::login))
-        .route("/logout", post(auth::logout))
-        .route("/admin", get(auth::admin))
-        .route(
-            "/admin/project/{slug}",
-            get(auth::project_form).post(auth::edit_project),
-        )
-        .route(
-            "/admin/profile",
-            get(auth::profile_form).post(auth::edit_profile),
-        )
-        .route(
-            "/admin/contact",
-            get(auth::contact_form).post(auth::edit_contact),
-        )
-        .route("/admin/site", get(auth::site_form).post(auth::edit_site))
-        .route("/admin/preview", post(auth::preview))
         .leptos_routes_with_context(&state, routes, || {}, {
             let leptos_options = state.leptos_options.clone();
             move || shell(leptos_options.clone(), server_content().as_ref())

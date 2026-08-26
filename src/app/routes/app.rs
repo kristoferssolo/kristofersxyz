@@ -2,6 +2,11 @@ use super::site_meta::SiteMeta;
 #[cfg(feature = "hydrate")]
 use crate::app::content::PortfolioContent;
 use crate::app::{
+    admin::{
+        AuthenticatedAdmin, ContactEditorPage, DashboardPage, LoginPage, ProfileEditorPage,
+        ProjectEditorPage, SiteEditorPage,
+    },
+    content::Portfolio,
     editor_controller::SidebarPreference,
     pages::{HomePage, NotFoundPage, ProjectPage},
 };
@@ -10,7 +15,8 @@ use leptos::prelude::*;
 use leptos::serde_json;
 use leptos_meta::{Stylesheet, provide_meta_context};
 use leptos_router::{
-    components::{Route, Router, Routes},
+    SsrMode,
+    components::{ParentRoute, Route, Router, Routes},
     path,
 };
 
@@ -39,10 +45,12 @@ fn embedded_content() -> PortfolioContent {
 pub fn App() -> impl IntoView {
     provide_meta_context();
 
-    #[cfg(feature = "ssr")]
-    provide_context(crate::app::content::server_content().as_ref().clone());
+    #[cfg(all(feature = "ssr", not(feature = "hydrate")))]
+    let content = crate::app::content::server_content().as_ref().clone();
     #[cfg(feature = "hydrate")]
-    provide_context(embedded_content());
+    let content = embedded_content();
+
+    provide_context(Portfolio::new(content));
 
     provide_context(SidebarPreference::default());
 
@@ -54,6 +62,14 @@ pub fn App() -> impl IntoView {
             <Routes fallback=|| view! { <NotFoundPage /> }.into_view()>
                 <Route path=path!("/") view=HomePage />
                 <Route path=path!("/work/:slug") view=ProjectPage />
+                <Route path=path!("/login") view=LoginPage />
+                <ParentRoute path=path!("/admin") view=AuthenticatedAdmin ssr=SsrMode::Async>
+                    <Route path=path!("") view=DashboardPage />
+                    <Route path=path!("project/:slug") view=ProjectEditorPage />
+                    <Route path=path!("profile") view=ProfileEditorPage />
+                    <Route path=path!("contact") view=ContactEditorPage />
+                    <Route path=path!("site") view=SiteEditorPage />
+                </ParentRoute>
             </Routes>
         </Router>
     }

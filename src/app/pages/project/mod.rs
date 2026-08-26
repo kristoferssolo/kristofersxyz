@@ -1,6 +1,6 @@
 use crate::{
     app::{
-        content::PortfolioContent,
+        content::Portfolio,
         editor::EntryId,
         editor_controller::EditorController,
         layout::{BlankPage, StatusBarState, StatusLocation},
@@ -13,10 +13,11 @@ use leptos_router::{components::A, hooks::use_params_map};
 
 #[component]
 pub fn ProjectPage() -> impl IntoView {
-    let content = expect_context::<PortfolioContent>();
+    let portfolio = expect_context::<Portfolio>();
     let params = use_params_map();
 
     move || {
+        let content = portfolio.current();
         let slug = params.read().get("slug").unwrap_or_default();
         content
             .projects
@@ -32,7 +33,7 @@ pub fn ProjectPage() -> impl IntoView {
 
 #[component]
 fn ProjectReader(project: Project) -> impl IntoView {
-    let content = expect_context::<PortfolioContent>();
+    let content = expect_context::<Portfolio>().current();
     let active_id = EntryId::Project(project.slug.clone());
     let editor = EditorController::routes(&content, &active_id);
     let description = markdown::render(&project.description);
@@ -155,7 +156,7 @@ fn ProjectSequence(projects: Vec<Project>, current: ProjectSlug) -> impl IntoVie
 
 #[component]
 fn MissingProject() -> impl IntoView {
-    let content = expect_context::<PortfolioContent>();
+    let content = expect_context::<Portfolio>().current();
     let editor = EditorController::routes(&content, &EntryId::Profile);
     let status = Signal::derive(move || {
         StatusBarState::from_editor_mode(

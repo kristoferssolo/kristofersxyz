@@ -1,4 +1,4 @@
-use crate::app::content::PortfolioContent;
+use crate::app::content::Portfolio;
 use leptos::prelude::*;
 use leptos_meta::{Link, Meta, Title};
 use leptos_router::hooks::use_location;
@@ -6,10 +6,11 @@ use leptos_router::hooks::use_location;
 /// Route-aware title, description, canonical URL, and Open Graph tags.
 #[component]
 pub(super) fn SiteMeta() -> impl IntoView {
-    let content = expect_context::<PortfolioContent>();
+    let portfolio = expect_context::<Portfolio>();
     let pathname = use_location().pathname;
 
     move || {
+        let content = portfolio.current();
         let path = pathname.get();
         let project = content
             .projects

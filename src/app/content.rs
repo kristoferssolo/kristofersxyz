@@ -7,7 +7,31 @@
 use crate::domain::Project;
 #[cfg(test)]
 use crate::domain::{ProjectDescription, ProjectLink, ProjectSlug};
+use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
+
+/// The portfolio content shared by every route.
+///
+/// Admin saves replace the value before client-side navigation, so the public
+/// pages and metadata render the same content as the server cache.
+#[derive(Clone, Copy)]
+pub struct Portfolio(RwSignal<PortfolioContent>);
+
+impl Portfolio {
+    #[must_use]
+    pub fn new(content: PortfolioContent) -> Self {
+        Self(RwSignal::new(content))
+    }
+
+    #[must_use]
+    pub fn current(self) -> PortfolioContent {
+        self.0.get()
+    }
+
+    pub fn replace(self, content: PortfolioContent) {
+        self.0.set(content);
+    }
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PortfolioContent {

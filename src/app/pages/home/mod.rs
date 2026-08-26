@@ -9,7 +9,7 @@ mod view_model;
 use self::{content_pane::ContentPane, view_model::HomeViewModel};
 use crate::app::{
     browser::current_fragment,
-    content::PortfolioContent,
+    content::Portfolio,
     layout::{BlankPage, StatusBarState, StatusLocation},
 };
 use leptos::prelude::Effect as ReactiveEffect;
@@ -19,7 +19,7 @@ use leptos::prelude::*;
 /// editor reducer while each pane owns its own rendering module.
 #[component]
 pub fn HomePage() -> impl IntoView {
-    let content = expect_context::<PortfolioContent>();
+    let content = expect_context::<Portfolio>().current();
     let view_model = HomeViewModel::new(&content);
     provide_context(view_model);
     let editor = view_model.editor();

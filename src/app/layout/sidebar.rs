@@ -1,5 +1,5 @@
 use crate::app::{
-    content::PortfolioContent,
+    content::{Portfolio, PortfolioContent},
     editor::{Buffer, EntryId, SectionId},
     editor_controller::EditorController,
 };
@@ -28,7 +28,7 @@ pub(super) fn Sidebar(
     #[prop(into)] visible: Signal<bool>,
     on_select: Option<Callback<EntryId>>,
 ) -> impl IntoView {
-    let content = expect_context::<PortfolioContent>();
+    let content = expect_context::<Portfolio>().current();
     let groups = navigation(&content);
 
     view! {

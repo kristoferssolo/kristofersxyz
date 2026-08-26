@@ -1,5 +1,5 @@
 use crate::app::{
-    content::PortfolioContent,
+    content::Portfolio,
     editor::EntryId,
     editor_controller::EditorController,
     layout::{BlankPage, StatusBarState, StatusLocation},
@@ -11,7 +11,7 @@ use leptos_router::components::A;
 /// Unknown paths, reported the way the editor would report a missing file.
 #[component]
 pub fn NotFoundPage() -> impl IntoView {
-    let content = expect_context::<PortfolioContent>();
+    let content = expect_context::<Portfolio>().current();
     let editor = EditorController::routes(&content, &EntryId::Profile);
     let status = Signal::derive(move || {
         StatusBarState::from_editor_mode(

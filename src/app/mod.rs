@@ -1,3 +1,4 @@
+pub(crate) mod admin;
 mod browser;
 pub mod content;
 pub mod editor;
