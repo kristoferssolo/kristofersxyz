@@ -1,8 +1,8 @@
 //! Command and search line editing. Enter runs a command or executes a search.
 
 use super::{
-    Buffer, BufferEntry, Command, EditorState, Effect, Key, KeyInput, Mode, Notification,
-    SectionId, Transition,
+    Buffer, BufferEntry, Command, Destination, EditorState, Effect, Key, KeyInput, Mode,
+    Notification, SectionId, Transition,
 };
 
 /// Reduces one key press in the command line.
@@ -95,11 +95,12 @@ fn run(state: &EditorState, buffer: &Buffer, text: &str) -> Transition {
         Ok(Command::Contact) => buffer.first_of_section(SectionId::Contact),
         Ok(Command::Edit(None)) => buffer.get(&state.active.entry).map(BufferEntry::selection),
         Ok(Command::Edit(Some(name))) => {
-            let found = buffer.by_name(&name);
-            if found.is_none() {
-                effects.push(Effect::Notify(Notification::NoMatchingBuffer(name)));
+            if let found @ Some(_) = buffer.by_name(&name) {
+                found
+            } else {
+                effects.push(Effect::Navigate(Destination::route(&name)));
+                None
             }
-            found
         }
         Err(notification) => {
             effects.push(Effect::Notify(notification));

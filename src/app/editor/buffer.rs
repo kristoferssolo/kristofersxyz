@@ -71,6 +71,23 @@ pub enum Destination {
     External(String),
 }
 
+impl Destination {
+    /// Interprets raw `:edit` input as a place to open. Input carrying a URL
+    /// scheme opens externally; anything else is an internal route, with a
+    /// leading slash supplied when missing so `admin` reaches `/admin`.
+    #[must_use]
+    pub fn route(input: &str) -> Self {
+        let target = input.trim();
+        if target.contains("://") {
+            Self::External(target.to_owned())
+        } else if target.starts_with('/') {
+            Self::Internal(target.to_owned())
+        } else {
+            Self::Internal(format!("/{target}"))
+        }
+    }
+}
+
 /// The selected entry, and the section it sits in.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Selection {
@@ -370,6 +387,15 @@ mod page_tests {
     use super::*;
     use crate::app::content::portfolio_content;
     use claims::assert_some_eq;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case::bare_word("admin", Destination::Internal("/admin".to_owned()))]
+    #[case::absolute_path("/admin/profile", Destination::Internal("/admin/profile".to_owned()))]
+    #[case::external("https://github.com/kristofers", Destination::External("https://github.com/kristofers".to_owned()))]
+    fn edit_routes_resolve_unmatched_targets(#[case] input: &str, #[case] expected: Destination) {
+        assert_eq!(Destination::route(input), expected);
+    }
 
     #[test]
     fn pages_have_canonical_locations() {

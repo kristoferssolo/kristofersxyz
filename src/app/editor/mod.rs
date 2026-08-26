@@ -326,16 +326,14 @@ mod tests {
     }
 
     #[test]
-    fn edit_notifies_when_no_entry_matches_the_name() {
-        let transition = press(&line_with(EntryId::Profile, ':', "e nowhere"), Key::Enter);
+    fn edit_opens_an_arbitrary_route_when_no_entry_matches() {
+        let transition = press(&line_with(EntryId::Profile, ':', "e admin"), Key::Enter);
 
         assert_eq!(transition.state.active.entry, EntryId::Profile);
         assert!(
             transition
                 .effects
-                .contains(&Effect::Notify(Notification::NoMatchingBuffer(
-                    "nowhere".to_owned()
-                )))
+                .contains(&Effect::Navigate(Destination::Internal("/admin".to_owned())))
         );
     }
 
