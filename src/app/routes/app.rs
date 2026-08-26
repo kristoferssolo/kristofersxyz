@@ -1,4 +1,6 @@
 use super::site_meta::SiteMeta;
+#[cfg(any(feature = "ssr", feature = "hydrate"))]
+use crate::app::content::Portfolio;
 #[cfg(feature = "hydrate")]
 use crate::app::content::PortfolioContent;
 use crate::app::{
@@ -6,7 +8,6 @@ use crate::app::{
         AuthenticatedAdmin, ContactEditorPage, DashboardPage, LoginPage, ProfileEditorPage,
         ProjectEditorPage, SiteEditorPage,
     },
-    content::Portfolio,
     editor_controller::SidebarPreference,
     pages::{HomePage, NotFoundPage, ProjectPage},
 };
@@ -46,11 +47,11 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     #[cfg(all(feature = "ssr", not(feature = "hydrate")))]
-    let content = crate::app::content::server_content().as_ref().clone();
+    provide_context(Portfolio::new(
+        crate::app::content::server_content().as_ref().clone(),
+    ));
     #[cfg(feature = "hydrate")]
-    let content = embedded_content();
-
-    provide_context(Portfolio::new(content));
+    provide_context(Portfolio::new(embedded_content()));
 
     provide_context(SidebarPreference::default());
 

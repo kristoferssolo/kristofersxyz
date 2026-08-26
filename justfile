@@ -18,9 +18,14 @@ alias t := test
 build:
     cargo leptos build --release
 
-# Run all checks (fmt, clippy, docs, test)
+# Run all checks (fmt, feature matrix, clippy, docs, test)
 [group("dev")]
-check: fmt clippy sqruff docs test
+check: fmt features clippy sqruff docs test
+
+# Check the library configuration used by editors and plain Cargo commands
+[group("dev")]
+features:
+    cargo check --no-default-features
 
 # Run the development server
 [group("run")]
