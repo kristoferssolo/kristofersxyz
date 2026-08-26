@@ -392,6 +392,56 @@ async fn an_owner_can_edit_the_site_metadata() {
 }
 
 #[tokio::test]
+async fn the_project_editor_carries_the_live_preview() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let page = router
+        .oneshot(get_request("/admin/project/traxor", Some(&cookie)))
+        .await
+        .expect("send the edit-page request");
+    let body = body_text(page).await;
+
+    // The editor pane, the preview pane, and the endpoint that feeds it.
+    assert!(body.contains("id=\"md\""));
+    assert!(body.contains("id=\"pv\""));
+    assert!(body.contains("/admin/preview"));
+}
+
+#[tokio::test]
+async fn the_preview_endpoint_renders_markdown() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let response = router
+        .oneshot(form_post(
+            "/admin/preview",
+            "markdown=## Heading%0A%0Aand **bold**.",
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the preview");
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = body_text(response).await;
+    assert!(body.contains("<h2>Heading</h2>"));
+    assert!(body.contains("<strong>bold</strong>"));
+}
+
+#[tokio::test]
+async fn the_preview_endpoint_is_guarded() {
+    let (router, _database) = app_with_owner().await;
+
+    let response = router
+        .oneshot(form_post("/admin/preview", "markdown=hi", None))
+        .await
+        .expect("send the preview");
+
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(response.headers()[header::LOCATION], "/login");
+}
+
+#[tokio::test]
 async fn a_singleton_edit_form_redirects_a_signed_out_visitor() {
     let (router, _database) = app_with_owner().await;
 

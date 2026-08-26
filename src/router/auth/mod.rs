@@ -135,6 +135,21 @@ pub async fn edit_project(
     }
 }
 
+#[derive(Deserialize)]
+pub struct PreviewInput {
+    markdown: String,
+}
+
+/// Renders Markdown to HTML for the live editor preview, using the same
+/// renderer as the public site. Owner only; the renderer discards raw HTML, so
+/// the result is safe to inject into the preview pane.
+pub async fn preview(session: Session, Form(form): Form<PreviewInput>) -> Response {
+    if owner(&session).await.is_none() {
+        return Redirect::to("/login").into_response();
+    }
+    Html(crate::app::markdown::render_source(&form.markdown)).into_response()
+}
+
 /// The profile edit form.
 pub async fn profile_form(session: Session) -> Response {
     if owner(&session).await.is_none() {

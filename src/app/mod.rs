@@ -3,7 +3,7 @@ pub mod content;
 pub mod editor;
 mod editor_controller;
 mod layout;
-mod markdown;
+pub(crate) mod markdown;
 mod pages;
 mod routes;
 

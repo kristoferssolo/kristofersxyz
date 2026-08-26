@@ -33,6 +33,7 @@ pub fn route(state: AppState) -> Router {
             get(auth::contact_form).post(auth::edit_contact),
         )
         .route("/admin/site", get(auth::site_form).post(auth::edit_site))
+        .route("/admin/preview", post(auth::preview))
         .leptos_routes(&state, routes, {
             let leptos_options = state.leptos_options.clone();
             move || shell(leptos_options.clone(), server_content().as_ref())

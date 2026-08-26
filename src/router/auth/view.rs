@@ -85,6 +85,28 @@ dd b{color:#e2a340;font-weight:500}
 .meta{margin:.6rem 0 0;font-size:11px;letter-spacing:.04em;color:#767d87}
 .meta b{color:#8b939d;font-weight:400}
 .meta .path{color:#6b7280}
+.wrap{width:100%;max-width:1200px;margin-inline:auto}
+.wrap button{width:auto;padding:.55rem 1.4rem}
+.mdlabel{font-size:12px;color:#8b939d;margin:1.3rem 0 0}
+.md{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:.5rem}
+.md textarea{min-height:55vh;margin-top:0}
+.panelabel{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#767d87;margin:0 0 .5rem}
+.preview{background:#050607;border:1px solid #2b3037;padding:1rem 1.15rem;overflow:auto;min-height:55vh}
+.prose{color:#c3c9cf;font-family:"IBM Plex Sans",sans-serif;font-size:14px;line-height:1.65}
+.prose>:first-child{margin-top:0}
+.prose h1,.prose h2,.prose h3{color:#fff;font-weight:600;line-height:1.3;margin:1.4em 0 .5em}
+.prose h2{font-size:1.1rem}
+.prose h3{font-size:1rem}
+.prose p{margin:.8em 0}
+.prose a{color:#e2a340}
+.prose strong{color:#fff}
+.prose code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.85em;background:#0b0e11;
+  border:1px solid #1e2126;padding:.1em .35em;border-radius:3px}
+.prose pre{background:#0b0e11;border:1px solid #1e2126;padding:.9rem;overflow:auto;border-radius:4px}
+.prose pre code{background:none;border:none;padding:0}
+.prose ul,.prose ol{padding-left:1.4em;margin:.8em 0}
+.prose li{margin:.3em 0}
+@media (max-width:960px){.md{grid-template-columns:1fr}}
 :focus-visible{outline:2px solid #e2a340;outline-offset:2px}
 @media (max-width:720px){.login{grid-template-columns:1fr}.stage{display:none}aside{border-right:none}}
 "#;
@@ -333,22 +355,65 @@ fn edit_shell(active: &str, title: &str, breadcrumb: &str, form: &str) -> String
     document(title, &body)
 }
 
-/// A project's edit form, prefilled with its current fields. The slug is the
-/// route identity, so it is shown but not editable.
+/// A project's edit form: title and summary above a Markdown editor paired with
+/// a live preview. The slug is the route identity, so it is shown but not
+/// editable. The layout is centered so a wide viewport stays balanced.
 pub(super) fn project_page(project: &Project) -> String {
     let slug = escape(project.slug.as_str());
-    let form = format!(
-        "<form method=\"post\" action=\"/admin/project/{slug}\">\
-           {title}{summary}{description}\
-           <button type=\"submit\">Save</button>\
-         </form>",
+    let body = format!(
+        "<div class=\"dash\">{aside}\
+           <div class=\"stage\">\
+             <div class=\"wrap\">\
+               <p class=\"eyebrow\"><a href=\"/admin\">Admin</a> / {slug}</p>\
+               <h1>Edit project</h1>\
+               <form method=\"post\" action=\"/admin/project/{slug}\">\
+                 {title}{summary}\
+                 <p class=\"mdlabel\">Description (Markdown)</p>\
+                 <div class=\"md\">\
+                   <div><p class=\"panelabel\">Markdown</p>\
+                     <textarea id=\"md\" name=\"markdown\" spellcheck=\"false\">{source}</textarea>\
+                   </div>\
+                   <div><p class=\"panelabel\">Preview</p>\
+                     <div class=\"preview\"><div id=\"pv\" class=\"prose\">{preview}</div></div>\
+                   </div>\
+                 </div>\
+                 <button type=\"submit\">Save</button>\
+               </form>\
+             </div>\
+           </div>\
+         </div>{PREVIEW_SCRIPT}",
+        aside = nav_aside(&project_href(project)),
         title = field("Title", "title", &project.title),
         summary = field("Summary", "summary", &project.summary),
-        description = area("Description (Markdown)", "markdown", project.description.as_str()),
+        source = escape(project.description.as_str()),
+        preview = crate::app::markdown::render(&project.description),
     );
-    let breadcrumb = format!("<a href=\"/admin\">Admin</a> / {slug}");
-    edit_shell(&project_href(project), "Edit project", &breadcrumb, &form)
+    document(&escape(&project.title), &body)
 }
+
+/// The inline script driving the Markdown editor: a debounced live preview
+/// rendered by the server, Tab-to-indent, and a textarea that grows with its
+/// content. Placed after the elements it wires, so no load event is needed.
+const PREVIEW_SCRIPT: &str = "<script>\
+(function(){\
+  var ta=document.getElementById('md'),pv=document.getElementById('pv'),t;\
+  function grow(){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}\
+  function render(){\
+    fetch('/admin/preview',{method:'POST',\
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},\
+      body:'markdown='+encodeURIComponent(ta.value)})\
+      .then(function(r){return r.text();}).then(function(h){pv.innerHTML=h;});\
+  }\
+  ta.addEventListener('input',function(){grow();clearTimeout(t);t=setTimeout(render,250);});\
+  ta.addEventListener('keydown',function(e){\
+    if(e.key==='Tab'){e.preventDefault();\
+      var s=ta.selectionStart,en=ta.selectionEnd;\
+      ta.value=ta.value.slice(0,s)+'  '+ta.value.slice(en);\
+      ta.selectionStart=ta.selectionEnd=s+2;grow();}\
+  });\
+  grow();\
+})();\
+</script>";
 
 /// The admin edit route for a project.
 fn project_href(project: &Project) -> String {
