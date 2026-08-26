@@ -6,6 +6,11 @@ use leptos::{prelude::document, wasm_bindgen::JsCast, web_sys, web_sys::Keyboard
 /// The controls that answer to `Enter` themselves.
 const ACTIVATABLE: &str = "a[href], button";
 
+/// The controls that consume typed keys themselves, where the editor must not
+/// intercept input.
+const TEXT_ENTRY: &str =
+    "input, textarea, select, [contenteditable]:not([contenteditable='false'])";
+
 /// Below this width the sidebar and content stack, so a selection has to pull
 /// the content into view. Matches Tailwind's `md` breakpoint.
 const STACK_BELOW_PX: f64 = 768.0;
@@ -42,6 +47,17 @@ pub fn activates_a_control(event: &KeyboardEvent) -> bool {
             .and_then(|target| target.dyn_into::<web_sys::Element>().ok())
             .and_then(|element| element.closest(ACTIVATABLE).ok().flatten())
             .is_some()
+}
+
+/// Whether the key press landed inside a control that edits text, such as a
+/// login field or the Markdown editor. The editor leaves typing there alone,
+/// so its keybindings stay dormant until focus returns to the page.
+pub fn edits_text(event: &KeyboardEvent) -> bool {
+    event
+        .target()
+        .and_then(|target| target.dyn_into::<web_sys::Element>().ok())
+        .and_then(|element| element.closest(TEXT_ENTRY).ok().flatten())
+        .is_some()
 }
 
 /// Returns the current URL fragment when it addresses part of the homepage.

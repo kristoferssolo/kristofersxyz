@@ -1,7 +1,7 @@
 use crate::app::{
     admin::server_functions::Logout,
     content::Portfolio,
-    layout::{CollapsibleSidebar, SidebarPreference, StatusShell},
+    layout::{CollapsibleSidebar, CommandShell, SidebarPreference},
     markdown,
 };
 use leptos::{form::ActionForm, prelude::*};
@@ -106,7 +106,7 @@ pub fn EditorLayout(
     };
 
     view! {
-        <StatusShell filename=filename>
+        <CommandShell filename=filename>
         <div class="h-full overflow-hidden bg-black font-mono text-[#d4d7db]">
             <AdminSidebarShortcut sidebar />
             <CollapsibleSidebar
@@ -130,7 +130,7 @@ pub fn EditorLayout(
                 </main>
             </CollapsibleSidebar>
         </div>
-        </StatusShell>
+        </CommandShell>
     }
 }
 

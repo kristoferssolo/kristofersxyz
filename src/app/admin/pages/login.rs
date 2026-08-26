@@ -1,5 +1,5 @@
 use super::super::server_functions::Login;
-use crate::app::{content::Portfolio, layout::StatusShell};
+use crate::app::{content::Portfolio, layout::CommandShell};
 use leptos::{form::ActionForm, prelude::*};
 use leptos_meta::Title;
 
@@ -34,7 +34,7 @@ pub fn LoginPage() -> impl IntoView {
 
     view! {
         <Title text="Sign in" />
-        <StatusShell filename="login">
+        <CommandShell filename="login">
         <div class="grid h-full grid-cols-1 overflow-hidden bg-black font-mono text-[#d4d7db] min-[721px]:grid-cols-[360px_1fr]">
             <aside class="flex min-h-0 flex-col overflow-y-auto px-9 py-12 min-[721px]:border-r min-[721px]:border-[#1e2126]">
                 <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">"Admin"</p>
@@ -93,6 +93,6 @@ pub fn LoginPage() -> impl IntoView {
                 <div class="mt-auto font-sans text-[clamp(2rem,4vw,3.2rem)] leading-[.9] font-semibold tracking-[-.04em] text-[#0e1116]">"kristofers.xyz"</div>
             </main>
         </div>
-        </StatusShell>
+        </CommandShell>
     }
 }

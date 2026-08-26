@@ -1,7 +1,7 @@
 //! Browser-facing controller for the pure editor reducer.
 
 use crate::app::{
-    browser::{activates_a_control, focus_row, navigate, navigate_to, reveal_content},
+    browser::{activates_a_control, edits_text, focus_row, navigate, navigate_to, reveal_content},
     content::PortfolioContent,
     editor::{
         Buffer, BufferEntry, EditorState, Effect, EntryId, Key, KeyInput, Mode, Transition, reduce,
@@ -39,6 +39,10 @@ pub struct EditorController {
     issued: StoredValue<u64>,
     sidebar_preference: SidebarPreference,
     selection_behavior: SelectionBehavior,
+    /// When set, buffer movement is inert: only the command line, search and
+    /// help respond. Used on pages without a portfolio buffer of their own,
+    /// such as the admin surface, so keys never navigate the reader away.
+    restricted: bool,
 }
 
 impl EditorController {
@@ -50,6 +54,16 @@ impl EditorController {
     #[must_use]
     pub fn routes(content: &PortfolioContent, active: &EntryId) -> Self {
         Self::new(content, active, SelectionBehavior::Routes)
+    }
+
+    /// A session for pages without a buffer of their own. The status bar and
+    /// command line work, but buffer movement is inert.
+    #[must_use]
+    pub fn restricted(content: &PortfolioContent, active: &EntryId) -> Self {
+        Self {
+            restricted: true,
+            ..Self::new(content, active, SelectionBehavior::Routes)
+        }
     }
 
     fn new(
@@ -74,6 +88,7 @@ impl EditorController {
             issued: StoredValue::new(0),
             sidebar_preference,
             selection_behavior,
+            restricted: false,
         }
     }
 
@@ -155,6 +170,10 @@ impl EditorController {
     /// Normalizes and dispatches one browser key event. Returns whether the
     /// editor handled it so the caller can preserve native browser shortcuts.
     pub fn handle_keydown(self, event: &KeyboardEvent) {
+        if edits_text(event) {
+            return;
+        }
+
         let current = self.state.get_untracked();
 
         if matches!(current.mode, Mode::Normal) && activates_a_control(event) {
@@ -175,8 +194,25 @@ impl EditorController {
             return;
         }
 
+        if self.suppresses(&current, &transition) {
+            return;
+        }
+
         event.prevent_default();
         self.advance(transition);
+    }
+
+    /// On a restricted session, keeps buffer movement from taking effect. A key
+    /// is only honored when it opens the command line or search, or toggles the
+    /// help panel; everything else leaves the reader where they are.
+    const fn suppresses(self, current: &EditorState, transition: &Transition) -> bool {
+        if !self.restricted || !matches!(current.mode, Mode::Normal) {
+            return false;
+        }
+
+        let opens_line = !matches!(transition.state.mode, Mode::Normal);
+        let toggles_help = transition.state.help != current.help;
+        !opens_line && !toggles_help
     }
 
     fn advance(self, transition: Transition) {

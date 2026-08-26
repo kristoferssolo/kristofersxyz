@@ -3,7 +3,7 @@ use super::super::{
     error::AdminError,
     server_functions::{SaveContact, SaveProfile, SaveProject, SaveSite},
 };
-use crate::app::{content::Portfolio, content::PortfolioContent, layout::StatusShell};
+use crate::app::{content::Portfolio, content::PortfolioContent, layout::CommandShell};
 use leptos::{form::ActionForm, prelude::*};
 use leptos_meta::Title;
 use leptos_router::{NavigateOptions, components::A, hooks::use_navigate, hooks::use_params_map};
@@ -156,7 +156,7 @@ where
 fn MissingProject() -> impl IntoView {
     view! {
         <Title text="No such project" />
-        <StatusShell filename="admin/project">
+        <CommandShell filename="admin/project">
         <main class="relative flex h-full flex-col overflow-x-hidden overflow-y-auto bg-black px-[3.25rem] py-12 font-mono text-[#d4d7db]">
             <div class="mx-auto w-full max-w-[760px]">
                 <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">"Admin"</p>
@@ -165,7 +165,7 @@ fn MissingProject() -> impl IntoView {
                 <A href="/admin">"Back to admin"</A>
             </div>
         </main>
-        </StatusShell>
+        </CommandShell>
     }
 }
 

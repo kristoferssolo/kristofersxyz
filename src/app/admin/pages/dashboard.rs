@@ -2,7 +2,7 @@ use super::super::{
     components::{Affordance, EntryIcon, Icon, LogoutForm},
     server_functions::SessionUser,
 };
-use crate::app::{content::Portfolio, layout::StatusShell};
+use crate::app::{content::Portfolio, layout::CommandShell};
 use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
@@ -48,7 +48,7 @@ pub fn DashboardPage() -> impl IntoView {
 
     view! {
         <Title text="Admin" />
-        <StatusShell filename="admin">
+        <CommandShell filename="admin">
         <div class="grid h-full grid-cols-[320px_1fr] overflow-hidden bg-black font-mono text-[#d4d7db]">
             <aside class="flex min-h-0 flex-col overflow-y-auto border-r border-[#1e2126] px-9 py-12">
                 <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">"Admin"</p>
@@ -82,7 +82,7 @@ pub fn DashboardPage() -> impl IntoView {
                 </ul>
             </main>
         </div>
-        </StatusShell>
+        </CommandShell>
     }
 }
 

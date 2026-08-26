@@ -149,22 +149,6 @@ pub fn StatusBar(#[prop(into)] state: Signal<StatusBarState>) -> impl IntoView {
     }
 }
 
-/// Wraps a page that has no editor session in the persistent status bar, so
-/// the statusline stays visible across pages that do not run the editor, such
-/// as the admin surface. Content fills the viewport above a fixed bar row.
-#[component]
-pub fn StatusShell(#[prop(into)] filename: String, children: Children) -> impl IntoView {
-    let state = StatusBarState::normal(filename, StatusLocation::Cursor { line: 0, column: 0 });
-    let status = Signal::derive(move || state.clone());
-
-    view! {
-        <div class="grid h-dvh grid-rows-[minmax(0,1fr)_1.75rem] overflow-hidden bg-black font-mono text-[#d4d7db]">
-            <div class="h-full min-h-0 min-w-0">{children()}</div>
-            <StatusBar state=status />
-        </div>
-    }
-}
-
 #[component]
 fn CommandLine(prompt: char, text: String) -> impl IntoView {
     view! {

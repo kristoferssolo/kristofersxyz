@@ -333,7 +333,9 @@ mod tests {
         assert!(
             transition
                 .effects
-                .contains(&Effect::Navigate(Destination::Internal("/admin".to_owned())))
+                .contains(&Effect::Navigate(Destination::Internal(
+                    "/admin".to_owned()
+                )))
         );
     }
 
