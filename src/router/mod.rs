@@ -1,5 +1,6 @@
 use crate::{
     app::{App, content::server_content, shell},
+    db::DbPool,
     sessions::SqliteSessionStore,
     startup::AppState,
 };
@@ -27,7 +28,7 @@ pub fn route(state: AppState) -> Router {
 ///
 /// `secure` controls the cookie's `Secure` attribute. Production defaults to
 /// true; local HTTP development can disable it.
-fn session_layer(pool: crate::db::DbPool, secure: bool) -> SessionManagerLayer<SqliteSessionStore> {
+fn session_layer(pool: DbPool, secure: bool) -> SessionManagerLayer<SqliteSessionStore> {
     SessionManagerLayer::new(SqliteSessionStore::new(pool))
         .with_http_only(true)
         .with_same_site(SameSite::Strict)

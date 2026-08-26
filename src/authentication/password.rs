@@ -1,15 +1,14 @@
-use crate::db::DbPool;
+use super::{OwnerId, Password, PasswordHash};
+use crate::{db::DbPool, domain::Username};
 use argon2::{
-    Algorithm, Argon2, Params, PasswordHash, PasswordHasher, PasswordVerifier, Version,
-    password_hash::SaltString,
+    Algorithm, Argon2, Params, PasswordHash as ArgonPasswordHash, PasswordHasher, PasswordVerifier,
+    Version, password_hash::SaltString,
 };
-use secrecy::{ExposeSecret, SecretString};
-use uuid::Uuid;
 
 /// A username and password submitted at login.
 pub struct Credentials {
-    pub username: String,
-    pub password: SecretString,
+    pub username: Username,
+    pub password: Password,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -41,13 +40,13 @@ pub enum AuthError {
 pub async fn validate_credentials(
     credentials: Credentials,
     pool: &DbPool,
-) -> Result<Uuid, AuthError> {
+) -> Result<OwnerId, AuthError> {
     let stored = get_stored_credentials(&credentials.username, pool).await?;
     let (user_id, expected_hash) = stored.map_or_else(
         || {
             (
                 None,
-                SecretString::from(
+                PasswordHash::from(
                     "$argon2id$v=19$m=15000,t=2,p=1$gZiV/M1gPc22ELAH/Jh1Hw$CWOrkoo7oJBQ/iyh7uJ0LO2aLEfrHwTWllSAxT0zRno".to_owned(),
                 ),
             )
@@ -67,22 +66,20 @@ pub async fn validate_credentials(
 ///
 /// Returns an [`AuthError`] if the hasher cannot be configured or the hash
 /// cannot be computed.
-pub fn compute_password_hash(password: &SecretString) -> Result<SecretString, AuthError> {
+pub fn compute_password_hash(password: &Password) -> Result<PasswordHash, AuthError> {
     let salt = SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
     let params = Params::new(15_000, 2, 1, None).map_err(AuthError::Params)?;
     let hash = Argon2::new(Algorithm::Argon2id, Version::V0x13, params)
         .hash_password(password.expose_secret().as_bytes(), &salt)
         .map_err(AuthError::PasswordHash)?
         .to_string();
-    Ok(SecretString::from(hash))
+    Ok(PasswordHash::from(hash))
 }
 
 /// Verifies a candidate against the parameters encoded in a PHC hash.
-fn verify_password_hash(
-    expected: &SecretString,
-    candidate: &SecretString,
-) -> Result<(), AuthError> {
-    let expected = PasswordHash::new(expected.expose_secret()).map_err(AuthError::PasswordHash)?;
+fn verify_password_hash(expected: &PasswordHash, candidate: &Password) -> Result<(), AuthError> {
+    let expected =
+        ArgonPasswordHash::new(expected.expose_secret()).map_err(AuthError::PasswordHash)?;
     Argon2::default()
         .verify_password(candidate.expose_secret().as_bytes(), &expected)
         .map_err(|error| match error {
@@ -92,20 +89,20 @@ fn verify_password_hash(
 }
 
 async fn get_stored_credentials(
-    username: &str,
+    username: &Username,
     pool: &DbPool,
-) -> Result<Option<(Uuid, SecretString)>, AuthError> {
+) -> Result<Option<(OwnerId, PasswordHash)>, AuthError> {
     let row = sqlx::query!(
         "SELECT user_id, password_hash FROM users WHERE username = ?1",
-        username
+        username.as_str()
     )
     .fetch_optional(pool)
     .await?;
 
     row.map(|row| {
         Ok((
-            Uuid::parse_str(&row.user_id)?,
-            SecretString::from(row.password_hash),
+            OwnerId::try_from(row.user_id.as_str())?,
+            PasswordHash::from(row.password_hash),
         ))
     })
     .transpose()
@@ -118,7 +115,7 @@ mod tests {
     use claims::assert_ok_eq;
 
     /// A migrated in-memory database holding one user with a known password.
-    async fn pool_with_user(username: &str, password: &str) -> (DbPool, Uuid) {
+    async fn pool_with_user(username: &str, password: &str) -> (DbPool, OwnerId) {
         let pool = DbPoolOptions::new()
             .max_connections(1)
             .connect("sqlite::memory:")
@@ -126,9 +123,9 @@ mod tests {
             .expect("connect to an in-memory database");
         migrate(&pool).await.expect("run the migrations");
 
-        let id = Uuid::new_v4();
-        let hash = compute_password_hash(&SecretString::from(password.to_owned()))
-            .expect("hash the password");
+        let id = OwnerId::new();
+        let hash =
+            compute_password_hash(&Password::from(password.to_owned())).expect("hash the password");
         sqlx::query!(
             "INSERT INTO users (user_id, username, password_hash) VALUES (?1, ?2, ?3)",
             id.to_string(),
@@ -143,8 +140,8 @@ mod tests {
 
     fn credentials(username: &str, password: &str) -> Credentials {
         Credentials {
-            username: username.to_owned(),
-            password: SecretString::from(password.to_owned()),
+            username: Username::from(username),
+            password: Password::from(password.to_owned()),
         }
     }
 

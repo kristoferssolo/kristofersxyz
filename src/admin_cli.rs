@@ -3,13 +3,12 @@
 //! No arguments starts the server. A subcommand runs its task and exits.
 
 use crate::{
-    authentication::{AuthError, compute_password_hash},
+    authentication::{AuthError, OwnerId, Password, compute_password_hash},
     configuration::Settings,
     db,
+    domain::Username,
 };
-use secrecy::{ExposeSecret, SecretString};
 use sqlx::migrate::MigrateError;
-use uuid::Uuid;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AdminCliError {
@@ -39,8 +38,8 @@ pub enum AdminCliError {
 /// fails, or the password cannot be hashed.
 pub async fn set_password(
     settings: &Settings,
-    username: &str,
-    password: &SecretString,
+    username: &Username,
+    password: &Password,
 ) -> Result<(), AdminCliError> {
     let hash = compute_password_hash(password)?;
 
@@ -50,8 +49,8 @@ pub async fn set_password(
     sqlx::query!(
         "INSERT INTO users (user_id, username, password_hash) VALUES (?1, ?2, ?3)
          ON CONFLICT(username) DO UPDATE SET password_hash = excluded.password_hash",
-        Uuid::new_v4().to_string(),
-        username,
+        OwnerId::new().to_string(),
+        username.as_str(),
         hash.expose_secret()
     )
     .execute(&pool)
@@ -67,7 +66,7 @@ pub async fn set_password(
 /// Returns [`AdminCliError::Io`] if the terminal cannot be read,
 /// [`AdminCliError::Mismatch`] if the entries differ, or
 /// [`AdminCliError::Empty`] if the password is blank.
-pub fn read_new_password() -> Result<SecretString, AdminCliError> {
+pub fn read_new_password() -> Result<Password, AdminCliError> {
     let password = rpassword::prompt_password("New password: ")?;
     let confirm = rpassword::prompt_password("Confirm password: ")?;
     if password != confirm {
@@ -76,15 +75,16 @@ pub fn read_new_password() -> Result<SecretString, AdminCliError> {
     if password.trim().is_empty() {
         return Err(AdminCliError::Empty);
     }
-    Ok(SecretString::from(password))
+    Ok(Password::from(password))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{
-        authentication::{Credentials, validate_credentials},
+        authentication::{Credentials, Password, validate_credentials},
         configuration::{DatabaseSettings, SessionSettings},
+        domain::Username,
     };
     use claims::{assert_err, assert_ok};
     use tempfile::NamedTempFile;
@@ -102,8 +102,8 @@ mod tests {
 
     fn credentials(username: &str, password: &str) -> Credentials {
         Credentials {
-            username: username.to_owned(),
-            password: SecretString::from(password.to_owned()),
+            username: Username::from(username),
+            password: Password::from(password.to_owned()),
         }
     }
 
@@ -114,8 +114,8 @@ mod tests {
 
         set_password(
             &settings,
-            "owner",
-            &SecretString::from("first pw".to_owned()),
+            &Username::from("owner"),
+            &Password::from("first pw".to_owned()),
         )
         .await
         .expect("create the user");
@@ -125,8 +125,8 @@ mod tests {
 
         set_password(
             &settings,
-            "owner",
-            &SecretString::from("second pw".to_owned()),
+            &Username::from("owner"),
+            &Password::from("second pw".to_owned()),
         )
         .await
         .expect("replace the password");

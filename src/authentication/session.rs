@@ -1,7 +1,8 @@
 //! The owner session and its valid authentication transitions.
 
+use super::OwnerId;
+use crate::domain::Username;
 use tower_sessions::{Session, session};
-use uuid::Uuid;
 
 const USER_ID_KEY: &str = "user_id";
 const USERNAME_KEY: &str = "username";
@@ -14,8 +15,8 @@ pub struct Anonymous;
 
 /// A session proven to contain an owner id and username.
 pub struct Authenticated {
-    _owner_id: Uuid,
-    username: String,
+    _owner_id: OwnerId,
+    username: Username,
 }
 
 /// A session whose state is carried in `State`.
@@ -42,8 +43,8 @@ impl AuthSession<Unverified> {
     /// Reads both identity fields. A partial session is anonymous rather than
     /// authenticated, so guarded operations never receive incomplete state.
     pub async fn resolve(self) -> Result<SessionState, session::Error> {
-        let owner_id = self.inner.get::<Uuid>(USER_ID_KEY).await?;
-        let username = self.inner.get::<String>(USERNAME_KEY).await?;
+        let owner_id = self.inner.get::<OwnerId>(USER_ID_KEY).await?;
+        let username = self.inner.get::<Username>(USERNAME_KEY).await?;
 
         Ok(match (owner_id, username) {
             (Some(owner_id), Some(username)) => SessionState::Authenticated(AuthSession {
@@ -65,8 +66,8 @@ impl AuthSession<Anonymous> {
     /// Rotates the id before recording the authenticated owner.
     pub async fn sign_in(
         self,
-        owner_id: Uuid,
-        username: String,
+        owner_id: OwnerId,
+        username: Username,
     ) -> Result<AuthSession<Authenticated>, session::Error> {
         self.inner.cycle_id().await?;
         self.inner.insert(USER_ID_KEY, owner_id).await?;
@@ -84,7 +85,7 @@ impl AuthSession<Anonymous> {
 
 impl AuthSession<Authenticated> {
     #[must_use]
-    pub fn username(&self) -> &str {
+    pub const fn username(&self) -> &Username {
         &self.state.username
     }
 
@@ -125,7 +126,7 @@ mod tests {
     #[tokio::test]
     async fn a_partial_identity_is_not_authenticated() {
         let session = session();
-        assert_ok!(session.insert(USER_ID_KEY, Uuid::new_v4()).await);
+        assert_ok!(session.insert(USER_ID_KEY, OwnerId::new()).await);
 
         let state = assert_ok!(AuthSession::new(session).resolve().await);
         assert!(matches!(state, SessionState::Anonymous(_)));
@@ -135,8 +136,12 @@ mod tests {
     async fn sign_in_and_sign_out_follow_the_typed_transitions() {
         let state = assert_ok!(AuthSession::new(session()).resolve().await);
         let session = assert_some!(anonymous(state));
-        let authenticated = assert_ok!(session.sign_in(Uuid::new_v4(), "owner".to_owned()).await);
-        assert_eq!(authenticated.username(), "owner");
+        let authenticated = assert_ok!(
+            session
+                .sign_in(OwnerId::new(), Username::from("owner"))
+                .await
+        );
+        assert_eq!(authenticated.username(), &Username::from("owner"));
 
         let anonymous = assert_ok!(authenticated.sign_out().await);
         let state = assert_ok!(AuthSession::new(anonymous.inner).resolve().await);

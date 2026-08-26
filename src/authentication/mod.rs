@@ -6,6 +6,8 @@
 
 mod password;
 mod session;
+mod types;
 
 pub use password::{AuthError, Credentials, compute_password_hash, validate_credentials};
 pub(crate) use session::{AuthSession, Authenticated, SessionState, Unverified};
+pub use types::{OwnerId, Password, PasswordHash};

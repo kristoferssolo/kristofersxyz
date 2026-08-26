@@ -1,12 +1,12 @@
 use super::error::AdminError;
-use crate::app::content::PortfolioContent;
+use crate::{app::content::PortfolioContent, domain::Username};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// The owner identity exposed to authenticated Leptos routes.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SessionUser {
-    pub username: String,
+    pub username: Username,
 }
 
 /// Returns the owner for a complete authenticated session.
@@ -21,7 +21,7 @@ pub async fn current_user() -> Result<Option<SessionUser>, AdminError> {
             Ok(None)
         }
         SessionState::Authenticated(session) => Ok(Some(SessionUser {
-            username: session.username().to_owned(),
+            username: session.username().clone(),
         })),
     }
 }
@@ -30,11 +30,10 @@ pub async fn current_user() -> Result<Option<SessionUser>, AdminError> {
 #[server(endpoint = "login")]
 pub async fn login(username: String, password: String) -> Result<(), AdminError> {
     use crate::{
-        authentication::{AuthError, Credentials, SessionState, validate_credentials},
+        authentication::{AuthError, Credentials, Password, SessionState, validate_credentials},
         startup::AppState,
     };
     use leptos_axum::redirect;
-    use secrecy::SecretString;
 
     let session = match session_state().await? {
         SessionState::Authenticated(_) => {
@@ -44,9 +43,10 @@ pub async fn login(username: String, password: String) -> Result<(), AdminError>
         SessionState::Anonymous(session) => session,
     };
     let state = expect_context::<AppState>();
+    let username = Username::from(username);
     let credentials = Credentials {
         username: username.clone(),
-        password: SecretString::from(password),
+        password: Password::from(password),
     };
 
     let owner_id = validate_credentials(credentials, &state.pool)

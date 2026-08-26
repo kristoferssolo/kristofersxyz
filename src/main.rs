@@ -4,6 +4,7 @@ async fn main() -> Result<(), kristofersxyz::errors::ApplicationError> {
     use kristofersxyz::{
         admin_cli::{self, AdminCliError},
         configuration::Settings,
+        domain::Username,
         startup::{App, Application},
         telemetry::{get_subscriber, init_subscriber},
     };
@@ -20,7 +21,7 @@ async fn main() -> Result<(), kristofersxyz::errors::ApplicationError> {
     if let Some(command) = arguments.next() {
         return match command.as_str() {
             "set-password" => {
-                let username = arguments.next().ok_or(AdminCliError::Usage)?;
+                let username = Username::from(arguments.next().ok_or(AdminCliError::Usage)?);
                 let password = admin_cli::read_new_password()?;
                 admin_cli::set_password(&settings, &username, &password).await?;
                 log!("password set for '{username}'");

@@ -53,7 +53,7 @@ pub fn DashboardPage() -> impl IntoView {
                 <p class="grp">"Session"</p>
                 <dl class="admin-dl">
                     <dt>"status"</dt><dd>"active"</dd>
-                    <dt>"as"</dt><dd>{user.username}</dd>
+                    <dt>"as"</dt><dd>{user.username.to_string()}</dd>
                     <dt>"idle limit"</dt><dd>"1 hour"</dd>
                 </dl>
                 <p class="grp">"Content"</p>

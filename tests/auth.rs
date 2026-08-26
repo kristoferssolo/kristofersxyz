@@ -10,11 +10,12 @@ use axum::{
 };
 use kristofersxyz::{
     admin_cli::set_password,
+    authentication::Password,
     configuration::{DatabaseSettings, SessionSettings, Settings},
+    domain::Username,
     router::route,
     startup::App,
 };
-use secrecy::SecretString;
 use tempfile::NamedTempFile;
 use tower::ServiceExt;
 
@@ -28,9 +29,13 @@ async fn app_with_owner() -> (Router, NamedTempFile) {
             secure_cookie: false,
         },
     };
-    set_password(&settings, "owner", &SecretString::from("s3cret".to_owned()))
-        .await
-        .expect("create the owner");
+    set_password(
+        &settings,
+        &Username::from("owner"),
+        &Password::from("s3cret".to_owned()),
+    )
+    .await
+    .expect("create the owner");
     let app = App::new(&settings).await.expect("build the application");
     (route(app), database)
 }
