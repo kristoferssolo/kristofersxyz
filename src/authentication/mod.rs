@@ -5,5 +5,7 @@
 //! reduce timing differences that could reveal registered accounts.
 
 mod password;
+mod session;
 
 pub use password::{AuthError, Credentials, compute_password_hash, validate_credentials};
+pub(crate) use session::{AuthSession, Authenticated, SessionState, Unverified};

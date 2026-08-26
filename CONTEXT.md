@@ -12,6 +12,10 @@ _Avoid_: Recruiter, visitor, audience
 The portfolio's central claim about Kristofers: he is a Rust and Python developer.
 _Avoid_: Tagline, title, personal brand
 
+**Owner**:
+Kristofers acting as the sole person allowed to edit the portfolio's published content.
+_Avoid_: Administrator, User, Account
+
 **Project**:
 A selected piece of software Kristofers built, included as evidence of his abilities. A Project may link to a repository, but is not the repository itself.
 _Avoid_: Repository, work item, entry
