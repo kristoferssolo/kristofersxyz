@@ -1,7 +1,4 @@
-use super::super::{
-    server_functions::{SessionUser, current_user},
-    style::ADMIN_STYLE,
-};
+use super::super::server_functions::{SessionUser, current_user};
 use leptos::prelude::*;
 use leptos_router::components::{Outlet, Redirect};
 
@@ -16,7 +13,11 @@ pub fn AuthenticatedAdmin() -> impl IntoView {
                 match user.await {
                     Ok(Some(user)) => view! { <AuthenticatedOutlet user /> }.into_any(),
                     Ok(None) => view! { <Redirect path="/login" /> }.into_any(),
-                    Err(error) => view! { <p class="err">{error.to_string()}</p> }.into_any(),
+                    Err(error) => view! {
+                        <p class="mt-[1.2rem] bg-black font-mono text-xs text-[#e2a340]">
+                            {error.to_string()}
+                        </p>
+                    }.into_any(),
                 }
             })}
         </Suspense>
@@ -26,8 +27,5 @@ pub fn AuthenticatedAdmin() -> impl IntoView {
 #[component]
 fn AuthenticatedOutlet(user: SessionUser) -> impl IntoView {
     provide_context(user);
-    view! {
-        <style inner_html=ADMIN_STYLE></style>
-        <Outlet />
-    }
+    view! { <Outlet /> }
 }

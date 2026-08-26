@@ -4,7 +4,6 @@ mod components;
 mod error;
 mod pages;
 mod server_functions;
-mod style;
 
 pub use pages::{
     AuthenticatedAdmin, ContactEditorPage, DashboardPage, LoginPage, ProfileEditorPage,
