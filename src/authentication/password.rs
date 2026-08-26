@@ -1,63 +1,68 @@
-use super::{OwnerId, Password, PasswordHash};
-use crate::{db::DbPool, domain::Username};
+use super::credentials::AuthError;
 use argon2::{
     Algorithm, Argon2, Params, PasswordHash as ArgonPasswordHash, PasswordHasher, PasswordVerifier,
     Version, password_hash::SaltString,
 };
+use secrecy::{ExposeSecret, SecretString};
 
-/// A username and password submitted at login.
-pub struct Credentials {
-    pub username: Username,
-    pub password: Password,
+/// A plaintext password supplied by the owner.
+#[derive(Debug)]
+pub struct Password(SecretString);
+
+impl Password {
+    /// Creates a password containing at least one non-whitespace character.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PasswordError::Empty`] if `value` is blank.
+    pub fn new(value: SecretString) -> Result<Self, PasswordError> {
+        if value.expose_secret().trim().is_empty() {
+            Err(PasswordError::Empty)
+        } else {
+            Ok(Self(value))
+        }
+    }
+
+    fn expose_secret(&self) -> &str {
+        self.0.expose_secret()
+    }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum AuthError {
-    #[error("invalid username or password")]
-    InvalidCredentials,
-    #[error("failed to query stored credentials")]
-    Database(#[from] sqlx::Error),
-    #[error("stored user id is not a valid UUID")]
-    MalformedUserId(#[from] uuid::Error),
-    #[error("failed to configure the password hasher: {0}")]
-    Params(argon2::Error),
-    #[error("failed to hash or verify the password: {0}")]
-    PasswordHash(argon2::password_hash::Error),
-    #[error("the password hashing task failed to complete")]
-    Join(#[from] tokio::task::JoinError),
+impl TryFrom<String> for Password {
+    type Error = PasswordError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(SecretString::from(value))
+    }
 }
 
-/// Verifies credentials and returns the authenticated user's id.
-///
-/// Unknown usernames still run Argon2 verification so they follow the same
-/// expensive path as wrong passwords.
-///
-/// # Errors
-///
-/// Returns [`AuthError::InvalidCredentials`] for an unknown username or a
-/// wrong password, or another variant if the database read or the hasher
-/// fails.
-pub async fn validate_credentials(
-    credentials: Credentials,
-    pool: &DbPool,
-) -> Result<OwnerId, AuthError> {
-    let stored = get_stored_credentials(&credentials.username, pool).await?;
-    let (user_id, expected_hash) = stored.map_or_else(
-        || {
-            (
-                None,
-                PasswordHash::from(
-                    "$argon2id$v=19$m=15000,t=2,p=1$gZiV/M1gPc22ELAH/Jh1Hw$CWOrkoo7oJBQ/iyh7uJ0LO2aLEfrHwTWllSAxT0zRno".to_owned(),
-                ),
-            )
-        },
-        |(id, hash)| (Some(id), hash),
-    );
+impl TryFrom<SecretString> for Password {
+    type Error = PasswordError;
 
-    let password = credentials.password;
-    tokio::task::spawn_blocking(move || verify_password_hash(&expected_hash, &password)).await??;
+    fn try_from(value: SecretString) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
 
-    user_id.ok_or(AuthError::InvalidCredentials)
+#[derive(Clone, Debug, Eq, PartialEq, thiserror::Error)]
+pub enum PasswordError {
+    #[error("a password cannot be empty")]
+    Empty,
+}
+
+/// An encoded password hash suitable for persistent storage.
+pub struct PasswordHash(SecretString);
+
+impl PasswordHash {
+    pub(crate) fn expose_secret(&self) -> &str {
+        self.0.expose_secret()
+    }
+}
+
+impl From<String> for PasswordHash {
+    fn from(value: String) -> Self {
+        Self(SecretString::from(value))
+    }
 }
 
 /// Hashes a password with Argon2id and a fresh random salt.
@@ -77,7 +82,10 @@ pub fn compute_password_hash(password: &Password) -> Result<PasswordHash, AuthEr
 }
 
 /// Verifies a candidate against the parameters encoded in a PHC hash.
-fn verify_password_hash(expected: &PasswordHash, candidate: &Password) -> Result<(), AuthError> {
+pub fn verify_password_hash(
+    expected: &PasswordHash,
+    candidate: &Password,
+) -> Result<(), AuthError> {
     let expected =
         ArgonPasswordHash::new(expected.expose_secret()).map_err(AuthError::PasswordHash)?;
     Argon2::default()
@@ -88,90 +96,15 @@ fn verify_password_hash(expected: &PasswordHash, candidate: &Password) -> Result
         })
 }
 
-async fn get_stored_credentials(
-    username: &Username,
-    pool: &DbPool,
-) -> Result<Option<(OwnerId, PasswordHash)>, AuthError> {
-    let row = sqlx::query!(
-        "SELECT user_id, password_hash FROM users WHERE username = ?1",
-        username.as_str()
-    )
-    .fetch_optional(pool)
-    .await?;
-
-    row.map(|row| {
-        Ok((
-            OwnerId::try_from(row.user_id.as_str())?,
-            PasswordHash::from(row.password_hash),
-        ))
-    })
-    .transpose()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::{DbPoolOptions, migrate};
-    use claims::{assert_ok, assert_ok_eq};
-    use secrecy::SecretString;
+    use claims::{assert_err, assert_ok};
 
-    /// A migrated in-memory database holding one user with a known password.
-    async fn pool_with_user(username: &str, password: &str) -> (DbPool, OwnerId) {
-        let pool = DbPoolOptions::new()
-            .max_connections(1)
-            .connect("sqlite::memory:")
-            .await
-            .expect("connect to an in-memory database");
-        migrate(&pool).await.expect("run the migrations");
-
-        let id = OwnerId::new();
-        let password = assert_ok!(Password::new(SecretString::from(password.to_owned())));
-        let hash = compute_password_hash(&password).expect("hash the password");
-        sqlx::query!(
-            "INSERT INTO users (user_id, username, password_hash) VALUES (?1, ?2, ?3)",
-            id.to_string(),
-            username,
-            hash.expose_secret()
-        )
-        .execute(&pool)
-        .await
-        .expect("insert the user");
-        (pool, id)
-    }
-
-    fn credentials(username: &str, password: &str) -> Credentials {
-        Credentials {
-            username: assert_ok!(Username::new(username.to_owned())),
-            password: assert_ok!(Password::new(SecretString::from(password.to_owned()))),
-        }
-    }
-
-    #[tokio::test]
-    async fn the_right_password_returns_the_user_id() {
-        let (pool, id) = pool_with_user("kristofers", "correct horse battery staple").await;
-        assert_ok_eq!(
-            validate_credentials(
-                credentials("kristofers", "correct horse battery staple"),
-                &pool
-            )
-            .await,
-            id
-        );
-    }
-
-    #[tokio::test]
-    async fn a_wrong_password_is_rejected() {
-        let (pool, _) = pool_with_user("kristofers", "correct horse battery staple").await;
-        let result = validate_credentials(credentials("kristofers", "wrong"), &pool).await;
-        assert!(matches!(result, Err(AuthError::InvalidCredentials)));
-    }
-
-    #[tokio::test]
-    async fn an_unknown_username_is_rejected() {
-        let (pool, _) = pool_with_user("kristofers", "correct horse battery staple").await;
-        let result =
-            validate_credentials(credentials("nobody", "correct horse battery staple"), &pool)
-                .await;
-        assert!(matches!(result, Err(AuthError::InvalidCredentials)));
+    #[test]
+    fn passwords_require_visible_content() {
+        assert_err!(Password::try_from(String::new()));
+        assert_err!(Password::try_from(" \t".to_owned()));
+        assert_ok!(Password::try_from("correct horse".to_owned()));
     }
 }

@@ -4,10 +4,11 @@
 //! and Argon2 PHC hashes. Unknown usernames still run one hash verification to
 //! reduce timing differences that could reveal registered accounts.
 
+mod credentials;
 mod password;
 mod session;
-mod types;
 
-pub use password::{AuthError, Credentials, compute_password_hash, validate_credentials};
+pub use crate::domain::OwnerId;
+pub use credentials::{AuthError, Credentials, validate_credentials};
+pub use password::{Password, PasswordError, PasswordHash, compute_password_hash};
 pub(crate) use session::{AuthSession, Authenticated, SessionState, Unverified};
-pub use types::{OwnerId, Password, PasswordError, PasswordHash};

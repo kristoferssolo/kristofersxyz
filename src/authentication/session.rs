@@ -1,7 +1,6 @@
 //! The owner session and its valid authentication transitions.
 
-use super::OwnerId;
-use crate::domain::Username;
+use crate::domain::{OwnerId, Username};
 use tower_sessions::{Session, session};
 
 const USER_ID_KEY: &str = "user_id";
