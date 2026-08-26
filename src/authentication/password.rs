@@ -13,7 +13,7 @@ const MAX_PASSWORD_LENGTH: usize = 128;
 /// The shortest password the owner may choose. Enforced only when a password is
 /// set (see [`Password::ensure_owner_strength`]), never at login, so verifying
 /// an existing password never reveals the policy.
-const MIN_OWNER_PASSWORD_LENGTH: usize = 12;
+const MIN_OWNER_PASSWORD_LENGTH: usize = 15;
 
 /// A plaintext password supplied by the owner.
 #[derive(Debug)]
