@@ -6,6 +6,24 @@ use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use tracing::field::Empty;
 
+#[cfg(feature = "ssr")]
+mod ssr;
+
+#[cfg(feature = "ssr")]
+use self::ssr::{
+    authenticated_session, invalid_credentials, reload, require_fields, session_state, with_status,
+};
+#[cfg(feature = "ssr")]
+use crate::{
+    authentication::{AuthError, Credentials, Password, SessionState, validate_credentials},
+    db,
+    startup::AppState,
+};
+#[cfg(feature = "ssr")]
+use axum::http::StatusCode;
+#[cfg(feature = "ssr")]
+use leptos_axum::redirect;
+
 /// The owner identity exposed to authenticated Leptos routes.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SessionUser {
@@ -16,9 +34,6 @@ pub struct SessionUser {
 #[server(endpoint = "admin_session")]
 #[tracing::instrument(name = "Get current owner session", skip_all, err)]
 pub async fn current_user() -> Result<Option<SessionUser>, AdminError> {
-    use crate::authentication::SessionState;
-    use leptos_axum::redirect;
-
     match session_state().await? {
         SessionState::Anonymous(_) => {
             redirect("/login");
@@ -42,12 +57,6 @@ pub async fn current_user() -> Result<Option<SessionUser>, AdminError> {
     err,
 )]
 pub async fn login(username: String, password: String) -> Result<(), AdminError> {
-    use crate::{
-        authentication::{AuthError, Credentials, Password, SessionState, validate_credentials},
-        startup::AppState,
-    };
-    use leptos_axum::redirect;
-
     let session = match session_state().await? {
         SessionState::Authenticated(_) => {
             redirect("/admin");
@@ -83,9 +92,6 @@ pub async fn login(username: String, password: String) -> Result<(), AdminError>
 #[server(endpoint = "logout")]
 #[tracing::instrument(name = "Log out owner", skip_all, err)]
 pub async fn logout() -> Result<(), AdminError> {
-    use crate::authentication::SessionState;
-    use leptos_axum::redirect;
-
     if let SessionState::Authenticated(session) = session_state().await? {
         session.sign_out().await.map_err(|_| AdminError::Internal)?;
     }
@@ -107,8 +113,6 @@ pub async fn save_project(
     summary: String,
     markdown: String,
 ) -> Result<PortfolioContent, AdminError> {
-    use crate::{db, startup::AppState};
-
     let _session = authenticated_session().await?;
     require_fields(&[&title, &summary, &markdown])?;
     let state = expect_context::<AppState>();
@@ -117,7 +121,7 @@ pub async fn save_project(
         .map_err(|_| AdminError::Save)?;
     if !saved {
         return Err(with_status(
-            axum::http::StatusCode::NOT_FOUND,
+            StatusCode::NOT_FOUND,
             AdminError::ProjectNotFound,
         ));
     }
@@ -134,8 +138,6 @@ pub async fn save_profile(
     about: String,
     email: String,
 ) -> Result<PortfolioContent, AdminError> {
-    use crate::{db, startup::AppState};
-
     let _session = authenticated_session().await?;
     require_fields(&[&name, &title, &summary, &about, &email])?;
     let state = expect_context::<AppState>();
@@ -149,8 +151,6 @@ pub async fn save_profile(
 #[server(endpoint = "save_contact")]
 #[tracing::instrument(name = "Save portfolio contact", skip_all, err)]
 pub async fn save_contact(name: String, body: String) -> Result<PortfolioContent, AdminError> {
-    use crate::{db, startup::AppState};
-
     let _session = authenticated_session().await?;
     require_fields(&[&name, &body])?;
     let state = expect_context::<AppState>();
@@ -169,8 +169,6 @@ pub async fn save_site(
     description: String,
     og_image: String,
 ) -> Result<PortfolioContent, AdminError> {
-    use crate::{db, startup::AppState};
-
     let _session = authenticated_session().await?;
     require_fields(&[&url, &title, &description, &og_image])?;
     let state = expect_context::<AppState>();
@@ -178,71 +176,4 @@ pub async fn save_site(
         .await
         .map_err(|_| AdminError::Save)?;
     reload(&state).await
-}
-
-#[cfg(feature = "ssr")]
-async fn session_state() -> Result<crate::authentication::SessionState, AdminError> {
-    use crate::authentication::{AuthSession, Unverified};
-    use tower_sessions::Session;
-
-    let session = leptos_axum::extract::<Session>()
-        .await
-        .map_err(|_| AdminError::Internal)?;
-    AuthSession::<Unverified>::new(session)
-        .resolve()
-        .await
-        .map_err(|_| AdminError::Internal)
-}
-
-#[cfg(feature = "ssr")]
-async fn authenticated_session()
--> Result<crate::authentication::AuthSession<crate::authentication::Authenticated>, AdminError> {
-    use crate::authentication::SessionState;
-    use leptos_axum::redirect;
-
-    match session_state().await? {
-        SessionState::Authenticated(session) => Ok(session),
-        SessionState::Anonymous(_) => {
-            redirect("/login");
-            Err(with_status(
-                axum::http::StatusCode::UNAUTHORIZED,
-                AdminError::Unauthenticated,
-            ))
-        }
-    }
-}
-
-#[cfg(feature = "ssr")]
-fn require_fields(fields: &[&str]) -> Result<(), AdminError> {
-    if fields.iter().all(|field| !field.trim().is_empty()) {
-        Ok(())
-    } else {
-        Err(with_status(
-            axum::http::StatusCode::UNPROCESSABLE_ENTITY,
-            AdminError::MissingField,
-        ))
-    }
-}
-
-#[cfg(feature = "ssr")]
-async fn reload(state: &crate::startup::AppState) -> Result<PortfolioContent, AdminError> {
-    let content = crate::db::portfolio::load(&state.pool)
-        .await
-        .map_err(|_| AdminError::Reload)?;
-    crate::app::content::store_server_content(content.clone());
-    Ok(content)
-}
-
-#[cfg(feature = "ssr")]
-fn with_status(status: axum::http::StatusCode, error: AdminError) -> AdminError {
-    expect_context::<leptos_axum::ResponseOptions>().set_status(status);
-    error
-}
-
-#[cfg(feature = "ssr")]
-fn invalid_credentials() -> AdminError {
-    with_status(
-        axum::http::StatusCode::UNAUTHORIZED,
-        AdminError::InvalidCredentials,
-    )
 }
