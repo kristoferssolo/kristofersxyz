@@ -29,7 +29,7 @@ impl Password {
     /// # Errors
     ///
     /// Returns [`PasswordError::Empty`] if `value` is blank, or
-    /// [`PasswordError::TooLong`] if it exceeds [`MAX_PASSWORD_LENGTH`].
+    /// [`PasswordError::TooLong`] if it exceeds `MAX_PASSWORD_LENGTH`.
     pub fn new(value: SecretString) -> Result<Self, PasswordError> {
         let exposed = value.expose_secret();
         if exposed.trim().is_empty() {
@@ -46,7 +46,7 @@ impl Password {
     /// # Errors
     ///
     /// Returns [`PasswordError::TooShort`] if the password is shorter than
-    /// [`MIN_OWNER_PASSWORD_LENGTH`].
+    /// `MIN_OWNER_PASSWORD_LENGTH`.
     pub fn ensure_owner_strength(&self) -> Result<(), PasswordError> {
         if self.expose_secret().chars().count() < MIN_OWNER_PASSWORD_LENGTH {
             Err(PasswordError::TooShort)

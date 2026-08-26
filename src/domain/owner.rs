@@ -24,8 +24,8 @@ impl Username {
     /// # Errors
     ///
     /// Returns the matching [`UsernameError`] when `value` is blank, starts or
-    /// ends with whitespace, exceeds [`MAX_USERNAME_GRAPHEMES`], or contains a
-    /// [forbidden character](FORBIDDEN_CHARACTERS).
+    /// ends with whitespace, exceeds `MAX_USERNAME_GRAPHEMES`, or contains a
+    /// forbidden character.
     pub fn new(value: String) -> Result<Self, UsernameError> {
         if value.trim().is_empty() {
             return Err(UsernameError::Empty);
