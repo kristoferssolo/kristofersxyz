@@ -36,6 +36,15 @@ pub enum AuthError {
 /// Returns [`AuthError::InvalidCredentials`] for an unknown username or a
 /// wrong password, or another variant if the database read or the hasher
 /// fails.
+#[tracing::instrument(
+    name = "Validate owner credentials",
+    skip_all,
+    fields(
+        username = %credentials.username,
+        owner_id = tracing::field::Empty,
+    ),
+    err,
+)]
 pub async fn validate_credentials(
     credentials: Credentials,
     pool: &DbPool,
@@ -54,11 +63,23 @@ pub async fn validate_credentials(
     );
 
     let password = credentials.password;
-    tokio::task::spawn_blocking(move || verify_password_hash(&expected_hash, &password)).await??;
+    let span = tracing::Span::current();
+    tokio::task::spawn_blocking(move || {
+        span.in_scope(|| verify_password_hash(&expected_hash, &password))
+    })
+    .await??;
 
-    owner_id.ok_or(AuthError::InvalidCredentials)
+    let owner_id = owner_id.ok_or(AuthError::InvalidCredentials)?;
+    tracing::Span::current().record("owner_id", tracing::field::display(owner_id));
+    Ok(owner_id)
 }
 
+#[tracing::instrument(
+    name = "Get stored owner credentials",
+    skip_all,
+    fields(username = %username),
+    err,
+)]
 async fn get_stored_credentials(
     username: &Username,
     pool: &DbPool,

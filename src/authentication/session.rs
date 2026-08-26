@@ -14,7 +14,7 @@ pub struct Anonymous;
 
 /// A session proven to contain an owner id and username.
 pub struct Authenticated {
-    _owner_id: OwnerId,
+    owner_id: OwnerId,
     username: Username,
 }
 
@@ -41,6 +41,7 @@ impl AuthSession<Unverified> {
 
     /// Reads both identity fields. A partial session is anonymous rather than
     /// authenticated, so guarded operations never receive incomplete state.
+    #[tracing::instrument(name = "Resolve owner session", skip_all, err)]
     pub async fn resolve(self) -> Result<SessionState, session::Error> {
         let owner_id = self.inner.get::<OwnerId>(USER_ID_KEY).await?;
         let username = self.inner.get::<Username>(USERNAME_KEY).await?;
@@ -48,10 +49,7 @@ impl AuthSession<Unverified> {
         Ok(match (owner_id, username) {
             (Some(owner_id), Some(username)) => SessionState::Authenticated(AuthSession {
                 inner: self.inner,
-                state: Authenticated {
-                    _owner_id: owner_id,
-                    username,
-                },
+                state: Authenticated { owner_id, username },
             }),
             _ => SessionState::Anonymous(AuthSession {
                 inner: self.inner,
@@ -63,6 +61,12 @@ impl AuthSession<Unverified> {
 
 impl AuthSession<Anonymous> {
     /// Rotates the id before recording the authenticated owner.
+    #[tracing::instrument(
+        name = "Sign in owner session",
+        skip_all,
+        fields(owner_id = %owner_id, username = %username),
+        err,
+    )]
     pub async fn sign_in(
         self,
         owner_id: OwnerId,
@@ -74,10 +78,7 @@ impl AuthSession<Anonymous> {
 
         Ok(AuthSession {
             inner: self.inner,
-            state: Authenticated {
-                _owner_id: owner_id,
-                username,
-            },
+            state: Authenticated { owner_id, username },
         })
     }
 }
@@ -89,6 +90,15 @@ impl AuthSession<Authenticated> {
     }
 
     /// Clears the identity, deletes the stored record, and returns an anonymous state.
+    #[tracing::instrument(
+        name = "Sign out owner session",
+        skip_all,
+        fields(
+            owner_id = %self.state.owner_id,
+            username = %self.state.username,
+        ),
+        err,
+    )]
     pub async fn sign_out(self) -> Result<AuthSession<Anonymous>, session::Error> {
         self.inner.flush().await?;
         Ok(AuthSession {

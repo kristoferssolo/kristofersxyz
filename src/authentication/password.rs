@@ -107,6 +107,7 @@ impl From<String> for PasswordHash {
 ///
 /// Returns an [`AuthError`] if the hasher cannot be configured or the hash
 /// cannot be computed.
+#[tracing::instrument(name = "Compute owner password hash", skip_all, err)]
 pub fn compute_password_hash(password: &Password) -> Result<PasswordHash, AuthError> {
     let salt = SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
     let params = Params::new(15_000, 2, 1, None).map_err(AuthError::Params)?;
@@ -118,6 +119,7 @@ pub fn compute_password_hash(password: &Password) -> Result<PasswordHash, AuthEr
 }
 
 /// Verifies a candidate against the parameters encoded in a PHC hash.
+#[tracing::instrument(name = "Verify owner password hash", skip_all, err)]
 pub fn verify_password_hash(
     expected: &PasswordHash,
     candidate: &Password,

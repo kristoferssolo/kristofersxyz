@@ -11,6 +11,7 @@ pub struct SessionUser {
 
 /// Returns the owner for a complete authenticated session.
 #[server(endpoint = "admin_session")]
+#[tracing::instrument(name = "Get current owner session", skip_all, err)]
 pub async fn current_user() -> Result<Option<SessionUser>, AdminError> {
     use crate::authentication::SessionState;
     use leptos_axum::redirect;
@@ -28,6 +29,15 @@ pub async fn current_user() -> Result<Option<SessionUser>, AdminError> {
 
 /// Verifies credentials and starts an owner session.
 #[server(endpoint = "login")]
+#[tracing::instrument(
+    name = "Log in owner",
+    skip_all,
+    fields(
+        username = Empty,
+        owner_id = Empty,
+    ),
+    err,
+)]
 pub async fn login(username: String, password: String) -> Result<(), AdminError> {
     use crate::{
         authentication::{AuthError, Credentials, Password, SessionState, validate_credentials},
@@ -44,6 +54,7 @@ pub async fn login(username: String, password: String) -> Result<(), AdminError>
     };
     let state = expect_context::<AppState>();
     let username = Username::new(username).map_err(|_| invalid_credentials())?;
+    tracing::Span::current().record("username", tracing::field::display(&username));
     let password = Password::try_from(password).map_err(|_| invalid_credentials())?;
     let credentials = Credentials {
         username: username.clone(),
@@ -56,6 +67,7 @@ pub async fn login(username: String, password: String) -> Result<(), AdminError>
             AuthError::InvalidCredentials => invalid_credentials(),
             _ => AdminError::Internal,
         })?;
+    tracing::Span::current().record("owner_id", tracing::field::display(owner_id));
     session
         .sign_in(owner_id, username)
         .await
@@ -66,6 +78,7 @@ pub async fn login(username: String, password: String) -> Result<(), AdminError>
 
 /// Ends an authenticated owner session.
 #[server(endpoint = "logout")]
+#[tracing::instrument(name = "Log out owner", skip_all, err)]
 pub async fn logout() -> Result<(), AdminError> {
     use crate::authentication::SessionState;
     use leptos_axum::redirect;
@@ -79,6 +92,12 @@ pub async fn logout() -> Result<(), AdminError> {
 
 /// Saves the editable project fields and returns the refreshed portfolio.
 #[server(endpoint = "save_project")]
+#[tracing::instrument(
+    name = "Save portfolio project",
+    skip_all,
+    fields(slug = %slug),
+    err,
+)]
 pub async fn save_project(
     slug: String,
     title: String,
@@ -104,6 +123,7 @@ pub async fn save_project(
 
 /// Saves the editable profile fields and returns the refreshed portfolio.
 #[server(endpoint = "save_profile")]
+#[tracing::instrument(name = "Save portfolio profile", skip_all, err)]
 pub async fn save_profile(
     name: String,
     title: String,
@@ -124,6 +144,7 @@ pub async fn save_profile(
 
 /// Saves the editable contact fields and returns the refreshed portfolio.
 #[server(endpoint = "save_contact")]
+#[tracing::instrument(name = "Save portfolio contact", skip_all, err)]
 pub async fn save_contact(name: String, body: String) -> Result<PortfolioContent, AdminError> {
     use crate::{db, startup::AppState};
 
@@ -138,6 +159,7 @@ pub async fn save_contact(name: String, body: String) -> Result<PortfolioContent
 
 /// Saves the editable site metadata and returns the refreshed portfolio.
 #[server(endpoint = "save_site")]
+#[tracing::instrument(name = "Save portfolio site metadata", skip_all, err)]
 pub async fn save_site(
     url: String,
     title: String,

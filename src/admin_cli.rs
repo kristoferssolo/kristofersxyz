@@ -38,6 +38,12 @@ pub enum AdminCliError {
 ///
 /// Returns an [`AdminCliError`] if the database is unreachable, a migration
 /// fails, or the password cannot be hashed.
+#[tracing::instrument(
+    name = "Set owner password",
+    skip_all,
+    fields(username = %username),
+    err,
+)]
 pub async fn set_password(
     settings: &Settings,
     username: &Username,
