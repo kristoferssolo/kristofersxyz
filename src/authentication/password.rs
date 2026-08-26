@@ -152,10 +152,12 @@ mod tests {
 
     #[test]
     fn the_owner_strength_policy_sets_a_minimum() {
-        let short = Password::try_from("a".repeat(MIN_OWNER_PASSWORD_LENGTH - 1)).unwrap();
+        let short = assert_ok!(Password::try_from(
+            "a".repeat(MIN_OWNER_PASSWORD_LENGTH - 1)
+        ));
         assert_err!(short.ensure_owner_strength());
 
-        let long_enough = Password::try_from("a".repeat(MIN_OWNER_PASSWORD_LENGTH)).unwrap();
+        let long_enough = assert_ok!(Password::try_from("a".repeat(MIN_OWNER_PASSWORD_LENGTH)));
         assert_ok!(long_enough.ensure_owner_strength());
     }
 }
