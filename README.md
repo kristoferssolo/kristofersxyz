@@ -46,12 +46,17 @@ for example `http://localhost:3000` during local development.
 
 - `local`, paired with an HTTP origin
 - `production-behind-trusted-proxy`, paired with an HTTPS origin and a proxy
-  that terminates TLS and replaces untrusted forwarding headers
+  that terminates TLS, blocks direct access to the application, and rate-limits
+  login attempts by client address
 
 Production mode always uses a Secure, host-only
 `__Host-kristofersxyz-session` cookie. Startup rejects a deployment mode whose
 transport does not match `PUBLIC_ORIGIN`. Startup then applies migrations and
 loads the portfolio content before serving requests.
+
+The application ignores forwarded client-address headers. Its in-process
+source limit therefore sees the proxy as the peer; production needs the
+per-client limit at that trusted edge.
 
 Run `just benchmark-auth` on the smallest production host before changing the
 Argon2 policy. Record both benchmark results with the host class in deployment
