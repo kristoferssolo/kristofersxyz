@@ -16,7 +16,9 @@ use self::ssr::{
 };
 #[cfg(feature = "ssr")]
 use crate::{
-    authentication::{AuthError, Credentials, Password, SessionState, validate_credentials},
+    authentication::{
+        AuthError, Credentials, Password, RetryAfter, SessionState, validate_credentials,
+    },
     db,
     startup::AppState,
 };
@@ -100,6 +102,9 @@ pub async fn login(username: String, password: String) -> Result<(), AdminError>
         Err(AuthError::InvalidCredentials) => {
             state.login_throttle.record_failure(&username);
             return Err(invalid_credentials());
+        }
+        Err(AuthError::PasswordTasksUnavailable) => {
+            return Err(too_many_attempts(RetryAfter::password_verification_busy()));
         }
         Err(_) => return Err(AdminError::Internal),
     };

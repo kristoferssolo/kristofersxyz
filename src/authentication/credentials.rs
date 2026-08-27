@@ -3,7 +3,7 @@ use crate::{
     db::DbPool,
     domain::{OwnerId, Username},
 };
-use tokio::sync::Semaphore;
+use tokio::sync::{Semaphore, SemaphorePermit};
 
 const MAX_CONCURRENT_PASSWORD_TASKS: usize = 2;
 static PASSWORD_TASKS: Semaphore = Semaphore::const_new(MAX_CONCURRENT_PASSWORD_TASKS);
@@ -66,10 +66,7 @@ pub async fn validate_credentials(
     let previous_hash = expected_hash.expose_secret().to_owned();
     let password = credentials.password;
     let span = tracing::Span::current();
-    let _permit = PASSWORD_TASKS
-        .acquire()
-        .await
-        .map_err(|_| AuthError::PasswordTasksUnavailable)?;
+    let _permit = reserve_password_task(&PASSWORD_TASKS)?;
     let replacement = tokio::task::spawn_blocking(move || {
         span.in_scope(|| verify_password_hash(&expected_hash, &password))
     })
@@ -88,6 +85,12 @@ pub async fn validate_credentials(
     }
     tracing::Span::current().record("owner_id", tracing::field::display(owner_id));
     Ok(owner_id)
+}
+
+fn reserve_password_task(semaphore: &Semaphore) -> Result<SemaphorePermit<'_>, AuthError> {
+    semaphore
+        .try_acquire()
+        .map_err(|_| AuthError::PasswordTasksUnavailable)
 }
 
 #[tracing::instrument(
@@ -127,7 +130,7 @@ mod tests {
         Algorithm, Argon2, Params, PasswordHash as ArgonPasswordHash, PasswordHasher, Version,
         password_hash::SaltString,
     };
-    use claims::{assert_ok, assert_ok_eq};
+    use claims::{assert_err, assert_ok, assert_ok_eq};
     use secrecy::SecretString;
 
     /// A migrated in-memory database holding one user with a known password.
@@ -238,5 +241,16 @@ mod tests {
         assert_eq!(params.m_cost(), Params::DEFAULT_M_COST);
         assert_eq!(params.t_cost(), Params::DEFAULT_T_COST);
         assert_eq!(params.p_cost(), Params::DEFAULT_P_COST);
+    }
+
+    #[test]
+    fn saturated_password_verification_is_rejected_without_queueing() {
+        let semaphore = Semaphore::new(1);
+        let _permit = assert_ok!(reserve_password_task(&semaphore));
+
+        assert!(matches!(
+            assert_err!(reserve_password_task(&semaphore)),
+            AuthError::PasswordTasksUnavailable
+        ));
     }
 }

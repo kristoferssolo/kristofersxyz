@@ -34,6 +34,10 @@ impl RetryAfter {
     const fn one_minute() -> Self {
         Self(60)
     }
+
+    pub(crate) const fn password_verification_busy() -> Self {
+        Self(1)
+    }
 }
 
 #[derive(Clone, Debug)]
