@@ -1,4 +1,7 @@
-use super::super::server_functions::Login;
+use super::super::{
+    components::{FormButton, InfoList, InfoRow, TextInput, action_error},
+    server_functions::Login,
+};
 use crate::app::{content::Portfolio, layout::CommandShell};
 use leptos::{form::ActionForm, prelude::*};
 use leptos_meta::Title;
@@ -26,11 +29,7 @@ pub fn LoginPage() -> impl IntoView {
             }
         })
         .collect_view();
-    let error = move || {
-        login.value().get().and_then(Result::err).map(
-            |error| view! { <p class="mt-[1.2rem] text-xs text-[#e2a340]">{error.to_string()}</p> },
-        )
-    };
+    let error = action_error(login);
 
     view! {
         <Title text="Sign in" />
@@ -41,30 +40,21 @@ pub fn LoginPage() -> impl IntoView {
                 <h1 class="mt-[.7rem] font-sans text-2xl font-semibold text-white">"Sign in"</h1>
                 <p class="mt-[.6rem] text-[13px] leading-[1.6] text-[#8b939d]">"The editing surface for the portfolio. Owner access only."</p>
                 <ActionForm action=login attr:class="mt-[2.2rem]">
-                    <label class="mt-[1.3rem] block text-xs text-[#8b939d]">
-                        "Username"
-                        <input
-                            class="mt-[.4rem] block w-full border border-[#2b3037] bg-[#0b0e11] px-[.65rem] py-2 font-[inherit] text-[13px] text-white focus:border-[#e2a340] focus:outline-none"
-                            name="username"
-                            autocomplete="username"
-                        />
-                    </label>
-                    <label class="mt-[1.3rem] block text-xs text-[#8b939d]">
-                        "Password"
-                        <input
-                            class="mt-[.4rem] block w-full border border-[#2b3037] bg-[#0b0e11] px-[.65rem] py-2 font-[inherit] text-[13px] text-white focus:border-[#e2a340] focus:outline-none"
-                            type="password"
-                            name="password"
-                            autocomplete="current-password"
-                        />
-                    </label>
+                    <TextInput
+                        label="Username"
+                        name="username"
+                        value=String::new()
+                        autocomplete="username"
+                    />
+                    <TextInput
+                        label="Password"
+                        name="password"
+                        value=String::new()
+                        input_type="password"
+                        autocomplete="current-password"
+                    />
                     {error}
-                    <button
-                        class="mt-[1.6rem] w-full cursor-pointer border border-[#30363d] bg-[#080a0d] p-[.55rem] font-[inherit] text-[13px] text-white hover:border-[#e2a340]"
-                        type="submit"
-                    >
-                        "Sign in"
-                    </button>
+                    <FormButton label="Sign in" full_width=true />
                 </ActionForm>
                 <p class="mt-auto pt-8 text-[11px] text-[#767d87]">"kristofers.xyz"</p>
             </aside>
@@ -73,17 +63,21 @@ pub fn LoginPage() -> impl IntoView {
                 <div class="grid grid-cols-2 gap-x-12">
                     <div>
                         <p class="mt-0 mb-[.8rem] text-[10px] tracking-[.2em] text-[#767d87] uppercase">"Session"</p>
-                        <dl class="m-0 grid grid-cols-[13ch_1fr] gap-x-[2ch] gap-y-[.55rem] text-[13px] [&_dt]:text-[#8b939d] [&_dd]:m-0 [&_dd]:text-[#c3c9cf]">
-                            <dt>"status"</dt><dd>"signed out"</dd>
-                            <dt>"method"</dt><dd>"server-side"</dd>
-                            <dt>"idle limit"</dt><dd>"1 hour"</dd>
-                        </dl>
+                        <InfoList
+                            rows=vec![
+                                InfoRow { label: "status", value: "signed out".to_owned(), emphasized: false },
+                                InfoRow { label: "method", value: "server-side".to_owned(), emphasized: false },
+                                InfoRow { label: "idle limit", value: "1 hour".to_owned(), emphasized: false },
+                            ]
+                        />
                         <p class="mt-8 mb-[.8rem] text-[10px] tracking-[.2em] text-[#767d87] uppercase">"Content"</p>
-                        <dl class="m-0 grid grid-cols-[13ch_1fr] gap-x-[2ch] gap-y-[.55rem] text-[13px] [&_dt]:text-[#8b939d] [&_dd]:m-0 [&_dd]:text-[#c3c9cf] [&_dd_b]:font-medium [&_dd_b]:text-[#e2a340]">
-                            <dt>"store"</dt><dd>"SQLite"</dd>
-                            <dt>"pages"</dt><dd><b>{pages_count}</b></dd>
-                            <dt>"projects"</dt><dd><b>{projects}</b></dd>
-                        </dl>
+                        <InfoList
+                            rows=vec![
+                                InfoRow { label: "store", value: "SQLite".to_owned(), emphasized: false },
+                                InfoRow { label: "pages", value: pages_count.to_string(), emphasized: true },
+                                InfoRow { label: "projects", value: projects.to_string(), emphasized: true },
+                            ]
+                        />
                     </div>
                     <div>
                         <p class="mt-0 mb-[.8rem] text-[10px] tracking-[.2em] text-[#767d87] uppercase">"Pages"</p>

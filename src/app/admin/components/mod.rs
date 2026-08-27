@@ -1,5 +1,5 @@
 use crate::app::{
-    admin::server_functions::Logout,
+    admin::{error::AdminError, server_functions::Logout},
     content::Portfolio,
     layout::{CollapsibleSidebar, CommandShell, SidebarPreference},
     markdown,
@@ -62,29 +62,69 @@ pub fn Affordance() -> impl IntoView {
 }
 
 #[component]
+pub fn FormButton(label: &'static str, #[prop(optional)] full_width: bool) -> impl IntoView {
+    view! {
+        <button
+            class="mt-[1.6rem] w-auto cursor-pointer border border-[#30363d] bg-[#080a0d] px-[1.4rem] py-[.55rem] font-[inherit] text-[13px] text-white hover:border-[#e2a340]"
+            class:w-full=full_width
+            type="submit"
+        >
+            {label}
+        </button>
+    }
+}
+
+#[component]
 pub fn LogoutForm() -> impl IntoView {
     let action = ServerAction::<Logout>::new();
     view! {
         <ActionForm action>
-            <button
-                class="mt-[1.6rem] w-auto cursor-pointer border border-[#30363d] bg-[#080a0d] px-[1.4rem] py-[.55rem] font-[inherit] text-[13px] text-white hover:border-[#e2a340]"
-                type="submit"
-            >
-                "Sign out"
-            </button>
+            <FormButton label="Sign out" />
         </ActionForm>
     }
 }
 
 #[component]
 pub fn SaveButton() -> impl IntoView {
+    view! { <FormButton label="Save" /> }
+}
+
+#[derive(Clone)]
+pub struct InfoRow {
+    pub label: &'static str,
+    pub value: String,
+    pub emphasized: bool,
+}
+
+#[component]
+pub fn InfoList(rows: Vec<InfoRow>) -> impl IntoView {
     view! {
-        <button
-            class="mt-[1.6rem] w-auto cursor-pointer border border-[#30363d] bg-[#080a0d] px-[1.4rem] py-[.55rem] font-[inherit] text-[13px] text-white hover:border-[#e2a340]"
-            type="submit"
-        >
-            "Save"
-        </button>
+        <dl class="m-0 grid grid-cols-[13ch_1fr] gap-x-[2ch] gap-y-[.55rem] text-[13px] [&_dt]:text-[#8b939d] [&_dd]:m-0 [&_dd]:text-[#c3c9cf] [&_dd_b]:font-medium [&_dd_b]:text-[#e2a340]">
+            {rows
+                .into_iter()
+                .map(|row| {
+                    let value = row.value;
+                    let value = if row.emphasized {
+                        view! { <b>{value}</b> }.into_any()
+                    } else {
+                        view! { {value} }.into_any()
+                    };
+                    view! { <dt>{row.label}</dt><dd>{value}</dd> }
+                })
+                .collect_view()}
+        </dl>
+    }
+}
+
+pub fn action_error<ServerFn>(action: ServerAction<ServerFn>) -> impl IntoView
+where
+    ServerFn: leptos::server_fn::ServerFn<Error = AdminError> + Clone + Send + Sync + 'static,
+    ServerFn::Output: Clone + Send + Sync + 'static,
+{
+    move || {
+        action.value().get().and_then(Result::err).map(
+            |error| view! { <p class="mt-[1.2rem] text-xs text-[#e2a340]">{error.to_string()}</p> },
+        )
     }
 }
 
@@ -158,19 +198,13 @@ fn EditorNavigation(active: String) -> impl IntoView {
         .projects
         .into_iter()
         .map(|project| {
-            let href = format!("/admin/project/{}", project.slug);
-            let current = href == active;
             view! {
-                <li>
-                    <A
-                        href=href
-                        attr:class="group flex items-center gap-[1.1ch] py-[.45rem] text-[13px] text-[#8b939d] no-underline hover:text-[#e2a340] aria-[current=page]:text-white"
-                        attr:aria-current=current.then_some("page")
-                    >
-                        <Icon kind=EntryIcon::Project />
-                        <span>{project.title}</span>
-                    </A>
-                </li>
+                <NavigationLink
+                    active=active.clone()
+                    href=format!("/admin/project/{}", project.slug)
+                    label=project.title
+                    icon=EntryIcon::Project
+                />
             }
         })
         .collect_view();
@@ -193,20 +227,20 @@ fn EditorNavigation(active: String) -> impl IntoView {
             <ul class="m-0 list-none p-0">
                 <NavigationLink
                     active=active.clone()
-                    href="/admin/profile"
-                    label="Profile"
+                    href="/admin/profile".to_owned()
+                    label="Profile".to_owned()
                     icon=EntryIcon::Profile
                 />
                 <NavigationLink
                     active=active.clone()
-                    href="/admin/contact"
-                    label="Contact"
+                    href="/admin/contact".to_owned()
+                    label="Contact".to_owned()
                     icon=EntryIcon::Contact
                 />
                 <NavigationLink
                     active
-                    href="/admin/site"
-                    label="Site metadata"
+                    href="/admin/site".to_owned()
+                    label="Site metadata".to_owned()
                     icon=EntryIcon::Site
                 />
             </ul>
@@ -219,12 +253,7 @@ fn EditorNavigation(active: String) -> impl IntoView {
 }
 
 #[component]
-fn NavigationLink(
-    active: String,
-    href: &'static str,
-    label: &'static str,
-    icon: EntryIcon,
-) -> impl IntoView {
+fn NavigationLink(active: String, href: String, label: String, icon: EntryIcon) -> impl IntoView {
     let current = active == href;
     view! {
         <li>
@@ -241,7 +270,13 @@ fn NavigationLink(
 }
 
 #[component]
-pub fn TextInput(label: &'static str, name: &'static str, value: String) -> impl IntoView {
+pub fn TextInput(
+    label: &'static str,
+    name: &'static str,
+    value: String,
+    #[prop(optional)] input_type: &'static str,
+    #[prop(optional)] autocomplete: &'static str,
+) -> impl IntoView {
     view! {
         <label class="mt-[1.3rem] block text-xs text-[#8b939d]">
             {label}
@@ -249,6 +284,8 @@ pub fn TextInput(label: &'static str, name: &'static str, value: String) -> impl
                 class="mt-[.4rem] block w-full border border-[#2b3037] bg-[#0b0e11] px-[.65rem] py-2 font-[inherit] text-[13px] text-white focus:border-[#e2a340] focus:outline-none"
                 name=name
                 value=value
+                type=input_type
+                autocomplete=autocomplete
             />
         </label>
     }
