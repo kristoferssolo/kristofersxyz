@@ -101,18 +101,12 @@ fn backend(error: &sqlx::Error) -> session_store::Error {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::{DbPoolOptions, migrate};
+    use crate::db::test_support::migrated_pool;
     use std::collections::HashMap;
     use time::Duration;
 
     async fn store() -> SqliteSessionStore {
-        let pool = DbPoolOptions::new()
-            .max_connections(1)
-            .connect("sqlite::memory:")
-            .await
-            .expect("connect to an in-memory database");
-        migrate(&pool).await.expect("run the migrations");
-        SqliteSessionStore::new(pool)
+        SqliteSessionStore::new(migrated_pool().await)
     }
 
     fn record(offset: Duration) -> Record {

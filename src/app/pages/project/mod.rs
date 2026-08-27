@@ -3,7 +3,7 @@ use crate::{
         content::Portfolio,
         editor::EntryId,
         editor_controller::EditorController,
-        layout::{BlankPage, StatusBarState, StatusLocation},
+        layout::{BlankPage, StatusLocation},
         markdown,
     },
     domain::{Project, ProjectSlug},
@@ -25,7 +25,16 @@ pub fn ProjectPage() -> impl IntoView {
             .find(|project| project.slug.as_str() == slug)
             .cloned()
             .map_or_else(
-                || view! { <MissingProject /> }.into_any(),
+                || {
+                    view! {
+                        <super::MissingPage
+                            title="No such project"
+                            heading="Can't open project"
+                            description="There is no published project at this path."
+                        />
+                    }
+                    .into_any()
+                },
                 |project| view! { <ProjectReader project /> }.into_any(),
             )
     }
@@ -39,16 +48,9 @@ fn ProjectReader(project: Project) -> impl IntoView {
     let description = markdown::render(&project.description);
     let repository = project.links.first().cloned();
     let filename = format!("work/{}.md", project.slug);
-    let status = Signal::derive(move || {
-        StatusBarState::from_editor_mode(
-            editor.mode(),
-            filename.clone(),
-            StatusLocation::Page {
-                current: editor.position(),
-                total: editor.total(),
-            },
-        )
-        .with_help()
+    let status = editor.status(filename, move || StatusLocation::Page {
+        current: editor.position(),
+        total: editor.total(),
     });
 
     view! {
@@ -151,39 +153,6 @@ fn ProjectSequence(projects: Vec<Project>, current: ProjectSlug) -> impl IntoVie
                 }
             })}
         </nav>
-    }
-}
-
-#[component]
-fn MissingProject() -> impl IntoView {
-    let content = expect_context::<Portfolio>().current();
-    let editor = EditorController::routes(&content, &EntryId::Profile);
-    let status = Signal::derive(move || {
-        StatusBarState::from_editor_mode(
-            editor.mode(),
-            "[No Name]",
-            StatusLocation::Cursor { line: 0, column: 0 },
-        )
-        .with_help()
-    });
-
-    view! {
-        <BlankPage editor status>
-            <section class="flex min-h-0 flex-1 items-center overflow-y-auto px-5 py-14 sm:px-10 md:px-14">
-                <div class="max-w-[62ch]">
-                    <p class="text-[11px] tracking-[0.24em] text-[#4c525a] uppercase">"E484"</p>
-                    <h1 class="mt-3 font-sans text-[clamp(1.75rem,4.5vw,2.75rem)] leading-[1.1] font-semibold text-white">
-                        "Can't open project"
-                    </h1>
-                    <p class="mt-5 font-sans text-[16px] leading-[1.7] text-[#aab2bb] sm:text-[17px]">
-                        "There is no published project at this path."
-                    </p>
-                    <A href="/" attr:class="mt-6 inline-block text-[13px] text-white underline decoration-[#3c424a] underline-offset-[5px] hover:decoration-[#e2a340]">
-                        "Back to profile"
-                    </A>
-                </div>
-            </section>
-        </BlankPage>
     }
 }
 

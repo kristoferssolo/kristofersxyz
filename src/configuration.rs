@@ -13,8 +13,6 @@ pub enum ConfigurationError {
     },
     #[error("invalid PUBLIC_ORIGIN")]
     InvalidPublicOrigin(#[from] PublicOriginError),
-    #[error("missing environment variable DEPLOYMENT_MODE")]
-    MissingDeploymentMode(#[source] env::VarError),
     #[error("invalid DEPLOYMENT_MODE '{0}'")]
     InvalidDeploymentMode(String),
     #[error("local deployment requires an http PUBLIC_ORIGIN")]
@@ -81,9 +79,7 @@ impl<'de> Deserialize<'de> for DeploymentMode {
     where
         D: serde::Deserializer<'de>,
     {
-        String::deserialize(deserializer)?
-            .parse()
-            .map_err(serde::de::Error::custom)
+        crate::serde_helpers::deserialize_from_str(deserializer)
     }
 }
 
@@ -160,9 +156,7 @@ impl<'de> Deserialize<'de> for PublicOrigin {
     where
         D: serde::Deserializer<'de>,
     {
-        String::deserialize(deserializer)?
-            .parse()
-            .map_err(serde::de::Error::custom)
+        crate::serde_helpers::deserialize_from_str(deserializer)
     }
 }
 
@@ -183,6 +177,22 @@ pub enum PublicOriginError {
 }
 
 impl Settings {
+    /// Creates settings from their three runtime inputs.
+    #[must_use]
+    pub fn new(
+        database_url: impl Into<String>,
+        deployment: DeploymentMode,
+        public_origin: PublicOrigin,
+    ) -> Self {
+        Self {
+            database: DatabaseSettings {
+                url: database_url.into(),
+            },
+            deployment,
+            http: HttpSettings { public_origin },
+        }
+    }
+
     /// Loads application settings from environment variables.
     ///
     /// # Errors
@@ -218,24 +228,20 @@ impl Settings {
     }
 }
 
+fn required_env(name: &'static str) -> Result<String, ConfigurationError> {
+    env::var(name).map_err(|source| ConfigurationError::MissingEnvironmentVariable { name, source })
+}
+
 impl DeploymentMode {
     fn from_env() -> Result<Self, ConfigurationError> {
-        env::var("DEPLOYMENT_MODE")
-            .map_err(ConfigurationError::MissingDeploymentMode)?
-            .parse()
+        required_env("DEPLOYMENT_MODE")?.parse()
     }
 }
 
 impl HttpSettings {
     fn from_env() -> Result<Self, ConfigurationError> {
-        let value = env::var("PUBLIC_ORIGIN").map_err(|source| {
-            ConfigurationError::MissingEnvironmentVariable {
-                name: "PUBLIC_ORIGIN",
-                source,
-            }
-        })?;
         Ok(Self {
-            public_origin: value.parse()?,
+            public_origin: required_env("PUBLIC_ORIGIN")?.parse()?,
         })
     }
 }
@@ -243,13 +249,9 @@ impl HttpSettings {
 impl DatabaseSettings {
     /// Reads the required portfolio database URL.
     fn from_env() -> Result<Self, ConfigurationError> {
-        let url = env::var("DATABASE_URL").map_err(|source| {
-            ConfigurationError::MissingEnvironmentVariable {
-                name: "DATABASE_URL",
-                source,
-            }
-        })?;
-        Ok(Self { url })
+        Ok(Self {
+            url: required_env("DATABASE_URL")?,
+        })
     }
 }
 
@@ -275,25 +277,19 @@ mod tests {
 
     #[test]
     fn deployment_mode_determines_a_valid_cookie_and_origin_pair() {
-        let local = Settings {
-            database: DatabaseSettings {
-                url: "sqlite::memory:".to_owned(),
-            },
-            deployment: DeploymentMode::Local,
-            http: HttpSettings {
-                public_origin: PublicOrigin("http://localhost:3000".to_owned()),
-            },
-        };
+        let local = Settings::new(
+            "sqlite::memory:",
+            DeploymentMode::Local,
+            PublicOrigin("http://localhost:3000".to_owned()),
+        );
         assert!(local.validate().is_ok());
         assert!(!local.deployment.session_cookie().secure());
 
-        let production = Settings {
-            database: local.database,
-            deployment: DeploymentMode::ProductionBehindTrustedProxy,
-            http: HttpSettings {
-                public_origin: PublicOrigin("https://kristofers.xyz".to_owned()),
-            },
-        };
+        let production = Settings::new(
+            local.database.url,
+            DeploymentMode::ProductionBehindTrustedProxy,
+            PublicOrigin("https://kristofers.xyz".to_owned()),
+        );
         assert!(production.validate().is_ok());
         assert!(production.deployment.session_cookie().secure());
         assert!(
@@ -307,15 +303,11 @@ mod tests {
 
     #[test]
     fn production_rejects_an_insecure_public_origin() {
-        let settings = Settings {
-            database: DatabaseSettings {
-                url: "sqlite::memory:".to_owned(),
-            },
-            deployment: DeploymentMode::ProductionBehindTrustedProxy,
-            http: HttpSettings {
-                public_origin: PublicOrigin("http://kristofers.xyz".to_owned()),
-            },
-        };
+        let settings = Settings::new(
+            "sqlite::memory:",
+            DeploymentMode::ProductionBehindTrustedProxy,
+            PublicOrigin("http://kristofers.xyz".to_owned()),
+        );
         assert_err!(settings.validate());
     }
 }

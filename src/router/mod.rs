@@ -5,14 +5,14 @@ use crate::{
     configuration::SessionCookiePolicy,
     db::DbPool,
     sessions::SqliteSessionStore,
-    startup::AppState,
+    startup::ApplicationState,
 };
 use axum::{Router, middleware};
 use leptos_axum::{LeptosRoutes, file_and_error_handler, generate_route_list};
 use time::Duration;
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::SameSite};
 
-pub fn route(state: AppState) -> Router {
+pub fn route(state: ApplicationState) -> Router {
     let routes = generate_route_list(App);
 
     Router::new()
@@ -20,7 +20,7 @@ pub fn route(state: AppState) -> Router {
             let leptos_options = state.leptos_options.clone();
             move || shell(leptos_options.clone(), server_content().as_ref())
         })
-        .fallback(file_and_error_handler::<AppState, _>(|options| {
+        .fallback(file_and_error_handler::<ApplicationState, _>(|options| {
             shell(options, server_content().as_ref())
         }))
         .layer(session_layer(state.pool.clone(), state.session_cookie))

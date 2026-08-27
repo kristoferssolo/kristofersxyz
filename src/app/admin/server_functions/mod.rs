@@ -20,7 +20,7 @@ use crate::{
         AuthError, Credentials, Password, RetryAfter, SessionState, validate_credentials,
     },
     db,
-    startup::AppState,
+    startup::ApplicationState,
 };
 #[cfg(feature = "ssr")]
 use axum::extract::ConnectInfo;
@@ -71,7 +71,7 @@ pub async fn login(username: String, password: String) -> Result<(), AdminError>
         }
         SessionState::Anonymous(session) => session,
     };
-    let state = expect_context::<AppState>();
+    let state = expect_context::<ApplicationState>();
     let ConnectInfo(peer) = leptos_axum::extract::<ConnectInfo<SocketAddr>>()
         .await
         .map_err(|_| AdminError::Internal)?;
@@ -144,7 +144,7 @@ pub async fn save_project(
 ) -> Result<PortfolioContent, AdminError> {
     let _session = authenticated_session().await?;
     require_fields(&[&title, &summary, &markdown])?;
-    let state = expect_context::<AppState>();
+    let state = expect_context::<ApplicationState>();
     let saved = db::portfolio::set_project(&state.pool, &slug, &title, &summary, &markdown)
         .await
         .map_err(|_| AdminError::Save)?;
@@ -169,7 +169,7 @@ pub async fn save_profile(
 ) -> Result<PortfolioContent, AdminError> {
     let _session = authenticated_session().await?;
     require_fields(&[&name, &title, &summary, &about, &email])?;
-    let state = expect_context::<AppState>();
+    let state = expect_context::<ApplicationState>();
     db::portfolio::set_profile(&state.pool, &name, &title, &summary, &about, &email)
         .await
         .map_err(|_| AdminError::Save)?;
@@ -182,7 +182,7 @@ pub async fn save_profile(
 pub async fn save_contact(name: String, body: String) -> Result<PortfolioContent, AdminError> {
     let _session = authenticated_session().await?;
     require_fields(&[&name, &body])?;
-    let state = expect_context::<AppState>();
+    let state = expect_context::<ApplicationState>();
     db::portfolio::set_contact(&state.pool, &name, &body)
         .await
         .map_err(|_| AdminError::Save)?;
@@ -200,7 +200,7 @@ pub async fn save_site(
 ) -> Result<PortfolioContent, AdminError> {
     let _session = authenticated_session().await?;
     require_fields(&[&url, &title, &description, &og_image])?;
-    let state = expect_context::<AppState>();
+    let state = expect_context::<ApplicationState>();
     db::portfolio::set_site(&state.pool, &url, &title, &description, &og_image)
         .await
         .map_err(|_| AdminError::Save)?;

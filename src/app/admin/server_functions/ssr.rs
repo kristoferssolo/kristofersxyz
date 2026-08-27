@@ -3,7 +3,7 @@ use crate::{
     app::content::{PortfolioContent, store_server_content},
     authentication::{AuthSession, Authenticated, RetryAfter, SessionState, Unverified},
     db,
-    startup::AppState,
+    startup::ApplicationState,
 };
 use axum::http::{HeaderValue, StatusCode, header};
 use leptos::prelude::expect_context;
@@ -14,7 +14,7 @@ pub async fn session_state() -> Result<SessionState, AdminError> {
     let session = extract::<Session>()
         .await
         .map_err(|_| AdminError::Internal)?;
-    let state = expect_context::<AppState>();
+    let state = expect_context::<ApplicationState>();
     AuthSession::<Unverified>::new(session)
         .resolve(&state.pool)
         .await
@@ -45,7 +45,7 @@ pub fn require_fields(fields: &[&str]) -> Result<(), AdminError> {
     }
 }
 
-pub async fn reload(state: &AppState) -> Result<PortfolioContent, AdminError> {
+pub async fn reload(state: &ApplicationState) -> Result<PortfolioContent, AdminError> {
     let content = db::portfolio::load(&state.pool)
         .await
         .map_err(|_| AdminError::Reload)?;

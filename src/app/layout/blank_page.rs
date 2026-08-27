@@ -1,13 +1,9 @@
 use super::{
-    StatusBarState,
-    help_panel::HelpPanel,
-    notice_view::NoticeView,
+    EditorShell, StatusBarState,
     sidebar::{CollapsibleSidebar, PortfolioNavigation},
-    status_bar::StatusBar,
 };
 use crate::app::{editor::EntryId, editor_controller::EditorController};
-use leptos::prelude::Effect as ReactiveEffect;
-use leptos::{ev, prelude::*};
+use leptos::prelude::*;
 
 /// Wraps page content in the shared sidebar and status bar, and routes global
 /// keyboard input through the supplied editor session.
@@ -21,17 +17,8 @@ pub fn BlankPage(
     let active = Signal::derive(move || editor.active());
     let sidebar = Signal::derive(move || editor.sidebar());
 
-    ReactiveEffect::new(move |_| {
-        let handle = window_event_listener(ev::keydown, move |event| {
-            editor.handle_keydown(&event);
-        });
-        on_cleanup(move || handle.remove());
-    });
-
     view! {
-        <main class="grid h-dvh grid-rows-[minmax(0,1fr)_1.75rem] overflow-hidden bg-black font-mono text-[#d4d7db]">
-            <NoticeView editor />
-            <HelpPanel editor />
+        <EditorShell editor status>
             <CollapsibleSidebar
                 id="portfolio-navigation"
                 label="portfolio navigation"
@@ -42,7 +29,6 @@ pub fn BlankPage(
             >
                 <div class="flex h-full min-h-0 min-w-0 flex-col">{children()}</div>
             </CollapsibleSidebar>
-            <StatusBar state=status />
-        </main>
+        </EditorShell>
     }
 }

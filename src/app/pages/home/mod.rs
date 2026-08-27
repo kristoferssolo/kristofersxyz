@@ -7,11 +7,7 @@ mod next_entry;
 mod view_model;
 
 use self::{content_pane::ContentPane, view_model::HomeViewModel};
-use crate::app::{
-    browser::current_fragment,
-    content::Portfolio,
-    layout::{BlankPage, StatusBarState, StatusLocation},
-};
+use crate::app::{browser::current_fragment, content::Portfolio, layout::BlankPage};
 use leptos::prelude::Effect as ReactiveEffect;
 use leptos::prelude::*;
 
@@ -24,17 +20,11 @@ pub fn HomePage() -> impl IntoView {
     provide_context(view_model);
     let editor = view_model.editor();
     let on_select = Callback::new(move |entry| view_model.pick(&entry));
-    let status = Signal::derive(move || {
-        StatusBarState::from_editor_mode(
-            editor.mode(),
-            "kristofers.xyz",
-            StatusLocation::Page {
-                current: view_model.position(),
-                total: view_model.total(),
-            },
-        )
-        .with_help()
-        .with_progress()
+    let status = editor.status_with_progress("kristofers.xyz", move || {
+        crate::app::layout::StatusLocation::Page {
+            current: view_model.position(),
+            total: view_model.total(),
+        }
     });
 
     ReactiveEffect::new(move |_| {

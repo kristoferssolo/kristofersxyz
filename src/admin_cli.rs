@@ -96,8 +96,8 @@ pub fn read_new_password() -> Result<Password, AdminCliError> {
 mod tests {
     use super::*;
     use crate::{
-        authentication::{Credentials, Password, validate_credentials},
-        configuration::{DatabaseSettings, DeploymentMode, HttpSettings, PublicOrigin},
+        authentication::{Password, test_support, validate_credentials},
+        configuration::{DeploymentMode, PublicOrigin},
         domain::Username,
     };
     use claims::{assert_err, assert_ok};
@@ -105,24 +105,13 @@ mod tests {
     use tempfile::NamedTempFile;
 
     fn settings_for(database: &NamedTempFile) -> Settings {
-        Settings {
-            database: DatabaseSettings {
-                url: format!("sqlite://{}", database.path().display()),
-            },
-            deployment: DeploymentMode::Local,
-            http: HttpSettings {
-                public_origin: "http://localhost:3000"
-                    .parse::<PublicOrigin>()
-                    .expect("the test origin is valid"),
-            },
-        }
-    }
-
-    fn credentials(username: &str, password: &str) -> Credentials {
-        Credentials {
-            username: assert_ok!(Username::new(username.to_owned())),
-            password: assert_ok!(Password::new(SecretString::from(password.to_owned()))),
-        }
+        Settings::new(
+            format!("sqlite://{}", database.path().display()),
+            DeploymentMode::Local,
+            "http://localhost:3000"
+                .parse::<PublicOrigin>()
+                .expect("the test origin is valid"),
+        )
     }
 
     #[tokio::test]
@@ -139,7 +128,9 @@ mod tests {
         .expect("create the user");
 
         let pool = db::connect(&settings.database.url).await.expect("connect");
-        assert_ok!(validate_credentials(credentials("owner", "first pw"), &pool).await);
+        assert_ok!(
+            validate_credentials(test_support::credentials("owner", "first pw"), &pool,).await
+        );
 
         set_password(
             &settings,
@@ -149,8 +140,12 @@ mod tests {
         .await
         .expect("replace the password");
 
-        assert_err!(validate_credentials(credentials("owner", "first pw"), &pool).await);
-        assert_ok!(validate_credentials(credentials("owner", "second pw"), &pool).await);
+        assert_err!(
+            validate_credentials(test_support::credentials("owner", "first pw"), &pool,).await
+        );
+        assert_ok!(
+            validate_credentials(test_support::credentials("owner", "second pw"), &pool,).await
+        );
     }
 
     #[tokio::test]
@@ -225,7 +220,13 @@ mod tests {
             )
             .await
         );
-        assert_ok!(validate_credentials(credentials("owner", "first password"), &pool).await);
-        assert_err!(validate_credentials(credentials("owner", "second password"), &pool).await);
+        assert_ok!(
+            validate_credentials(test_support::credentials("owner", "first password"), &pool,)
+                .await
+        );
+        assert_err!(
+            validate_credentials(test_support::credentials("owner", "second password"), &pool,)
+                .await
+        );
     }
 }

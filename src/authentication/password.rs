@@ -55,7 +55,7 @@ impl Password {
         }
     }
 
-    fn expose_secret(&self) -> &str {
+    pub(crate) fn expose_secret(&self) -> &str {
         self.0.expose_secret()
     }
 }
@@ -158,9 +158,23 @@ fn needs_rehash(hash: &ArgonPasswordHash<'_>) -> bool {
 }
 
 #[cfg(test)]
+pub fn assert_current_policy(hash: &ArgonPasswordHash<'_>) {
+    assert_eq!(hash.algorithm.as_str(), "argon2id");
+    assert_eq!(hash.version, Some(u32::from(Version::V0x13)));
+    let params = claims::assert_ok!(Params::try_from(hash));
+    assert_eq!(params.m_cost(), Params::DEFAULT_M_COST);
+    assert_eq!(params.t_cost(), Params::DEFAULT_T_COST);
+    assert_eq!(params.p_cost(), Params::DEFAULT_P_COST);
+    assert!(matches!(
+        params.output_len(),
+        None | Some(Params::DEFAULT_OUTPUT_LEN)
+    ));
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
-    use argon2::Algorithm;
+    use crate::authentication::test_support::old_password_hash;
     use claims::{assert_err, assert_ok, assert_some};
 
     #[test]
@@ -195,12 +209,7 @@ mod tests {
         let hash = assert_ok!(compute_password_hash(&password));
         let parsed = assert_ok!(ArgonPasswordHash::new(hash.expose_secret()));
 
-        assert_eq!(parsed.algorithm.as_str(), "argon2id");
-        assert_eq!(parsed.version, Some(u32::from(Version::V0x13)));
-        let params = assert_ok!(Params::try_from(&parsed));
-        assert_eq!(params.m_cost(), Params::DEFAULT_M_COST);
-        assert_eq!(params.t_cost(), Params::DEFAULT_T_COST);
-        assert_eq!(params.p_cost(), Params::DEFAULT_P_COST);
+        assert_current_policy(&parsed);
     }
 
     #[test]
@@ -208,19 +217,10 @@ mod tests {
         let password = assert_ok!(Password::try_from(
             "correct horse battery staple".to_owned()
         ));
-        let salt = SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
-        let old_params = assert_ok!(Params::new(15_000, 2, 1, None));
-        let old_hash = assert_ok!(
-            Argon2::new(Algorithm::Argon2id, Version::V0x13, old_params)
-                .hash_password(password.expose_secret().as_bytes(), &salt)
-        );
-        let old_hash = PasswordHash::from(old_hash.to_string());
+        let old_hash = old_password_hash(&password);
 
         let replacement = assert_some!(assert_ok!(verify_password_hash(&old_hash, &password)));
         let parsed = assert_ok!(ArgonPasswordHash::new(replacement.expose_secret()));
-        let params = assert_ok!(Params::try_from(&parsed));
-        assert_eq!(params.m_cost(), Params::DEFAULT_M_COST);
-        assert_eq!(params.t_cost(), Params::DEFAULT_T_COST);
-        assert_eq!(params.p_cost(), Params::DEFAULT_P_COST);
+        assert_current_policy(&parsed);
     }
 }

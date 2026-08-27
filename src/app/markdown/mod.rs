@@ -34,9 +34,7 @@ mod tests {
     use super::*;
 
     fn description(markdown: &str) -> ProjectDescription {
-        markdown
-            .parse()
-            .unwrap_or_else(|error| panic!("invalid test project description: {error}"))
+        crate::test_support::parse(markdown)
     }
 
     #[test]

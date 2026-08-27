@@ -2,7 +2,10 @@
 //!
 //! Stable ids survive content reordering; numeric indices do not.
 
-use crate::{app::content::PortfolioContent, domain::ProjectSlug};
+use crate::{
+    app::content::PortfolioContent,
+    domain::{Project, ProjectSlug},
+};
 
 /// A section heading in the buffer list.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -49,7 +52,7 @@ impl EntryId {
     pub fn path(&self) -> String {
         match self {
             Self::Profile => "/".to_owned(),
-            Self::Project(slug) => format!("/work/{slug}"),
+            Self::Project(slug) => Project::path_for_slug(slug),
             Self::Contact => "/#contact".to_owned(),
         }
     }

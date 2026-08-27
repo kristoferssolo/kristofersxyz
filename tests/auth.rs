@@ -12,11 +12,11 @@ use axum::{
 use kristofersxyz::{
     admin_cli::set_password,
     authentication::Password,
-    configuration::{DatabaseSettings, DeploymentMode, HttpSettings, PublicOrigin, Settings},
+    configuration::{DeploymentMode, PublicOrigin, Settings},
     db,
     domain::Username,
     router::route,
-    startup::App,
+    startup::ApplicationState,
 };
 use tempfile::NamedTempFile;
 use tower::ServiceExt;
@@ -41,7 +41,9 @@ async fn app_with_owner() -> (Router, NamedTempFile) {
     set_password(&settings, &username("owner"), &password("s3cret"))
         .await
         .expect("create the owner");
-    let app = App::new(&settings).await.expect("build the application");
+    let app = ApplicationState::new(&settings)
+        .await
+        .expect("build the application");
     (route(app), database)
 }
 
@@ -54,17 +56,13 @@ fn settings_for_deployment(
     deployment: DeploymentMode,
     public_origin: &str,
 ) -> Settings {
-    Settings {
-        database: DatabaseSettings {
-            url: format!("sqlite://{}", database.path().display()),
-        },
+    Settings::new(
+        format!("sqlite://{}", database.path().display()),
         deployment,
-        http: HttpSettings {
-            public_origin: public_origin
-                .parse::<PublicOrigin>()
-                .expect("the test origin is valid"),
-        },
-    }
+        public_origin
+            .parse::<PublicOrigin>()
+            .expect("the test origin is valid"),
+    )
 }
 
 fn form_post(uri: &str, body: &str, cookie: Option<&str>) -> Request<Body> {
@@ -294,7 +292,9 @@ async fn production_login_emits_a_host_only_secure_cookie() {
     set_password(&settings, &username("owner"), &password("s3cret"))
         .await
         .expect("create the owner");
-    let app = App::new(&settings).await.expect("build the application");
+    let app = ApplicationState::new(&settings)
+        .await
+        .expect("build the application");
     let router = route(app);
     let mut request = login_request("owner", "s3cret");
     request.headers_mut().insert(

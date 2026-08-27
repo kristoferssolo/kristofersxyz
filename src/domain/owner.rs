@@ -1,5 +1,5 @@
-use serde::{Deserialize, Deserializer, Serialize, de};
-use std::fmt;
+use serde::{Deserialize, Deserializer, Serialize};
+use std::{fmt, str::FromStr};
 use unicode_segmentation::UnicodeSegmentation;
 #[cfg(feature = "ssr")]
 use uuid::Uuid;
@@ -48,6 +48,14 @@ impl Username {
     }
 }
 
+impl FromStr for Username {
+    type Err = UsernameError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::new(value.to_owned())
+    }
+}
+
 impl TryFrom<String> for Username {
     type Error = UsernameError;
 
@@ -69,7 +77,7 @@ impl<'de> Deserialize<'de> for Username {
     where
         D: Deserializer<'de>,
     {
-        Self::new(String::deserialize(deserializer)?).map_err(de::Error::custom)
+        crate::serde_helpers::deserialize_from_str(deserializer)
     }
 }
 
