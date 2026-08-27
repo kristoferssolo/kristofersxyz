@@ -5,7 +5,7 @@ async fn main() -> Result<(), kristofersxyz::errors::ApplicationError> {
         admin_cli::{self, AdminCliError},
         configuration::Settings,
         domain::Username,
-        startup::{App, Application},
+        startup::{Application, ApplicationState},
         telemetry::{get_subscriber, init_subscriber},
     };
     use leptos::logging::log;
@@ -32,7 +32,7 @@ async fn main() -> Result<(), kristofersxyz::errors::ApplicationError> {
         };
     }
 
-    let app = App::new(&settings).await?;
+    let app = ApplicationState::new(&settings).await?;
 
     let addr = app.leptos_options.site_addr;
     let application = Application::build(app).await?;

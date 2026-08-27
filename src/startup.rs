@@ -31,7 +31,7 @@ pub enum StartupError {
 }
 
 #[derive(Debug, Clone)]
-pub struct App {
+pub struct ApplicationState {
     /// Shared by login and content-edit requests after startup.
     pub pool: DbPool,
     pub leptos_options: LeptosOptions,
@@ -41,15 +41,13 @@ pub struct App {
     pub public_origin: PublicOrigin,
 }
 
-pub type AppState = App;
-
 #[derive(Debug)]
 pub struct Application {
     port: u16,
     server: JoinHandle<Result<(), std::io::Error>>,
 }
 
-impl App {
+impl ApplicationState {
     /// Connects to SQLite, prepares its content, and stores the portfolio for
     /// server rendering.
     ///
@@ -78,14 +76,14 @@ impl App {
     }
 }
 
-impl FromRef<AppState> for LeptosOptions {
-    fn from_ref(state: &AppState) -> Self {
+impl FromRef<ApplicationState> for LeptosOptions {
+    fn from_ref(state: &ApplicationState) -> Self {
         state.leptos_options.clone()
     }
 }
 
-impl FromRef<AppState> for DbPool {
-    fn from_ref(state: &AppState) -> Self {
+impl FromRef<ApplicationState> for DbPool {
+    fn from_ref(state: &ApplicationState) -> Self {
         state.pool.clone()
     }
 }
@@ -96,7 +94,7 @@ impl Application {
     /// # Errors
     ///
     /// Returns [`ApplicationError`] if the listener cannot bind.
-    pub async fn build(app: App) -> Result<Self, ApplicationError> {
+    pub async fn build(app: ApplicationState) -> Result<Self, ApplicationError> {
         let addr = app.leptos_options.site_addr;
         let listener = TcpListener::bind(addr).await?;
         let port = listener.local_addr()?.port();
@@ -131,44 +129,36 @@ impl Application {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::configuration::{DatabaseSettings, DeploymentMode, HttpSettings, PublicOrigin};
+    use crate::configuration::{DeploymentMode, PublicOrigin};
     use claims::{assert_err, assert_ok};
     use tempfile::NamedTempFile;
 
     #[tokio::test]
     async fn a_fresh_database_boots_with_portfolio_content() {
         let database = NamedTempFile::new().expect("create a temporary database");
-        let settings = Settings {
-            database: DatabaseSettings {
-                url: format!("sqlite://{}", database.path().display()),
-            },
-            deployment: DeploymentMode::Local,
-            http: HttpSettings {
-                public_origin: "http://localhost:3000"
-                    .parse::<PublicOrigin>()
-                    .expect("the test origin is valid"),
-            },
-        };
+        let settings = Settings::new(
+            format!("sqlite://{}", database.path().display()),
+            DeploymentMode::Local,
+            "http://localhost:3000"
+                .parse::<PublicOrigin>()
+                .expect("the test origin is valid"),
+        );
 
-        assert_ok!(App::new(&settings).await);
+        assert_ok!(ApplicationState::new(&settings).await);
         assert_eq!(crate::app::content::server_content().projects.len(), 3);
     }
 
     #[tokio::test]
     async fn production_refuses_to_boot_with_an_http_origin() {
         let database = NamedTempFile::new().expect("create a temporary database");
-        let settings = Settings {
-            database: DatabaseSettings {
-                url: format!("sqlite://{}", database.path().display()),
-            },
-            deployment: DeploymentMode::ProductionBehindTrustedProxy,
-            http: HttpSettings {
-                public_origin: "http://kristofers.xyz"
-                    .parse::<PublicOrigin>()
-                    .expect("the test origin is valid"),
-            },
-        };
+        let settings = Settings::new(
+            format!("sqlite://{}", database.path().display()),
+            DeploymentMode::ProductionBehindTrustedProxy,
+            "http://kristofers.xyz"
+                .parse::<PublicOrigin>()
+                .expect("the test origin is valid"),
+        );
 
-        assert_err!(App::new(&settings).await);
+        assert_err!(ApplicationState::new(&settings).await);
     }
 }
