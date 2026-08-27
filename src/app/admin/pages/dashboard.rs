@@ -1,4 +1,5 @@
 use super::super::{
+    admin_path_for_slug,
     components::{Affordance, EntryIcon, Icon, InfoList, InfoRow, LogoutForm},
     server_functions::SessionUser,
 };
@@ -21,7 +22,7 @@ pub fn DashboardPage() -> impl IntoView {
             let words = project.description.as_str().split_whitespace().count();
             let links = project.links.len();
             let link_label = if links == 1 { "link" } else { "links" };
-            let href = format!("/admin/project/{}", project.slug);
+            let href = admin_path_for_slug(&project.slug);
             let path = project.path();
             view! {
                 <EntryLink href label=project.title icon=EntryIcon::Project>

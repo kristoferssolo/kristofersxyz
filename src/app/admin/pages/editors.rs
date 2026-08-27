@@ -1,4 +1,5 @@
 use super::super::{
+    admin_path_for_slug,
     components::{EditorLayout, MarkdownEditor, SaveButton, TextArea, TextInput, action_error},
     error::AdminError,
     server_functions::{SaveContact, SaveProfile, SaveProject, SaveSite},
@@ -42,7 +43,7 @@ pub fn ProjectEditorPage() -> impl IntoView {
                 |project| {
                     let action = ServerAction::<SaveProject>::new();
                     follow_save(action, portfolio);
-                    let active = format!("/admin/project/{}", project.slug);
+                    let active = admin_path_for_slug(&project.slug);
                     let breadcrumb = format!("Admin / {}", project.slug);
                     view! {
                         <Title text="Edit project" />

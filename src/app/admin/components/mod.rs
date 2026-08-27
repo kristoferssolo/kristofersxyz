@@ -1,5 +1,5 @@
 use crate::app::{
-    admin::{error::AdminError, server_functions::Logout},
+    admin::{admin_path_for_slug, error::AdminError, server_functions::Logout},
     content::Portfolio,
     layout::{CollapsibleSidebar, CommandShell, SidebarPreference},
     markdown,
@@ -201,7 +201,7 @@ fn EditorNavigation(active: String) -> impl IntoView {
             view! {
                 <NavigationLink
                     active=active.clone()
-                    href=format!("/admin/project/{}", project.slug)
+                    href=admin_path_for_slug(&project.slug)
                     label=project.title
                     icon=EntryIcon::Project
                 />
