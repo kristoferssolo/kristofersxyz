@@ -61,7 +61,7 @@ test:
 # Measure the current Argon2 policy on production-equivalent hardware
 [group("dev")]
 benchmark-auth:
-    cargo bench --no-default-features --features ssr --bench authentication
+    cargo bench --no-default-features --features ssr,benchmarks --bench authentication
 
 # Clean build artifacts
 [group("dev")]

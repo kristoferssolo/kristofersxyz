@@ -40,6 +40,7 @@ unicode-segmentation = "1"
 config = { version = "0.15", default-features = false, features = [
   "toml",
 ], optional = true }
+criterion = { version = "0.8", optional = true }
 dotenvy = { version = "0.15", optional = true }
 thiserror = "2.0"
 arc-swap = { version = "1", optional = true }
@@ -60,6 +61,7 @@ tower-sessions = { version = "0.15", optional = true }
 time = { version = "0.3", optional = true }
 
 [features]
+benchmarks = ["dep:criterion"]
 hydrate = ["leptos/hydrate", "dep:console_error_panic_hook", "dep:wasm-bindgen"]
 ssr = [
   "leptos/ssr",
@@ -87,7 +89,6 @@ ssr = [
 
 [dev-dependencies]
 claims = "0.8"
-criterion = "0.8.2"
 rstest = "0.26"
 tempfile = "3"
 tower = { version = "0.5", features = ["util"] }
@@ -95,7 +96,7 @@ tower = { version = "0.5", features = ["util"] }
 [[bench]]
 name = "authentication"
 harness = false
-required-features = ["ssr"]
+required-features = ["ssr", "benchmarks"]
 
 [lints.clippy]
 large_futures = "allow"
