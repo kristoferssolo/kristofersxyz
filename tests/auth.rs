@@ -13,6 +13,7 @@ use kristofersxyz::{
     admin_cli::set_password,
     authentication::Password,
     configuration::{DatabaseSettings, DeploymentMode, HttpSettings, PublicOrigin, Settings},
+    db,
     domain::Username,
     router::route,
     startup::App,
@@ -370,6 +371,54 @@ async fn changing_the_password_invalidates_existing_sessions() {
         .await
         .expect("try the replacement password");
     assert_eq!(new_password.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn deleting_the_owner_invalidates_an_existing_session() {
+    let (router, database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+    let pool = db::connect(&settings_for(&database).database.url)
+        .await
+        .expect("connect to the database");
+    sqlx::query!("DELETE FROM users")
+        .execute(&pool)
+        .await
+        .expect("delete the owner");
+
+    let response = router
+        .oneshot(get_request("/admin", Some(&cookie)))
+        .await
+        .expect("send the old session");
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(response.headers()[header::LOCATION], "/login");
+
+    let sessions = sqlx::query_scalar!("SELECT COUNT(*) FROM sessions")
+        .fetch_one(&pool)
+        .await
+        .expect("count sessions");
+    assert_eq!(sessions, 0);
+}
+
+#[tokio::test]
+async fn a_new_login_replaces_the_previous_session() {
+    let (router, _database) = app_with_owner().await;
+    let first_cookie = sign_in(&router).await;
+    let second_cookie = sign_in(&router).await;
+    assert_ne!(first_cookie, second_cookie);
+
+    let first = router
+        .clone()
+        .oneshot(get_request("/admin", Some(&first_cookie)))
+        .await
+        .expect("send the first session");
+    assert_eq!(first.status(), StatusCode::FOUND);
+    assert_eq!(first.headers()[header::LOCATION], "/login");
+
+    let second = router
+        .oneshot(get_request("/admin", Some(&second_cookie)))
+        .await
+        .expect("send the second session");
+    assert_eq!(second.status(), StatusCode::OK);
 }
 
 #[tokio::test]

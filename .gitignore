@@ -22,7 +22,7 @@ end2end/playwright-report/
 playwright/.cache/
 
 # Local design artifacts
-public/mocks/
+mocks/
 public/og.png
 
 .env

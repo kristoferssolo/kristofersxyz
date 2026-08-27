@@ -110,7 +110,7 @@ pub async fn login(username: String, password: String) -> Result<(), AdminError>
     };
     tracing::Span::current().record("owner_id", tracing::field::display(owner_id));
     session
-        .sign_in(owner_id, username)
+        .sign_in(&state.pool, owner_id, username)
         .await
         .map_err(|_| AdminError::Internal)?;
     redirect("/admin");
