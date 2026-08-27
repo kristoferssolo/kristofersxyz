@@ -1,10 +1,12 @@
+mod csrf;
+
 use crate::{
     app::{App, content::server_content, shell},
     db::DbPool,
     sessions::SqliteSessionStore,
     startup::AppState,
 };
-use axum::Router;
+use axum::{Router, middleware};
 use leptos_axum::{LeptosRoutes, file_and_error_handler, generate_route_list};
 use time::Duration;
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::SameSite};
@@ -21,6 +23,10 @@ pub fn route(state: AppState) -> Router {
             shell(options, server_content().as_ref())
         }))
         .layer(session_layer(state.pool.clone(), state.secure_cookie))
+        .layer(middleware::from_fn_with_state(
+            state.public_origin.clone(),
+            csrf::verify_origin,
+        ))
         .with_state(state)
 }
 

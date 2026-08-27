@@ -38,8 +38,10 @@ just check    # fmt, clippy, sqruff, docs, test
 just end2end  # Playwright
 ```
 
-`DATABASE_URL` selects the SQLite database. Startup applies migrations and
-loads the portfolio content before serving requests.
+`DATABASE_URL` selects the SQLite database. `PUBLIC_ORIGIN` is the exact
+scheme, host, and optional port accepted for state-changing browser requests,
+for example `http://localhost:3000` during local development. Startup applies
+migrations and loads the portfolio content before serving requests.
 
 ## License
 

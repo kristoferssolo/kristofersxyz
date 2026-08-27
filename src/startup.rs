@@ -1,6 +1,10 @@
 use crate::{
-    authentication::LoginThrottle, configuration::Settings, db, db::DbPool,
-    errors::ApplicationError, router::route,
+    authentication::LoginThrottle,
+    configuration::{PublicOrigin, Settings},
+    db,
+    db::DbPool,
+    errors::ApplicationError,
+    router::route,
 };
 use axum::extract::FromRef;
 use leptos::{config::errors::LeptosConfigError, prelude::*};
@@ -31,6 +35,7 @@ pub struct App {
     /// Cookie policy used when the router builds its session layer.
     pub secure_cookie: bool,
     pub login_throttle: LoginThrottle,
+    pub public_origin: PublicOrigin,
 }
 
 pub type AppState = App;
@@ -64,6 +69,7 @@ impl App {
             leptos_options,
             secure_cookie: settings.session.secure_cookie,
             login_throttle: LoginThrottle::default(),
+            public_origin: settings.http.public_origin.clone(),
         })
     }
 }
@@ -121,7 +127,7 @@ impl Application {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::configuration::{DatabaseSettings, SessionSettings};
+    use crate::configuration::{DatabaseSettings, HttpSettings, PublicOrigin, SessionSettings};
     use claims::assert_ok;
     use tempfile::NamedTempFile;
 
@@ -131,6 +137,11 @@ mod tests {
         let settings = Settings {
             database: DatabaseSettings {
                 url: format!("sqlite://{}", database.path().display()),
+            },
+            http: HttpSettings {
+                public_origin: "http://localhost:3000"
+                    .parse::<PublicOrigin>()
+                    .expect("the test origin is valid"),
             },
             session: SessionSettings {
                 secure_cookie: false,

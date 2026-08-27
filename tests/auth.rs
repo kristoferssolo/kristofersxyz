@@ -12,7 +12,7 @@ use axum::{
 use kristofersxyz::{
     admin_cli::set_password,
     authentication::Password,
-    configuration::{DatabaseSettings, SessionSettings, Settings},
+    configuration::{DatabaseSettings, HttpSettings, PublicOrigin, SessionSettings, Settings},
     domain::Username,
     router::route,
     startup::App,
@@ -22,6 +22,7 @@ use tower::ServiceExt;
 
 const TEST_PEER: std::net::SocketAddr =
     std::net::SocketAddr::new(std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST), 41_000);
+const TEST_ORIGIN: &str = "http://localhost:3000";
 
 fn username(value: &str) -> Username {
     Username::new(value.to_owned())
@@ -39,6 +40,11 @@ async fn app_with_owner() -> (Router, NamedTempFile) {
         database: DatabaseSettings {
             url: format!("sqlite://{}", database.path().display()),
         },
+        http: HttpSettings {
+            public_origin: "http://localhost:3000"
+                .parse::<PublicOrigin>()
+                .expect("the test origin is valid"),
+        },
         session: SessionSettings {
             secure_cookie: false,
         },
@@ -51,8 +57,9 @@ async fn app_with_owner() -> (Router, NamedTempFile) {
 }
 
 fn form_post(uri: &str, body: &str, cookie: Option<&str>) -> Request<Body> {
-    let mut builder =
-        Request::post(uri).header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
+    let mut builder = Request::post(uri)
+        .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .header(header::ORIGIN, TEST_ORIGIN);
     if let Some(cookie) = cookie {
         builder = builder.header(header::COOKIE, cookie);
     }
@@ -137,6 +144,65 @@ async fn wrong_credentials_are_rejected() {
         .await
         .expect("send the login");
 
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn unsafe_requests_require_the_canonical_origin() {
+    let (router, _database) = app_with_owner().await;
+    let requests = [
+        login_request("owner", "wrong"),
+        form_post("/api/logout", "", None),
+        project_edit("traxor", "Title", "Summary", "Body", None),
+        form_post(
+            "/api/save_profile",
+            "name=Name&title=Title&summary=Summary&about=About&email=me%40example.com",
+            None,
+        ),
+        form_post("/api/save_contact", "name=Name&body=Body", None),
+        form_post(
+            "/api/save_site",
+            "url=https%3A%2F%2Fexample.com&title=Title&description=Description&og_image=%2Fog.png",
+            None,
+        ),
+    ];
+
+    for mut request in requests {
+        request.headers_mut().insert(
+            header::ORIGIN,
+            "https://attacker.example".parse().expect("header"),
+        );
+        let response = router
+            .clone()
+            .oneshot(request)
+            .await
+            .expect("send a cross-origin request");
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    }
+
+    let mut missing = login_request("owner", "wrong");
+    missing.headers_mut().remove(header::ORIGIN);
+    let response = router
+        .oneshot(missing)
+        .await
+        .expect("send a request without origin proof");
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn same_origin_referer_is_accepted_when_origin_is_absent() {
+    let (router, _database) = app_with_owner().await;
+    let mut request = login_request("owner", "wrong");
+    request.headers_mut().remove(header::ORIGIN);
+    request.headers_mut().insert(
+        header::REFERER,
+        "http://localhost:3000/login".parse().expect("header"),
+    );
+
+    let response = router
+        .oneshot(request)
+        .await
+        .expect("send a same-origin request");
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
