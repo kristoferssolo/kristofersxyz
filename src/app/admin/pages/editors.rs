@@ -1,6 +1,9 @@
 use super::super::{
     admin_path_for_slug,
-    components::{EditorLayout, MarkdownEditor, SaveButton, TextArea, TextInput, action_error},
+    components::{
+        EditorLayout, Eyebrow, MarkdownEditor, PageHeading, SaveButton, TextArea, TextInput,
+        action_error,
+    },
     error::AdminError,
     server_functions::{SaveContact, SaveProfile, SaveProject, SaveSite},
 };
@@ -149,8 +152,8 @@ fn MissingProject() -> impl IntoView {
         <CommandShell filename="admin/project">
         <main class="relative flex h-full flex-col overflow-x-hidden overflow-y-auto bg-black px-[3.25rem] py-12 font-mono text-[#d4d7db]">
             <div class="mx-auto w-full max-w-[760px]">
-                <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">"Admin"</p>
-                <h1 class="mt-[.7rem] font-sans text-2xl font-semibold text-white">"No such project"</h1>
+                <Eyebrow>"Admin"</Eyebrow>
+                <PageHeading>"No such project"</PageHeading>
                 <p class="mt-[.6rem] text-[13px] leading-[1.6] text-[#8b939d]">"There is no editable project at this path."</p>
                 <A href="/admin">"Back to admin"</A>
             </div>

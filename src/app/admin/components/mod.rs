@@ -8,6 +8,20 @@ use leptos::{form::ActionForm, prelude::*};
 use leptos_router::components::A;
 use lucide_leptos::{Box as BoxIcon, ChevronRight, Globe, Mail, User};
 
+#[component]
+pub fn Eyebrow(children: Children) -> impl IntoView {
+    view! {
+        <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">{children()}</p>
+    }
+}
+
+#[component]
+pub fn PageHeading(children: Children) -> impl IntoView {
+    view! {
+        <h1 class="mt-[.7rem] font-sans text-2xl font-semibold text-white">{children()}</h1>
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum EntryIcon {
     Project,
@@ -159,12 +173,8 @@ pub fn EditorLayout(
             >
                 <main class="relative flex h-full flex-col overflow-x-hidden overflow-y-auto px-[3.25rem] py-12">
                     <div class=wrap>
-                        <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">
-                            {breadcrumb}
-                        </p>
-                        <h1 class="mt-[.7rem] font-sans text-2xl font-semibold text-white">
-                            {heading}
-                        </h1>
+                        <Eyebrow>{breadcrumb}</Eyebrow>
+                        <PageHeading>{heading}</PageHeading>
                         {children()}
                     </div>
                 </main>
@@ -211,12 +221,12 @@ fn EditorNavigation(active: String) -> impl IntoView {
 
     view! {
         <aside class="flex min-h-0 flex-col border-b border-[#1e2126] px-9 py-12 md:h-full md:border-r md:border-b-0">
-            <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">
+            <Eyebrow>
                 <A href="/admin" attr:class="text-inherit no-underline hover:text-[#8b939d]">
                     "Admin"
                 </A>
-            </p>
-            <h1 class="mt-[.7rem] font-sans text-2xl font-semibold text-white">"Edit"</h1>
+            </Eyebrow>
+            <PageHeading>"Edit"</PageHeading>
             <p class="mt-8 mb-[.8rem] text-[10px] tracking-[.2em] text-[#767d87] uppercase">
                 "Projects"
             </p>

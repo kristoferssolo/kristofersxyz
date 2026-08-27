@@ -1,5 +1,5 @@
 use super::super::{
-    components::{FormButton, InfoList, InfoRow, TextInput, action_error},
+    components::{Eyebrow, FormButton, InfoList, InfoRow, PageHeading, TextInput, action_error},
     server_functions::Login,
 };
 use crate::app::{content::Portfolio, layout::CommandShell};
@@ -36,8 +36,8 @@ pub fn LoginPage() -> impl IntoView {
         <CommandShell filename="login">
         <div class="grid h-full grid-cols-1 overflow-hidden bg-black font-mono text-[#d4d7db] min-[721px]:grid-cols-[360px_1fr]">
             <aside class="flex min-h-0 flex-col overflow-y-auto px-9 py-12 min-[721px]:border-r min-[721px]:border-[#1e2126]">
-                <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">"Admin"</p>
-                <h1 class="mt-[.7rem] font-sans text-2xl font-semibold text-white">"Sign in"</h1>
+                <Eyebrow>"Admin"</Eyebrow>
+                <PageHeading>"Sign in"</PageHeading>
                 <p class="mt-[.6rem] text-[13px] leading-[1.6] text-[#8b939d]">"The editing surface for the portfolio. Owner access only."</p>
                 <ActionForm action=login attr:class="mt-[2.2rem]">
                     <TextInput

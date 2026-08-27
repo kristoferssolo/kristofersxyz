@@ -1,6 +1,8 @@
 use super::super::{
     admin_path_for_slug,
-    components::{Affordance, EntryIcon, Icon, InfoList, InfoRow, LogoutForm},
+    components::{
+        Affordance, EntryIcon, Eyebrow, Icon, InfoList, InfoRow, LogoutForm, PageHeading,
+    },
     server_functions::SessionUser,
 };
 use crate::app::{content::Portfolio, layout::CommandShell};
@@ -43,8 +45,8 @@ pub fn DashboardPage() -> impl IntoView {
         <CommandShell filename="admin">
         <div class="grid h-full grid-cols-[320px_1fr] overflow-hidden bg-black font-mono text-[#d4d7db]">
             <aside class="flex min-h-0 flex-col overflow-y-auto border-r border-[#1e2126] px-9 py-12">
-                <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">"Admin"</p>
-                <h1 class="mt-[.7rem] font-sans text-2xl font-semibold text-white">"Signed in"</h1>
+                <Eyebrow>"Admin"</Eyebrow>
+                <PageHeading>"Signed in"</PageHeading>
                 <p class="mt-[.6rem] text-[13px] leading-[1.6] text-[#8b939d]">"Owner session. Pick an entry to edit."</p>
                 <p class="mt-8 mb-[.8rem] text-[10px] tracking-[.2em] text-[#767d87] uppercase">"Session"</p>
                 <InfoList
@@ -68,9 +70,9 @@ pub fn DashboardPage() -> impl IntoView {
                 </div>
             </aside>
             <main class="relative flex flex-col overflow-x-hidden overflow-y-auto px-[3.25rem] py-12">
-                <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">"Projects"</p>
+                <Eyebrow>"Projects"</Eyebrow>
                 <ul class="mt-[1.4rem] max-w-[720px] list-none p-0 [&>li]:border-b [&>li]:border-[#1e2126]">{projects}</ul>
-                <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">"Site"</p>
+                <Eyebrow>"Site"</Eyebrow>
                 <ul class="mt-[1.4rem] max-w-[720px] list-none p-0 [&>li]:border-b [&>li]:border-[#1e2126]">
                     <EntryLink href="/admin/profile".to_owned() label="Profile".to_owned() icon=EntryIcon::Profile>
                         <p class="mt-[.6rem] text-[11px] tracking-[.04em] text-[#767d87]">"name, title, summary, about, email"</p>
