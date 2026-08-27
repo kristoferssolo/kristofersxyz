@@ -12,19 +12,6 @@ use leptos::{form::ActionForm, prelude::*};
 use leptos_meta::Title;
 use leptos_router::{NavigateOptions, components::A, hooks::use_navigate, hooks::use_params_map};
 
-macro_rules! editor_form {
-    ($action:expr, $($field:tt)*) => {{
-        let error = action_error($action);
-        view! {
-            <ActionForm action=$action attr:class="mt-[2.2rem]">
-                $($field)*
-                {error}
-                <SaveButton />
-            </ActionForm>
-        }
-    }};
-}
-
 /// The project editor selected by the route slug.
 #[component]
 pub fn ProjectEditorPage() -> impl IntoView {
@@ -48,16 +35,18 @@ pub fn ProjectEditorPage() -> impl IntoView {
                     follow_save(action, portfolio);
                     let active = admin_path_for_slug(&project.slug);
                     let breadcrumb = format!("Admin / {}", project.slug);
+                    let error = action_error(action);
                     view! {
                         <Title text="Edit project" />
                         <EditorLayout active heading="Edit project" breadcrumb wide=true>
-                            {editor_form!(
-                                action,
+                            <ActionForm action attr:class="mt-[2.2rem]">
                                 <input type="hidden" name="slug" value=project.slug.to_string() />
                                 <TextInput label="Title" name="title" value=project.title />
                                 <TextInput label="Summary" name="summary" value=project.summary />
                                 <MarkdownEditor value=project.description.as_str().to_owned() />
-                            )}
+                                {error}
+                                <SaveButton />
+                            </ActionForm>
                         </EditorLayout>
                     }
                     .into_any()
@@ -73,17 +62,19 @@ pub fn ProfileEditorPage() -> impl IntoView {
     let profile = portfolio.current().profile;
     let action = ServerAction::<SaveProfile>::new();
     follow_save(action, portfolio);
+    let error = action_error(action);
     view! {
         <Title text="Edit profile" />
         <EditorLayout active="/admin/profile".to_owned() heading="Edit profile" breadcrumb="Admin / profile".to_owned() wide=false>
-            {editor_form!(
-                action,
+            <ActionForm action attr:class="mt-[2.2rem]">
                 <TextInput label="Name" name="name" value=profile.name />
                 <TextInput label="Title" name="title" value=profile.title />
                 <TextInput label="Summary" name="summary" value=profile.summary />
                 <TextArea label="About" name="about" value=profile.about />
                 <TextInput label="Email" name="email" value=profile.email />
-            )}
+                {error}
+                <SaveButton />
+            </ActionForm>
         </EditorLayout>
     }
 }
@@ -95,14 +86,16 @@ pub fn ContactEditorPage() -> impl IntoView {
     let contact = portfolio.current().contact;
     let action = ServerAction::<SaveContact>::new();
     follow_save(action, portfolio);
+    let error = action_error(action);
     view! {
         <Title text="Edit contact" />
         <EditorLayout active="/admin/contact".to_owned() heading="Edit contact" breadcrumb="Admin / contact".to_owned() wide=false>
-            {editor_form!(
-                action,
+            <ActionForm action attr:class="mt-[2.2rem]">
                 <TextInput label="Name" name="name" value=contact.name />
                 <TextArea label="Body" name="body" value=contact.body />
-            )}
+                {error}
+                <SaveButton />
+            </ActionForm>
         </EditorLayout>
     }
 }
@@ -114,16 +107,18 @@ pub fn SiteEditorPage() -> impl IntoView {
     let site = portfolio.current().site;
     let action = ServerAction::<SaveSite>::new();
     follow_save(action, portfolio);
+    let error = action_error(action);
     view! {
         <Title text="Edit site metadata" />
         <EditorLayout active="/admin/site".to_owned() heading="Edit site metadata" breadcrumb="Admin / site".to_owned() wide=false>
-            {editor_form!(
-                action,
+            <ActionForm action attr:class="mt-[2.2rem]">
                 <TextInput label="URL" name="url" value=site.url />
                 <TextInput label="Title" name="title" value=site.title />
                 <TextInput label="Description" name="description" value=site.description />
                 <TextInput label="OpenGraph image" name="og_image" value=site.og_image />
-            )}
+                {error}
+                <SaveButton />
+            </ActionForm>
         </EditorLayout>
     }
 }
