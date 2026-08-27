@@ -3,7 +3,7 @@
 //! Constructors validate the route slug and require a non-empty description
 //! before persistence or rendering can use a Project.
 
-use serde::{Deserialize, Deserializer, Serialize, de};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::{fmt, str::FromStr};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -20,7 +20,13 @@ impl Project {
     /// The canonical public route for this project.
     #[must_use]
     pub fn path(&self) -> String {
-        format!("/work/{}", self.slug)
+        Self::path_for_slug(&self.slug)
+    }
+
+    /// Builds the canonical public route from a validated project slug.
+    #[must_use]
+    pub fn path_for_slug(slug: &ProjectSlug) -> String {
+        format!("/work/{slug}")
     }
 }
 
@@ -76,9 +82,7 @@ impl<'de> Deserialize<'de> for ProjectSlug {
     where
         D: Deserializer<'de>,
     {
-        String::deserialize(deserializer)?
-            .parse()
-            .map_err(de::Error::custom)
+        crate::serde_helpers::deserialize_from_str(deserializer)
     }
 }
 
@@ -122,9 +126,7 @@ impl<'de> Deserialize<'de> for ProjectDescription {
     where
         D: Deserializer<'de>,
     {
-        String::deserialize(deserializer)?
-            .parse()
-            .map_err(de::Error::custom)
+        crate::serde_helpers::deserialize_from_str(deserializer)
     }
 }
 
@@ -161,14 +163,10 @@ mod tests {
     #[test]
     fn project_path_uses_the_validated_slug() {
         let project = Project {
-            slug: "guenther"
-                .parse()
-                .unwrap_or_else(|error| panic!("invalid project slug in test fixture: {error}")),
+            slug: crate::test_support::parse("guenther"),
             title: "guenther".to_owned(),
             summary: "Telegram media bot".to_owned(),
-            description: "# What it solves".parse().unwrap_or_else(|error| {
-                panic!("invalid project description in test fixture: {error}")
-            }),
+            description: crate::test_support::parse("# What it solves"),
             technologies: vec!["Rust".to_owned()],
             links: Vec::new(),
         };

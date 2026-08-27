@@ -1,9 +1,7 @@
-#[cfg(test)]
-use crate::app::editor::Buffer;
 use crate::{
     app::{
         content::{FocusArea, PortfolioContent, Profile, SocialLink},
-        editor::{EntryId, SectionId},
+        editor::{Buffer, EntryId, SectionId},
     },
     domain::ProjectLink,
 };
@@ -84,44 +82,55 @@ pub struct Entry {
     pub links: Links,
 }
 
-/// Flattens the portfolio into the buffer's line list, in the same order and
-/// under the same ids as the editor's own [`Buffer`].
+/// Builds the rendered entries in the same order and under the same ids as the
+/// editor's [`Buffer`].
 pub fn entries(content: &PortfolioContent) -> Vec<Entry> {
-    let profile = &content.profile;
-    let mut entries = vec![Entry {
-        id: EntryId::Profile,
-        section: SectionId::Profile,
-        name: profile.name.clone(),
-        lead: Some(profile.title.clone()),
-        body: profile.about.clone(),
-        focus: profile.working_style.clone(),
-        meta: profile.technologies.clone(),
-        links: Links::Social(profile.links.clone()),
-    }];
+    Buffer::from_content(content)
+        .entries()
+        .iter()
+        .filter_map(|buffer_entry| {
+            let id = buffer_entry.id.clone();
+            let section = buffer_entry.section;
+            let name = buffer_entry.name.clone();
 
-    entries.extend(content.projects.iter().map(|project| Entry {
-        id: EntryId::Project(project.slug.clone()),
-        section: SectionId::Work,
-        name: project.title.clone(),
-        lead: None,
-        body: project.summary.clone(),
-        focus: Vec::new(),
-        meta: project.technologies.clone(),
-        links: Links::Project(project.links.clone()),
-    }));
-
-    entries.push(Entry {
-        id: EntryId::Contact,
-        section: SectionId::Contact,
-        name: content.contact.name.clone(),
-        lead: None,
-        body: content.contact.body.clone(),
-        focus: Vec::new(),
-        meta: Vec::new(),
-        links: Links::Contact(profile.clone()),
-    });
-
-    entries
+            match &id {
+                EntryId::Profile => Some(Entry {
+                    id,
+                    section,
+                    name,
+                    lead: Some(content.profile.title.clone()),
+                    body: content.profile.about.clone(),
+                    focus: content.profile.working_style.clone(),
+                    meta: content.profile.technologies.clone(),
+                    links: Links::Social(content.profile.links.clone()),
+                }),
+                EntryId::Project(slug) => content
+                    .projects
+                    .iter()
+                    .find(|project| &project.slug == slug)
+                    .map(|project| Entry {
+                        id,
+                        section,
+                        name,
+                        lead: None,
+                        body: project.summary.clone(),
+                        focus: Vec::new(),
+                        meta: project.technologies.clone(),
+                        links: Links::Project(project.links.clone()),
+                    }),
+                EntryId::Contact => Some(Entry {
+                    id,
+                    section,
+                    name,
+                    lead: None,
+                    body: content.contact.body.clone(),
+                    focus: Vec::new(),
+                    meta: Vec::new(),
+                    links: Links::Contact(content.profile.clone()),
+                }),
+            }
+        })
+        .collect()
 }
 
 /// The profile pane's explicit next steps, ordered by what a hiring reader
@@ -160,9 +169,7 @@ mod tests {
     use claims::{assert_none, assert_some_eq};
 
     fn project_slug(value: &str) -> ProjectSlug {
-        value
-            .parse()
-            .unwrap_or_else(|error| panic!("invalid test project slug: {error}"))
+        crate::test_support::parse(value)
     }
 
     #[test]

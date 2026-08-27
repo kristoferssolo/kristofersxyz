@@ -26,7 +26,13 @@ pub fn SiteMeta() -> impl IntoView {
         );
         let url = project.map_or_else(
             || content.site.url.clone(),
-            |project| format!("{}work/{}", content.site.url, project.slug),
+            |project| {
+                format!(
+                    "{}{}",
+                    content.site.url.trim_end_matches('/'),
+                    project.path()
+                )
+            },
         );
         let page_type = if project.is_some() {
             "article"
