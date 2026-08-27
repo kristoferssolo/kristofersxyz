@@ -1,4 +1,7 @@
-use serde::{Deserialize, Deserializer, Serialize};
+use crate::serde_helpers::impl_deserialize_from_str;
+#[cfg(feature = "ssr")]
+use serde::Deserialize;
+use serde::Serialize;
 use std::{fmt, str::FromStr};
 use unicode_segmentation::UnicodeSegmentation;
 #[cfg(feature = "ssr")]
@@ -72,14 +75,7 @@ impl TryFrom<&str> for Username {
     }
 }
 
-impl<'de> Deserialize<'de> for Username {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        crate::serde_helpers::deserialize_from_str(deserializer)
-    }
-}
+impl_deserialize_from_str!(Username);
 
 impl fmt::Display for Username {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {

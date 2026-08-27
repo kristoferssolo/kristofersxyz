@@ -3,7 +3,8 @@
 //! Constructors validate the route slug and require a non-empty description
 //! before persistence or rendering can use a Project.
 
-use serde::{Deserialize, Deserializer, Serialize};
+use crate::serde_helpers::impl_deserialize_from_str;
+use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -77,14 +78,7 @@ impl FromStr for ProjectSlug {
     }
 }
 
-impl<'de> Deserialize<'de> for ProjectSlug {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        crate::serde_helpers::deserialize_from_str(deserializer)
-    }
-}
+impl_deserialize_from_str!(ProjectSlug);
 
 #[derive(Clone, Debug, Eq, PartialEq, thiserror::Error)]
 pub enum ProjectSlugError {
@@ -121,14 +115,7 @@ impl FromStr for ProjectDescription {
     }
 }
 
-impl<'de> Deserialize<'de> for ProjectDescription {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        crate::serde_helpers::deserialize_from_str(deserializer)
-    }
-}
+impl_deserialize_from_str!(ProjectDescription);
 
 #[derive(Clone, Debug, Eq, PartialEq, thiserror::Error)]
 pub enum ProjectDescriptionError {
