@@ -54,6 +54,7 @@ pub async fn set_password(
     let pool = db::connect(&settings.database.url).await?;
     db::migrate(&pool).await?;
 
+    let mut transaction = pool.begin().await?;
     sqlx::query!(
         "INSERT INTO users (user_id, username, password_hash) VALUES (?1, ?2, ?3)
          ON CONFLICT(username) DO UPDATE SET password_hash = excluded.password_hash",
@@ -61,8 +62,12 @@ pub async fn set_password(
         username.as_str(),
         hash.expose_secret()
     )
-    .execute(&pool)
+    .execute(&mut *transaction)
     .await?;
+    sqlx::query!("DELETE FROM sessions")
+        .execute(&mut *transaction)
+        .await?;
+    transaction.commit().await?;
 
     Ok(())
 }
@@ -148,5 +153,81 @@ mod tests {
 
         assert_err!(validate_credentials(credentials("owner", "first pw"), &pool).await);
         assert_ok!(validate_credentials(credentials("owner", "second pw"), &pool).await);
+    }
+
+    #[tokio::test]
+    async fn changing_a_password_revokes_every_session() {
+        let database = NamedTempFile::new().expect("create a temporary database");
+        let settings = settings_for(&database);
+        let username = assert_ok!(Username::new("owner".to_owned()));
+
+        set_password(
+            &settings,
+            &username,
+            &assert_ok!(Password::try_from("first password".to_owned())),
+        )
+        .await
+        .expect("create the user");
+        let pool = db::connect(&settings.database.url).await.expect("connect");
+        sqlx::query!(
+            "INSERT INTO sessions (id, data, expiry_date) VALUES ('active', '{}', 4102444800)"
+        )
+        .execute(&pool)
+        .await
+        .expect("insert an active session");
+
+        set_password(
+            &settings,
+            &username,
+            &assert_ok!(Password::try_from("second password".to_owned())),
+        )
+        .await
+        .expect("replace the password");
+
+        let sessions = sqlx::query_scalar!("SELECT COUNT(*) FROM sessions")
+            .fetch_one(&pool)
+            .await
+            .expect("count sessions");
+        assert_eq!(sessions, 0);
+    }
+
+    #[tokio::test]
+    async fn failed_session_revocation_rolls_back_the_password() {
+        let database = NamedTempFile::new().expect("create a temporary database");
+        let settings = settings_for(&database);
+        let username = assert_ok!(Username::new("owner".to_owned()));
+
+        set_password(
+            &settings,
+            &username,
+            &assert_ok!(Password::try_from("first password".to_owned())),
+        )
+        .await
+        .expect("create the user");
+        let pool = db::connect(&settings.database.url).await.expect("connect");
+        sqlx::query!(
+            "INSERT INTO sessions (id, data, expiry_date) VALUES ('active', '{}', 4102444800)"
+        )
+        .execute(&pool)
+        .await
+        .expect("insert an active session");
+        sqlx::query!(
+            "CREATE TRIGGER reject_session_deletion BEFORE DELETE ON sessions
+             BEGIN SELECT RAISE(ABORT, 'session deletion rejected'); END"
+        )
+        .execute(&pool)
+        .await
+        .expect("install the failure trigger");
+
+        assert_err!(
+            set_password(
+                &settings,
+                &username,
+                &assert_ok!(Password::try_from("second password".to_owned())),
+            )
+            .await
+        );
+        assert_ok!(validate_credentials(credentials("owner", "first password"), &pool).await);
+        assert_err!(validate_credentials(credentials("owner", "second password"), &pool).await);
     }
 }

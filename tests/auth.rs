@@ -36,7 +36,16 @@ fn password(value: &str) -> Password {
 
 async fn app_with_owner() -> (Router, NamedTempFile) {
     let database = NamedTempFile::new().expect("create a temporary database");
-    let settings = Settings {
+    let settings = settings_for(&database);
+    set_password(&settings, &username("owner"), &password("s3cret"))
+        .await
+        .expect("create the owner");
+    let app = App::new(&settings).await.expect("build the application");
+    (route(app), database)
+}
+
+fn settings_for(database: &NamedTempFile) -> Settings {
+    Settings {
         database: DatabaseSettings {
             url: format!("sqlite://{}", database.path().display()),
         },
@@ -48,12 +57,7 @@ async fn app_with_owner() -> (Router, NamedTempFile) {
         session: SessionSettings {
             secure_cookie: false,
         },
-    };
-    set_password(&settings, &username("owner"), &password("s3cret"))
-        .await
-        .expect("create the owner");
-    let app = App::new(&settings).await.expect("build the application");
-    (route(app), database)
+    }
 }
 
 fn form_post(uri: &str, body: &str, cookie: Option<&str>) -> Request<Body> {
@@ -288,6 +292,41 @@ async fn logout_invalidates_the_owner_session() {
         .expect("send the old session");
     assert_eq!(admin.status(), StatusCode::FOUND);
     assert_eq!(admin.headers()[header::LOCATION], "/login");
+}
+
+#[tokio::test]
+async fn changing_the_password_invalidates_existing_sessions() {
+    let (router, database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    set_password(
+        &settings_for(&database),
+        &username("owner"),
+        &password("replacement password"),
+    )
+    .await
+    .expect("replace the owner password");
+
+    let old_session = router
+        .clone()
+        .oneshot(get_request("/admin", Some(&cookie)))
+        .await
+        .expect("send the old session");
+    assert_eq!(old_session.status(), StatusCode::FOUND);
+    assert_eq!(old_session.headers()[header::LOCATION], "/login");
+
+    let old_password = router
+        .clone()
+        .oneshot(login_request("owner", "s3cret"))
+        .await
+        .expect("try the old password");
+    assert_eq!(old_password.status(), StatusCode::UNAUTHORIZED);
+
+    let new_password = router
+        .oneshot(login_request("owner", "replacement password"))
+        .await
+        .expect("try the replacement password");
+    assert_eq!(new_password.status(), StatusCode::OK);
 }
 
 #[tokio::test]
