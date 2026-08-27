@@ -7,6 +7,7 @@ use crate::app::{
 use leptos::{form::ActionForm, prelude::*};
 use leptos_router::components::A;
 use lucide_leptos::{Box as BoxIcon, ChevronRight, Globe, Mail, User};
+use std::time::Duration;
 
 #[component]
 pub fn Eyebrow(children: Children) -> impl IntoView {
@@ -136,10 +137,48 @@ where
     ServerFn::Output: Clone + Send + Sync + 'static,
 {
     move || {
-        action.value().get().and_then(Result::err).map(
-            |error| view! { <p class="mt-[1.2rem] text-xs text-[#e2a340]">{error.to_string()}</p> },
-        )
+        action
+            .value()
+            .get()
+            .and_then(Result::err)
+            .map(|error| view! { <ActionError error /> })
     }
+}
+
+#[component]
+fn ActionError(error: AdminError) -> impl IntoView {
+    let message = match error {
+        AdminError::TooManyAttempts {
+            retry_after_seconds,
+        } => {
+            let remaining = RwSignal::new(retry_after_seconds);
+
+            if let Ok(interval) = set_interval_with_handle(
+                move || remaining.update(|seconds| *seconds = seconds.saturating_sub(1)),
+                Duration::from_secs(1),
+            ) {
+                let cleanup_interval = interval;
+                on_cleanup(move || cleanup_interval.clear());
+                set_timeout(
+                    move || {
+                        remaining.set(0);
+                        interval.clear();
+                    },
+                    Duration::from_secs(retry_after_seconds),
+                );
+            }
+
+            Signal::derive(move || rate_limit_message(remaining.get()))
+        }
+        error => Signal::derive(move || error.to_string()),
+    };
+
+    view! { <p class="mt-[1.2rem] text-xs text-[#e2a340]">{move || message.get()}</p> }
+}
+
+fn rate_limit_message(seconds: u64) -> String {
+    let unit = if seconds == 1 { "second" } else { "seconds" };
+    format!("Too many sign-in attempts. Try again in {seconds} {unit}.")
 }
 
 #[component]
