@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 pub enum AdminError {
     #[error("Invalid username or password.")]
     InvalidCredentials,
+    #[error("Too many sign-in attempts. Try again in {retry_after_seconds} seconds.")]
+    TooManyAttempts { retry_after_seconds: u64 },
     #[error("Your session has expired. Sign in again.")]
     Unauthenticated,
     #[error("Every field is required.")]

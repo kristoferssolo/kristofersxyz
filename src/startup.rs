@@ -1,7 +1,11 @@
-use crate::{configuration::Settings, db, db::DbPool, errors::ApplicationError, router::route};
+use crate::{
+    authentication::LoginThrottle, configuration::Settings, db, db::DbPool,
+    errors::ApplicationError, router::route,
+};
 use axum::extract::FromRef;
 use leptos::{config::errors::LeptosConfigError, prelude::*};
 use sqlx::migrate::MigrateError;
+use std::net::SocketAddr;
 use tokio::{net::TcpListener, task::JoinHandle};
 
 #[derive(Debug, thiserror::Error)]
@@ -26,6 +30,7 @@ pub struct App {
     pub leptos_options: LeptosOptions,
     /// Cookie policy used when the router builds its session layer.
     pub secure_cookie: bool,
+    pub login_throttle: LoginThrottle,
 }
 
 pub type AppState = App;
@@ -58,6 +63,7 @@ impl App {
             pool,
             leptos_options,
             secure_cookie: settings.session.secure_cookie,
+            login_throttle: LoginThrottle::default(),
         })
     }
 }
@@ -84,10 +90,13 @@ impl Application {
         let addr = app.leptos_options.site_addr;
         let listener = TcpListener::bind(addr).await?;
         let port = listener.local_addr()?.port();
-        let server =
-            tokio::spawn(
-                async move { axum::serve(listener, route(app).into_make_service()).await },
-            );
+        let server = tokio::spawn(async move {
+            axum::serve(
+                listener,
+                route(app).into_make_service_with_connect_info::<SocketAddr>(),
+            )
+            .await
+        });
 
         Ok(Self { port, server })
     }

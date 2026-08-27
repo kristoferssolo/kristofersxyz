@@ -6,6 +6,7 @@
 use axum::{
     Router,
     body::{Body, to_bytes},
+    extract::ConnectInfo,
     http::{Request, StatusCode, header},
 };
 use kristofersxyz::{
@@ -18,6 +19,9 @@ use kristofersxyz::{
 };
 use tempfile::NamedTempFile;
 use tower::ServiceExt;
+
+const TEST_PEER: std::net::SocketAddr =
+    std::net::SocketAddr::new(std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST), 41_000);
 
 fn username(value: &str) -> Username {
     Username::new(value.to_owned())
@@ -58,11 +62,13 @@ fn form_post(uri: &str, body: &str, cookie: Option<&str>) -> Request<Body> {
 }
 
 fn login_request(username: &str, password: &str) -> Request<Body> {
-    form_post(
+    let mut request = form_post(
         "/api/login",
         &format!("username={username}&password={password}"),
         None,
-    )
+    );
+    request.extensions_mut().insert(ConnectInfo(TEST_PEER));
+    request
 }
 
 fn get_request(uri: &str, cookie: Option<&str>) -> Request<Body> {
@@ -132,6 +138,55 @@ async fn wrong_credentials_are_rejected() {
         .expect("send the login");
 
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn repeated_account_failures_return_a_retry_delay() {
+    let (router, _database) = app_with_owner().await;
+
+    for _ in 0..6 {
+        let response = router
+            .clone()
+            .oneshot(login_request("owner", "wrong"))
+            .await
+            .expect("send a failed login");
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    let throttled = router
+        .oneshot(login_request("owner", "wrong"))
+        .await
+        .expect("send a throttled login");
+    assert_eq!(throttled.status(), StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(throttled.headers()[header::RETRY_AFTER], "1");
+}
+
+#[tokio::test]
+async fn source_limit_ignores_spoofed_forwarding_headers() {
+    let (router, _database) = app_with_owner().await;
+
+    for attempt in 0..20 {
+        let mut request = login_request("", "wrong");
+        request.headers_mut().insert(
+            "x-forwarded-for",
+            format!("198.51.100.{attempt}")
+                .parse()
+                .expect("build the spoofed address"),
+        );
+        let response = router
+            .clone()
+            .oneshot(request)
+            .await
+            .expect("send a malformed login");
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    let throttled = router
+        .oneshot(login_request("", "wrong"))
+        .await
+        .expect("send a throttled login");
+    assert_eq!(throttled.status(), StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(throttled.headers()[header::RETRY_AFTER], "60");
 }
 
 #[tokio::test]

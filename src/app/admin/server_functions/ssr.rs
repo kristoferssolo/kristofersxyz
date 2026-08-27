@@ -1,11 +1,11 @@
 use super::AdminError;
 use crate::{
     app::content::{PortfolioContent, store_server_content},
-    authentication::{AuthSession, Authenticated, SessionState, Unverified},
+    authentication::{AuthSession, Authenticated, RetryAfter, SessionState, Unverified},
     db,
     startup::AppState,
 };
-use axum::http::StatusCode;
+use axum::http::{HeaderValue, StatusCode, header};
 use leptos::prelude::expect_context;
 use leptos_axum::{ResponseOptions, extract, redirect};
 use tower_sessions::Session;
@@ -59,4 +59,16 @@ pub fn with_status(status: StatusCode, error: AdminError) -> AdminError {
 
 pub fn invalid_credentials() -> AdminError {
     with_status(StatusCode::UNAUTHORIZED, AdminError::InvalidCredentials)
+}
+
+pub fn too_many_attempts(retry_after: RetryAfter) -> AdminError {
+    let response = expect_context::<ResponseOptions>();
+    response.set_status(StatusCode::TOO_MANY_REQUESTS);
+    let seconds = retry_after.seconds();
+    HeaderValue::from_str(&seconds.to_string()).map_or(AdminError::Internal, |value| {
+        response.insert_header(header::RETRY_AFTER, value);
+        AdminError::TooManyAttempts {
+            retry_after_seconds: seconds,
+        }
+    })
 }

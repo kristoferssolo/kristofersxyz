@@ -7,8 +7,10 @@
 mod credentials;
 mod password;
 mod session;
+mod throttle;
 
 pub use crate::domain::OwnerId;
 pub use credentials::{AuthError, Credentials, validate_credentials};
 pub use password::{Password, PasswordError, PasswordHash, compute_password_hash};
 pub(crate) use session::{AuthSession, Authenticated, SessionState, Unverified};
+pub use throttle::{LoginThrottle, RetryAfter};

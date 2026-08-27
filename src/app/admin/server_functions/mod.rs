@@ -11,7 +11,8 @@ mod ssr;
 
 #[cfg(feature = "ssr")]
 use self::ssr::{
-    authenticated_session, invalid_credentials, reload, require_fields, session_state, with_status,
+    authenticated_session, invalid_credentials, reload, require_fields, session_state,
+    too_many_attempts, with_status,
 };
 #[cfg(feature = "ssr")]
 use crate::{
@@ -20,9 +21,13 @@ use crate::{
     startup::AppState,
 };
 #[cfg(feature = "ssr")]
+use axum::extract::ConnectInfo;
+#[cfg(feature = "ssr")]
 use axum::http::StatusCode;
 #[cfg(feature = "ssr")]
 use leptos_axum::redirect;
+#[cfg(feature = "ssr")]
+use std::net::SocketAddr;
 
 /// The owner identity exposed to authenticated Leptos routes.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -65,20 +70,39 @@ pub async fn login(username: String, password: String) -> Result<(), AdminError>
         SessionState::Anonymous(session) => session,
     };
     let state = expect_context::<AppState>();
+    let ConnectInfo(peer) = leptos_axum::extract::<ConnectInfo<SocketAddr>>()
+        .await
+        .map_err(|_| AdminError::Internal)?;
+    state
+        .login_throttle
+        .check_source(peer.ip())
+        .map_err(too_many_attempts)?;
     let username = Username::new(username).map_err(|_| invalid_credentials())?;
     tracing::Span::current().record("username", tracing::field::display(&username));
-    let password = Password::try_from(password).map_err(|_| invalid_credentials())?;
+    state
+        .login_throttle
+        .check_account(&username)
+        .map_err(too_many_attempts)?;
+    let password = Password::try_from(password).map_err(|_| {
+        state.login_throttle.record_failure(&username);
+        invalid_credentials()
+    })?;
     let credentials = Credentials {
         username: username.clone(),
         password,
     };
 
-    let owner_id = validate_credentials(credentials, &state.pool)
-        .await
-        .map_err(|error| match error {
-            AuthError::InvalidCredentials => invalid_credentials(),
-            _ => AdminError::Internal,
-        })?;
+    let owner_id = match validate_credentials(credentials, &state.pool).await {
+        Ok(owner_id) => {
+            state.login_throttle.record_success(&username);
+            owner_id
+        }
+        Err(AuthError::InvalidCredentials) => {
+            state.login_throttle.record_failure(&username);
+            return Err(invalid_credentials());
+        }
+        Err(_) => return Err(AdminError::Internal),
+    };
     tracing::Span::current().record("owner_id", tracing::field::display(owner_id));
     session
         .sign_in(owner_id, username)
