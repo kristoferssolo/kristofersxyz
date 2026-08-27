@@ -13,6 +13,24 @@ pub mod domain;
 pub mod errors;
 #[cfg(feature = "ssr")]
 pub mod router;
+mod serde_helpers;
+
+#[cfg(test)]
+pub(crate) mod test_support {
+    use std::{
+        fmt::{Debug, Display},
+        str::FromStr,
+    };
+
+    pub fn parse<T>(value: &str) -> T
+    where
+        T: FromStr,
+        T::Err: Debug + Display,
+    {
+        claims::assert_ok!(value.parse())
+    }
+}
+
 #[cfg(feature = "ssr")]
 pub mod sessions;
 #[cfg(feature = "ssr")]
