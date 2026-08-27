@@ -7,7 +7,7 @@ use crate::app::{
         Buffer, BufferEntry, EditorState, Effect, EntryId, Key, KeyInput, Mode, Transition, reduce,
         select, toggle_sidebar,
     },
-    layout::SidebarPreference,
+    layout::{SidebarPreference, StatusBarState, StatusLocation},
 };
 use leptos::{prelude::*, web_sys::KeyboardEvent};
 use std::time::Duration;
@@ -105,6 +105,43 @@ impl EditorController {
     #[must_use]
     pub fn help(self) -> bool {
         self.state.get().help
+    }
+
+    /// Builds the status bar signal for this editor session.
+    #[must_use]
+    pub fn status(
+        self,
+        filename: impl Into<String>,
+        location: impl Fn() -> StatusLocation + Send + Sync + 'static,
+    ) -> Signal<StatusBarState> {
+        self.status_signal(filename.into(), location, false)
+    }
+
+    /// Builds a status bar signal that also displays page progress.
+    #[must_use]
+    pub fn status_with_progress(
+        self,
+        filename: impl Into<String>,
+        location: impl Fn() -> StatusLocation + Send + Sync + 'static,
+    ) -> Signal<StatusBarState> {
+        self.status_signal(filename.into(), location, true)
+    }
+
+    fn status_signal(
+        self,
+        filename: String,
+        location: impl Fn() -> StatusLocation + Send + Sync + 'static,
+        progress: bool,
+    ) -> Signal<StatusBarState> {
+        Signal::derive(move || {
+            let state = StatusBarState::from_editor_mode(self.mode(), filename.clone(), location())
+                .with_help();
+            if progress {
+                state.with_progress()
+            } else {
+                state
+            }
+        })
     }
 
     #[must_use]
