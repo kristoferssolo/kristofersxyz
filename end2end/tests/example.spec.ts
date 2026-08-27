@@ -63,5 +63,5 @@ test("the sign-in throttle counts down without another render", async ({ page })
   const error = page.getByText("Too many sign-in attempts", { exact: false });
   await expect(error).toContainText("3 seconds");
   await expect(error).toContainText("2 seconds", { timeout: 2_000 });
-  await expect(error).toContainText("0 seconds", { timeout: 3_000 });
+  await expect(error).toBeHidden({ timeout: 3_000 });
 });

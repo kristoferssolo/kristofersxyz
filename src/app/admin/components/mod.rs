@@ -168,12 +168,19 @@ fn ActionError(error: AdminError) -> impl IntoView {
                 );
             }
 
-            Signal::derive(move || rate_limit_message(remaining.get()))
+            Signal::derive(move || {
+                let seconds = remaining.get();
+                (seconds > 0).then(|| rate_limit_message(seconds))
+            })
         }
-        error => Signal::derive(move || error.to_string()),
+        error => Signal::derive(move || Some(error.to_string())),
     };
 
-    view! { <p class="mt-[1.2rem] text-xs text-[#e2a340]">{move || message.get()}</p> }
+    move || {
+        message
+            .get()
+            .map(|message| view! { <p class="mt-[1.2rem] text-xs text-[#e2a340]">{message}</p> })
+    }
 }
 
 fn rate_limit_message(seconds: u64) -> String {
