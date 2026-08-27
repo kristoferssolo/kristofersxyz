@@ -123,25 +123,15 @@ async fn get_stored_credentials(
 mod tests {
     use super::*;
     use crate::{
-        authentication::compute_password_hash,
-        db::{DbPoolOptions, migrate},
+        authentication::{compute_password_hash, password::assert_current_policy, test_support},
+        db::test_support::migrated_pool,
     };
-    use argon2::{
-        Algorithm, Argon2, Params, PasswordHash as ArgonPasswordHash, PasswordHasher, Version,
-        password_hash::SaltString,
-    };
+    use argon2::PasswordHash as ArgonPasswordHash;
     use claims::{assert_err, assert_ok, assert_ok_eq};
     use secrecy::SecretString;
-
     /// A migrated in-memory database holding one user with a known password.
     async fn pool_with_user(username: &str, password: &str) -> (DbPool, OwnerId) {
-        let pool = DbPoolOptions::new()
-            .max_connections(1)
-            .connect("sqlite::memory:")
-            .await
-            .expect("connect to an in-memory database");
-        migrate(&pool).await.expect("run the migrations");
-
+        let pool = migrated_pool().await;
         let id = OwnerId::new();
         let password = assert_ok!(Password::new(SecretString::from(password.to_owned())));
         let hash = compute_password_hash(&password).expect("hash the password");
@@ -157,19 +147,12 @@ mod tests {
         (pool, id)
     }
 
-    fn credentials(username: &str, password: &str) -> Credentials {
-        Credentials {
-            username: assert_ok!(Username::new(username.to_owned())),
-            password: assert_ok!(Password::new(SecretString::from(password.to_owned()))),
-        }
-    }
-
     #[tokio::test]
     async fn the_right_password_returns_the_user_id() {
         let (pool, id) = pool_with_user("kristofers", "correct horse battery staple").await;
         assert_ok_eq!(
             validate_credentials(
-                credentials("kristofers", "correct horse battery staple"),
+                test_support::credentials("kristofers", "correct horse battery staple"),
                 &pool
             )
             .await,
@@ -180,29 +163,29 @@ mod tests {
     #[tokio::test]
     async fn a_wrong_password_is_rejected() {
         let (pool, _) = pool_with_user("kristofers", "correct horse battery staple").await;
-        let result = validate_credentials(credentials("kristofers", "wrong"), &pool).await;
+        let result =
+            validate_credentials(test_support::credentials("kristofers", "wrong"), &pool).await;
         assert!(matches!(result, Err(AuthError::InvalidCredentials)));
     }
 
     #[tokio::test]
     async fn an_unknown_username_is_rejected() {
         let (pool, _) = pool_with_user("kristofers", "correct horse battery staple").await;
-        let result =
-            validate_credentials(credentials("nobody", "correct horse battery staple"), &pool)
-                .await;
+        let result = validate_credentials(
+            test_support::credentials("nobody", "correct horse battery staple"),
+            &pool,
+        )
+        .await;
         assert!(matches!(result, Err(AuthError::InvalidCredentials)));
     }
 
     #[tokio::test]
     async fn a_successful_login_upgrades_an_old_hash() {
         let (pool, id) = pool_with_user("kristofers", "correct horse battery staple").await;
-        let salt = SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
-        let old_params = assert_ok!(Params::new(15_000, 2, 1, None));
-        let old_hash = assert_ok!(
-            Argon2::new(Algorithm::Argon2id, Version::V0x13, old_params)
-                .hash_password(b"correct horse battery staple", &salt,)
-        )
-        .to_string();
+        let password = "correct horse battery staple";
+        let old_hash =
+            test_support::old_password_hash(&assert_ok!(Password::try_from(password.to_owned())));
+        let old_hash = old_hash.expose_secret().to_owned();
         sqlx::query!(
             "UPDATE users SET password_hash = ?1 WHERE user_id = ?2",
             old_hash,
@@ -214,7 +197,7 @@ mod tests {
 
         assert_ok!(
             validate_credentials(
-                credentials("kristofers", "correct horse battery staple"),
+                test_support::credentials("kristofers", "correct horse battery staple"),
                 &pool,
             )
             .await
@@ -228,19 +211,13 @@ mod tests {
         .await
         .expect("read the upgraded hash");
         let parsed = assert_ok!(ArgonPasswordHash::new(&upgraded));
-        let params = assert_ok!(Params::try_from(&parsed));
-        assert_eq!(params.m_cost(), Params::DEFAULT_M_COST);
-        assert_eq!(params.t_cost(), Params::DEFAULT_T_COST);
-        assert_eq!(params.p_cost(), Params::DEFAULT_P_COST);
+        assert_current_policy(&parsed);
     }
 
     #[test]
     fn the_dummy_hash_uses_the_current_policy() {
         let hash = assert_ok!(ArgonPasswordHash::new(DUMMY_PASSWORD_HASH));
-        let params = assert_ok!(Params::try_from(&hash));
-        assert_eq!(params.m_cost(), Params::DEFAULT_M_COST);
-        assert_eq!(params.t_cost(), Params::DEFAULT_T_COST);
-        assert_eq!(params.p_cost(), Params::DEFAULT_P_COST);
+        assert_current_policy(&hash);
     }
 
     #[test]

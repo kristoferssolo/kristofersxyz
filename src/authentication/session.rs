@@ -215,18 +215,13 @@ impl AuthSession<Authenticated> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::{DbPoolOptions, migrate};
+    use crate::db::test_support::migrated_pool;
     use claims::{assert_ok, assert_some};
     use std::sync::Arc;
     use tower_sessions::{MemoryStore, SessionStore};
 
     async fn pool_with_owner(owner_id: OwnerId, username: &str) -> DbPool {
-        let pool = DbPoolOptions::new()
-            .max_connections(1)
-            .connect("sqlite::memory:")
-            .await
-            .expect("connect to an in-memory database");
-        migrate(&pool).await.expect("run the migrations");
+        let pool = migrated_pool().await;
         sqlx::query!(
             "INSERT INTO users (user_id, username, password_hash) VALUES (?1, ?2, 'hash')",
             owner_id.to_string(),

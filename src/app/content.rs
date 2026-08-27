@@ -216,15 +216,11 @@ mod fixture {
     }
 
     fn project_slug(value: &str) -> ProjectSlug {
-        value
-            .parse()
-            .unwrap_or_else(|error| panic!("invalid fixture project slug: {error}"))
+        crate::test_support::parse(value)
     }
 
     fn project_description(value: &str) -> ProjectDescription {
-        value
-            .parse()
-            .unwrap_or_else(|error| panic!("invalid fixture project description: {error}"))
+        crate::test_support::parse(value)
     }
 
     fn projects() -> Vec<Project> {

@@ -72,7 +72,7 @@ pub fn select(state: &EditorState, entry: &EntryId, buffer: &Buffer) -> Transiti
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{app::content::portfolio_content, domain::ProjectSlug};
+    use crate::app::content::portfolio_content;
     use claims::{assert_none, assert_some_eq};
     use rstest::rstest;
 
@@ -81,10 +81,7 @@ mod tests {
     }
 
     fn project(slug: &str) -> EntryId {
-        EntryId::Project(
-            slug.parse::<ProjectSlug>()
-                .unwrap_or_else(|error| panic!("invalid test project slug: {error}")),
-        )
+        EntryId::Project(crate::test_support::parse(slug))
     }
 
     /// Normal mode, sitting on `entry`.
