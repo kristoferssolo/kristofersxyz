@@ -7,7 +7,7 @@
 mod projects;
 mod rows;
 
-use self::rows::{ContactRow, FocusRow, ProfileRow, SiteRow, SocialRow};
+use self::rows::ProfileRow;
 use crate::{
     app::content::{Contact, FocusArea, PortfolioContent, Profile, Site, SocialLink},
     db::DbPool,
@@ -41,7 +41,7 @@ pub enum LoadError {
 /// Returns [`sqlx::Error`] if a query fails or a singleton row is missing.
 pub async fn load(pool: &DbPool) -> Result<PortfolioContent, LoadError> {
     let site = sqlx::query_as!(
-        SiteRow,
+        Site,
         "SELECT url, title, description, og_image FROM site WHERE id = 1",
     )
     .fetch_one(pool)
@@ -60,58 +60,37 @@ pub async fn load(pool: &DbPool) -> Result<PortfolioContent, LoadError> {
             .await?;
 
     let working_style = sqlx::query_as!(
-        FocusRow,
+        FocusArea,
         "SELECT label, detail FROM working_principle ORDER BY sort_order",
     )
     .fetch_all(pool)
     .await?;
 
     let links = sqlx::query_as!(
-        SocialRow,
+        SocialLink,
         "SELECT label, href, rel FROM social_link ORDER BY sort_order",
     )
     .fetch_all(pool)
     .await?;
 
-    let contact = sqlx::query_as!(ContactRow, "SELECT name, body FROM contact WHERE id = 1")
+    let contact = sqlx::query_as!(Contact, "SELECT name, body FROM contact WHERE id = 1")
         .fetch_one(pool)
         .await?;
 
     Ok(PortfolioContent {
-        site: Site {
-            url: site.url,
-            title: site.title,
-            description: site.description,
-            og_image: site.og_image,
-        },
+        site,
         profile: Profile {
             name: profile.name,
             title: profile.title,
             summary: profile.summary,
             about: profile.about,
             technologies,
-            working_style: working_style
-                .into_iter()
-                .map(|row| FocusArea {
-                    label: row.label,
-                    detail: row.detail,
-                })
-                .collect(),
+            working_style,
             email: profile.email,
-            links: links
-                .into_iter()
-                .map(|row| SocialLink {
-                    label: row.label,
-                    href: row.href,
-                    rel: row.rel,
-                })
-                .collect(),
+            links,
         },
         projects: projects::load(pool).await?,
-        contact: Contact {
-            name: contact.name,
-            body: contact.body,
-        },
+        contact,
     })
 }
 
@@ -205,18 +184,10 @@ pub async fn set_site(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::{DbPoolOptions, migrate, seed_if_empty};
+    use crate::db::{seed_if_empty, test_support::migrated_pool};
 
-    /// A migrated database with the bundled seed applied. SQLite gives each
-    /// connection its own in-memory database, so the test pool is capped at one
-    /// connection.
     async fn seeded_pool() -> DbPool {
-        let pool = DbPoolOptions::new()
-            .max_connections(1)
-            .connect("sqlite::memory:")
-            .await
-            .expect("connect to an in-memory database");
-        migrate(&pool).await.expect("run the migrations");
+        let pool = migrated_pool().await;
         seed_if_empty(&pool).await.expect("seed the database");
         pool
     }
