@@ -157,6 +157,19 @@ pub async fn save_project(
     reload(&state).await
 }
 
+#[cfg(feature = "ssr")]
+macro_rules! save_singleton {
+    ($setter:path; $($field:ident),+ $(,)?) => {{
+        let _session = authenticated_session().await?;
+        require_fields(&[$(&$field),+])?;
+        let state = expect_context::<ApplicationState>();
+        ($setter)(&state.pool, $(&$field),+)
+            .await
+            .map_err(|_| AdminError::Save)?;
+        reload(&state).await
+    }};
+}
+
 /// Saves the editable profile fields and returns the refreshed portfolio.
 #[server(endpoint = "save_profile")]
 #[tracing::instrument(name = "Save portfolio profile", skip_all, err)]
@@ -167,26 +180,14 @@ pub async fn save_profile(
     about: String,
     email: String,
 ) -> Result<PortfolioContent, AdminError> {
-    let _session = authenticated_session().await?;
-    require_fields(&[&name, &title, &summary, &about, &email])?;
-    let state = expect_context::<ApplicationState>();
-    db::portfolio::set_profile(&state.pool, &name, &title, &summary, &about, &email)
-        .await
-        .map_err(|_| AdminError::Save)?;
-    reload(&state).await
+    save_singleton!(db::portfolio::set_profile; name, title, summary, about, email)
 }
 
 /// Saves the editable contact fields and returns the refreshed portfolio.
 #[server(endpoint = "save_contact")]
 #[tracing::instrument(name = "Save portfolio contact", skip_all, err)]
 pub async fn save_contact(name: String, body: String) -> Result<PortfolioContent, AdminError> {
-    let _session = authenticated_session().await?;
-    require_fields(&[&name, &body])?;
-    let state = expect_context::<ApplicationState>();
-    db::portfolio::set_contact(&state.pool, &name, &body)
-        .await
-        .map_err(|_| AdminError::Save)?;
-    reload(&state).await
+    save_singleton!(db::portfolio::set_contact; name, body)
 }
 
 /// Saves the editable site metadata and returns the refreshed portfolio.
@@ -198,11 +199,5 @@ pub async fn save_site(
     description: String,
     og_image: String,
 ) -> Result<PortfolioContent, AdminError> {
-    let _session = authenticated_session().await?;
-    require_fields(&[&url, &title, &description, &og_image])?;
-    let state = expect_context::<ApplicationState>();
-    db::portfolio::set_site(&state.pool, &url, &title, &description, &og_image)
-        .await
-        .map_err(|_| AdminError::Save)?;
-    reload(&state).await
+    save_singleton!(db::portfolio::set_site; url, title, description, og_image)
 }
