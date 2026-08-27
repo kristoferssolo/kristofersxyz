@@ -87,9 +87,15 @@ ssr = [
 
 [dev-dependencies]
 claims = "0.8"
+criterion = "0.8.2"
 rstest = "0.26"
 tempfile = "3"
 tower = { version = "0.5", features = ["util"] }
+
+[[bench]]
+name = "authentication"
+harness = false
+required-features = ["ssr"]
 
 [lints.clippy]
 large_futures = "allow"

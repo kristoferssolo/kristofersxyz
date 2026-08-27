@@ -58,6 +58,11 @@ test:
     cargo nextest run --no-default-features --features ssr
     RUST_TEST_THREADS=1 cargo leptos test
 
+# Measure the current Argon2 policy on production-equivalent hardware
+[group("dev")]
+benchmark-auth:
+    cargo bench --no-default-features --features ssr --bench authentication
+
 # Clean build artifacts
 [group("dev")]
 clean:

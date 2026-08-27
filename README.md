@@ -36,6 +36,7 @@ just setup    # cargo-nextest and sccache
 just run      # cargo leptos watch
 just check    # fmt, clippy, sqruff, docs, test
 just end2end  # Playwright
+just benchmark-auth  # serial and two-at-once Argon2 measurements
 ```
 
 `DATABASE_URL` selects the SQLite database. `PUBLIC_ORIGIN` is the exact
@@ -51,6 +52,12 @@ Production mode always uses a Secure, host-only
 `__Host-kristofersxyz-session` cookie. Startup rejects a deployment mode whose
 transport does not match `PUBLIC_ORIGIN`. Startup then applies migrations and
 loads the portfolio content before serving requests.
+
+Run `just benchmark-auth` on the smallest production host before changing the
+Argon2 policy. Record both benchmark results with the host class in deployment
+notes. The two-at-once case matches the application's maximum hashing
+concurrency; do not lower the policy below its documented security baseline to
+hit a timing target.
 
 ## License
 
