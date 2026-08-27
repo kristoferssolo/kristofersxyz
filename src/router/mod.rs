@@ -2,6 +2,7 @@ mod csrf;
 
 use crate::{
     app::{App, content::server_content, shell},
+    configuration::SessionCookiePolicy,
     db::DbPool,
     sessions::SqliteSessionStore,
     startup::AppState,
@@ -22,7 +23,7 @@ pub fn route(state: AppState) -> Router {
         .fallback(file_and_error_handler::<AppState, _>(|options| {
             shell(options, server_content().as_ref())
         }))
-        .layer(session_layer(state.pool.clone(), state.secure_cookie))
+        .layer(session_layer(state.pool.clone(), state.session_cookie))
         .layer(middleware::from_fn_with_state(
             state.public_origin.clone(),
             csrf::verify_origin,
@@ -32,12 +33,17 @@ pub fn route(state: AppState) -> Router {
 
 /// The server-side session middleware, backed by the shared SQLite pool.
 ///
-/// `secure` controls the cookie's `Secure` attribute. Production defaults to
-/// true; local HTTP development can disable it.
-fn session_layer(pool: DbPool, secure: bool) -> SessionManagerLayer<SqliteSessionStore> {
+/// The validated deployment mode supplies a coherent cookie name and transport
+/// policy. No `Domain` attribute is set, so the cookie remains host-only.
+fn session_layer(
+    pool: DbPool,
+    cookie: SessionCookiePolicy,
+) -> SessionManagerLayer<SqliteSessionStore> {
     SessionManagerLayer::new(SqliteSessionStore::new(pool))
+        .with_name(cookie.name())
         .with_http_only(true)
         .with_same_site(SameSite::Strict)
-        .with_secure(secure)
+        .with_secure(cookie.secure())
+        .with_path("/")
         .with_expiry(Expiry::OnInactivity(Duration::hours(1)))
 }

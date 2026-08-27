@@ -97,7 +97,7 @@ mod tests {
     use super::*;
     use crate::{
         authentication::{Credentials, Password, validate_credentials},
-        configuration::{DatabaseSettings, HttpSettings, PublicOrigin, SessionSettings},
+        configuration::{DatabaseSettings, DeploymentMode, HttpSettings, PublicOrigin},
         domain::Username,
     };
     use claims::{assert_err, assert_ok};
@@ -109,13 +109,11 @@ mod tests {
             database: DatabaseSettings {
                 url: format!("sqlite://{}", database.path().display()),
             },
+            deployment: DeploymentMode::Local,
             http: HttpSettings {
                 public_origin: "http://localhost:3000"
                     .parse::<PublicOrigin>()
                     .expect("the test origin is valid"),
-            },
-            session: SessionSettings {
-                secure_cookie: false,
             },
         }
     }

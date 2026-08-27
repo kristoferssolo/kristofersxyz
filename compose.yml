@@ -6,8 +6,8 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: sqlite:///app/data/portfolio.db
+      DEPLOYMENT_MODE: local
       PUBLIC_ORIGIN: http://localhost:3000
-      SESSION_COOKIE_SECURE: "false"
     volumes:
       - portfolio-data:/app/data
     init: true

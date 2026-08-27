@@ -1,6 +1,6 @@
 use crate::{
     authentication::LoginThrottle,
-    configuration::{PublicOrigin, Settings},
+    configuration::{ConfigurationError, PublicOrigin, SessionCookiePolicy, Settings},
     db,
     db::DbPool,
     errors::ApplicationError,
@@ -14,6 +14,9 @@ use tokio::{net::TcpListener, task::JoinHandle};
 
 #[derive(Debug, thiserror::Error)]
 pub enum StartupError {
+    #[error("invalid application configuration")]
+    Configuration(#[from] ConfigurationError),
+
     #[error("failed to connect to or query the database")]
     Database(#[from] sqlx::Error),
 
@@ -32,8 +35,8 @@ pub struct App {
     /// Shared by login and content-edit requests after startup.
     pub pool: DbPool,
     pub leptos_options: LeptosOptions,
-    /// Cookie policy used when the router builds its session layer.
-    pub secure_cookie: bool,
+    /// Cookie policy derived from the validated deployment mode.
+    pub session_cookie: SessionCookiePolicy,
     pub login_throttle: LoginThrottle,
     pub public_origin: PublicOrigin,
 }
@@ -56,6 +59,7 @@ impl App {
     /// fails, the content cannot be loaded, or the Leptos configuration cannot
     /// be initialized.
     pub async fn new(settings: &Settings) -> Result<Self, StartupError> {
+        settings.validate()?;
         let pool = db::connect(&settings.database.url).await?;
         db::migrate(&pool).await?;
         db::seed_if_empty(&pool).await?;
@@ -67,7 +71,7 @@ impl App {
         Ok(Self {
             pool,
             leptos_options,
-            secure_cookie: settings.session.secure_cookie,
+            session_cookie: settings.deployment.session_cookie(),
             login_throttle: LoginThrottle::default(),
             public_origin: settings.http.public_origin.clone(),
         })
@@ -127,8 +131,8 @@ impl Application {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::configuration::{DatabaseSettings, HttpSettings, PublicOrigin, SessionSettings};
-    use claims::assert_ok;
+    use crate::configuration::{DatabaseSettings, DeploymentMode, HttpSettings, PublicOrigin};
+    use claims::{assert_err, assert_ok};
     use tempfile::NamedTempFile;
 
     #[tokio::test]
@@ -138,17 +142,33 @@ mod tests {
             database: DatabaseSettings {
                 url: format!("sqlite://{}", database.path().display()),
             },
+            deployment: DeploymentMode::Local,
             http: HttpSettings {
                 public_origin: "http://localhost:3000"
                     .parse::<PublicOrigin>()
                     .expect("the test origin is valid"),
             },
-            session: SessionSettings {
-                secure_cookie: false,
-            },
         };
 
         assert_ok!(App::new(&settings).await);
         assert_eq!(crate::app::content::server_content().projects.len(), 3);
+    }
+
+    #[tokio::test]
+    async fn production_refuses_to_boot_with_an_http_origin() {
+        let database = NamedTempFile::new().expect("create a temporary database");
+        let settings = Settings {
+            database: DatabaseSettings {
+                url: format!("sqlite://{}", database.path().display()),
+            },
+            deployment: DeploymentMode::ProductionBehindTrustedProxy,
+            http: HttpSettings {
+                public_origin: "http://kristofers.xyz"
+                    .parse::<PublicOrigin>()
+                    .expect("the test origin is valid"),
+            },
+        };
+
+        assert_err!(App::new(&settings).await);
     }
 }

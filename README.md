@@ -40,8 +40,17 @@ just end2end  # Playwright
 
 `DATABASE_URL` selects the SQLite database. `PUBLIC_ORIGIN` is the exact
 scheme, host, and optional port accepted for state-changing browser requests,
-for example `http://localhost:3000` during local development. Startup applies
-migrations and loads the portfolio content before serving requests.
+for example `http://localhost:3000` during local development.
+`DEPLOYMENT_MODE` must be one of:
+
+- `local`, paired with an HTTP origin
+- `production-behind-trusted-proxy`, paired with an HTTPS origin and a proxy
+  that terminates TLS and replaces untrusted forwarding headers
+
+Production mode always uses a Secure, host-only
+`__Host-kristofersxyz-session` cookie. Startup rejects a deployment mode whose
+transport does not match `PUBLIC_ORIGIN`. Startup then applies migrations and
+loads the portfolio content before serving requests.
 
 ## License
 

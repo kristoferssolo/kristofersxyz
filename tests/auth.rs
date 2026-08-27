@@ -12,7 +12,7 @@ use axum::{
 use kristofersxyz::{
     admin_cli::set_password,
     authentication::Password,
-    configuration::{DatabaseSettings, HttpSettings, PublicOrigin, SessionSettings, Settings},
+    configuration::{DatabaseSettings, DeploymentMode, HttpSettings, PublicOrigin, Settings},
     domain::Username,
     router::route,
     startup::App,
@@ -45,17 +45,23 @@ async fn app_with_owner() -> (Router, NamedTempFile) {
 }
 
 fn settings_for(database: &NamedTempFile) -> Settings {
+    settings_for_deployment(database, DeploymentMode::Local, TEST_ORIGIN)
+}
+
+fn settings_for_deployment(
+    database: &NamedTempFile,
+    deployment: DeploymentMode,
+    public_origin: &str,
+) -> Settings {
     Settings {
         database: DatabaseSettings {
             url: format!("sqlite://{}", database.path().display()),
         },
+        deployment,
         http: HttpSettings {
-            public_origin: "http://localhost:3000"
+            public_origin: public_origin
                 .parse::<PublicOrigin>()
                 .expect("the test origin is valid"),
-        },
-        session: SessionSettings {
-            secure_cookie: false,
         },
     }
 }
@@ -272,6 +278,43 @@ async fn login_starts_a_session_that_reaches_the_dashboard() {
     let body = body_text(response).await;
     assert!(body.contains("owner"));
     assert!(body.contains("/admin/project/traxor"));
+}
+
+#[tokio::test]
+async fn production_login_emits_a_host_only_secure_cookie() {
+    const PRODUCTION_ORIGIN: &str = "https://kristofers.xyz";
+
+    let database = NamedTempFile::new().expect("create a temporary database");
+    let settings = settings_for_deployment(
+        &database,
+        DeploymentMode::ProductionBehindTrustedProxy,
+        PRODUCTION_ORIGIN,
+    );
+    set_password(&settings, &username("owner"), &password("s3cret"))
+        .await
+        .expect("create the owner");
+    let app = App::new(&settings).await.expect("build the application");
+    let router = route(app);
+    let mut request = login_request("owner", "s3cret");
+    request.headers_mut().insert(
+        header::ORIGIN,
+        PRODUCTION_ORIGIN.parse().expect("build the origin header"),
+    );
+
+    let response = router
+        .oneshot(request)
+        .await
+        .expect("send the production login");
+    assert_eq!(response.status(), StatusCode::OK);
+    let set_cookie = response.headers()[header::SET_COOKIE]
+        .to_str()
+        .expect("cookie is text");
+    assert!(set_cookie.starts_with("__Host-kristofersxyz-session="));
+    assert!(set_cookie.contains("HttpOnly"));
+    assert!(set_cookie.contains("SameSite=Strict"));
+    assert!(set_cookie.contains("Secure"));
+    assert!(set_cookie.contains("Path=/"));
+    assert!(!set_cookie.contains("Domain="));
 }
 
 #[tokio::test]
