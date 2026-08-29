@@ -1,6 +1,6 @@
 use crate::{
     authentication::LoginThrottle,
-    configuration::{ConfigurationError, PublicOrigin, SessionPolicy, Settings},
+    configuration::{ConfigurationError, DeploymentMode, PublicOrigin, SessionPolicy, Settings},
     db,
     db::DbPool,
     errors::ApplicationError,
@@ -38,6 +38,7 @@ pub struct ApplicationState {
     /// Shared by login and content-edit requests after startup.
     pub pool: DbPool,
     pub leptos_options: LeptosOptions,
+    pub deployment: DeploymentMode,
     /// Cookie and lifetime policy derived from the deployment mode.
     pub session_policy: SessionPolicy,
     pub login_throttle: LoginThrottle,
@@ -76,6 +77,7 @@ impl ApplicationState {
         Ok(Self {
             pool,
             leptos_options,
+            deployment: settings.deployment,
             session_policy: settings.deployment.session_policy(),
             login_throttle: LoginThrottle::default(),
             public_origin: settings.http.public_origin.clone(),

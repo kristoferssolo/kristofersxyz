@@ -8,6 +8,10 @@ use leptos_meta::MetaTags;
 #[must_use]
 pub fn shell(options: LeptosOptions, content: &PortfolioContent) -> impl IntoView + use<> {
     let content = serde_json::to_string(content).unwrap_or_default();
+    #[cfg(feature = "ssr")]
+    let nonce = leptos::nonce::use_nonce();
+    #[cfg(not(feature = "ssr"))]
+    let nonce = None::<String>;
 
     view! {
         <!DOCTYPE html>
@@ -18,7 +22,12 @@ pub fn shell(options: LeptosOptions, content: &PortfolioContent) -> impl IntoVie
                 <AutoReload options=options.clone() />
                 <HydrationScripts options />
                 <MetaTags />
-                <script id="portfolio-content" type="application/json" inner_html=content></script>
+                <script
+                    id="portfolio-content"
+                    type="application/json"
+                    nonce=nonce
+                    inner_html=content
+                ></script>
             </head>
             <body>
                 <App />

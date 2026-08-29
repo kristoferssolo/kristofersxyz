@@ -1,4 +1,5 @@
 mod csrf;
+mod security_headers;
 
 use crate::{
     app::{App, content::server_content, shell},
@@ -10,27 +11,40 @@ use crate::{
 };
 use axum::{Router, middleware};
 use axum_login::AuthManagerLayerBuilder;
-use leptos_axum::{LeptosRoutes, file_and_error_handler, generate_route_list};
+use leptos_axum::{LeptosRoutes, file_and_error_handler_with_context, generate_route_list};
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::SameSite};
 
 pub fn route(state: ApplicationState) -> Router {
     let routes = generate_route_list(App);
     let sessions = session_layer(state.pool.clone(), state.session_policy);
+    let deployment = state.deployment;
     let authentication =
         AuthManagerLayerBuilder::new(AuthBackend::new(state.pool.clone()), sessions).build();
 
     Router::new()
-        .leptos_routes_with_context(&state, routes, || {}, {
-            let leptos_options = state.leptos_options.clone();
-            move || shell(leptos_options.clone(), server_content().as_ref())
-        })
-        .fallback(file_and_error_handler::<ApplicationState, _>(|options| {
-            shell(options, server_content().as_ref())
-        }))
+        .leptos_routes_with_context(
+            &state,
+            routes,
+            move || {
+                security_headers::provide_content_security_policy(deployment);
+            },
+            {
+                let leptos_options = state.leptos_options.clone();
+                move || shell(leptos_options.clone(), server_content().as_ref())
+            },
+        )
+        .fallback(file_and_error_handler_with_context::<ApplicationState, _>(
+            move || security_headers::provide_content_security_policy(deployment),
+            |options| shell(options, server_content().as_ref()),
+        ))
         .layer(authentication)
         .layer(middleware::from_fn_with_state(
             state.public_origin.clone(),
             csrf::verify_origin,
+        ))
+        .layer(middleware::from_fn_with_state(
+            deployment,
+            security_headers::add,
         ))
         .with_state(state)
 }

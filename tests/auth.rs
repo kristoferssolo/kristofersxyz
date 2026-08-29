@@ -134,6 +134,95 @@ async fn body_text(response: axum::response::Response) -> String {
     String::from_utf8_lossy(&body).into_owned()
 }
 
+fn header_text<'a>(response: &'a axum::response::Response, name: &str) -> &'a str {
+    response.headers()[name]
+        .to_str()
+        .unwrap_or_else(|error| panic!("{name} is not text: {error}"))
+}
+
+#[tokio::test]
+async fn documents_include_a_nonce_based_content_security_policy() {
+    let (router, _database) = app_with_owner().await;
+    let response = router
+        .oneshot(get_request("/", None))
+        .await
+        .expect("send the public request");
+
+    let policy = header_text(&response, header::CONTENT_SECURITY_POLICY.as_str()).to_owned();
+    assert!(policy.contains("default-src 'self'"));
+    assert!(policy.contains("object-src 'none'"));
+    assert!(policy.contains("frame-ancestors 'none'"));
+    assert!(policy.contains("script-src 'nonce-"));
+    assert!(policy.contains("'strict-dynamic' 'wasm-unsafe-eval'"));
+    assert!(policy.contains("style-src 'self' https://fonts.googleapis.com"));
+    assert!(policy.contains("font-src 'self' https://fonts.gstatic.com"));
+    assert!(policy.contains("connect-src 'self' ws: wss:"));
+
+    let nonce = policy
+        .split_once("'nonce-")
+        .and_then(|(_, rest)| rest.split_once('\''))
+        .map(|(nonce, _)| nonce)
+        .expect("the policy contains a nonce");
+    let body = body_text(response).await;
+    assert!(body.contains(&format!("nonce=\"{nonce}\"")));
+    assert!(body.contains(&format!(
+        "id=\"portfolio-content\" type=\"application/json\" nonce=\"{nonce}\""
+    )));
+}
+
+#[tokio::test]
+async fn every_response_includes_static_security_headers() {
+    let (router, _database) = app_with_owner().await;
+    let response = router
+        .oneshot(get_request("/", None))
+        .await
+        .expect("send the public request");
+
+    assert_eq!(
+        response.headers()[header::X_CONTENT_TYPE_OPTIONS],
+        "nosniff"
+    );
+    assert_eq!(
+        response.headers()[header::REFERRER_POLICY],
+        "strict-origin-when-cross-origin"
+    );
+    assert_eq!(response.headers()[header::X_FRAME_OPTIONS], "DENY");
+    assert_eq!(
+        header_text(&response, "permissions-policy"),
+        "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+    );
+    assert!(
+        !response
+            .headers()
+            .contains_key(header::STRICT_TRANSPORT_SECURITY)
+    );
+}
+
+#[tokio::test]
+async fn production_responses_enable_strict_transport_security() {
+    let database = NamedTempFile::new().expect("create a temporary database");
+    let settings = settings_for_deployment(
+        &database,
+        DeploymentMode::ProductionBehindTrustedProxy,
+        "https://kristofers.xyz",
+    );
+    let app = ApplicationState::new(&settings)
+        .await
+        .expect("build the application");
+    let response = route(app)
+        .oneshot(get_request("/", None))
+        .await
+        .expect("send the production request");
+
+    assert_eq!(
+        response.headers()[header::STRICT_TRANSPORT_SECURITY],
+        "max-age=31536000"
+    );
+    let policy = header_text(&response, header::CONTENT_SECURITY_POLICY.as_str());
+    assert!(policy.contains("connect-src 'self'"));
+    assert!(!policy.contains("ws: wss:"));
+}
+
 #[tokio::test]
 async fn signed_out_visitors_are_redirected_before_admin_routes_render() {
     let (router, _database) = app_with_owner().await;
