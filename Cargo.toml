@@ -45,7 +45,6 @@ config = { version = "0.15", default-features = false, features = [
 criterion = { version = "0.8", optional = true }
 dotenvy = { version = "0.15", optional = true }
 thiserror = "2.0"
-arc-swap = { version = "1", optional = true }
 async-trait = { version = "0.1", optional = true }
 serde_json = { version = "1", optional = true }
 password-auth = { version = "1", optional = true }
@@ -72,7 +71,6 @@ ssr = [
   "dep:axum",
   "dep:axum-login",
   "dep:leptos_axum",
-  "dep:arc-swap",
   "dep:async-trait",
   "dep:config",
   "dep:dotenvy",

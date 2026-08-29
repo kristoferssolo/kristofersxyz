@@ -97,21 +97,15 @@ pub struct Contact {
 #[cfg(feature = "ssr")]
 mod server {
     use super::PortfolioContent;
-    use arc_swap::ArcSwap;
-    use std::sync::{Arc, OnceLock};
+    use std::sync::{Arc, OnceLock, PoisonError, RwLock};
 
-    /// [`ArcSwap`] gives renders lock-free reads and admin edits atomic writes.
-    static CONTENT: OnceLock<ArcSwap<PortfolioContent>> = OnceLock::new();
+    static CONTENT: OnceLock<RwLock<Arc<PortfolioContent>>> = OnceLock::new();
 
     /// Replaces the portfolio at startup or after an admin edit.
     pub fn store(content: PortfolioContent) {
         let content = Arc::new(content);
-        match CONTENT.get() {
-            Some(cell) => cell.store(content),
-            None => {
-                let _ = CONTENT.set(ArcSwap::new(content));
-            }
-        }
+        let cache = CONTENT.get_or_init(|| RwLock::new(Arc::clone(&content)));
+        *cache.write().unwrap_or_else(PoisonError::into_inner) = content;
     }
 
     /// Returns the current portfolio in a cloned [`Arc`].
@@ -124,7 +118,8 @@ mod server {
         let Some(content) = CONTENT.get() else {
             std::process::abort();
         };
-        content.load_full()
+        let content = content.read().unwrap_or_else(PoisonError::into_inner);
+        Arc::clone(&content)
     }
 }
 
