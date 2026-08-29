@@ -16,7 +16,7 @@ pub async fn session_state() -> Result<SessionState, AdminError> {
         .map_err(|_| AdminError::Internal)?;
     let state = expect_context::<ApplicationState>();
     AuthSession::<Unverified>::new(session)
-        .resolve(&state.pool)
+        .resolve(&state.pool, state.session_policy)
         .await
         .map_err(|_| AdminError::Internal)
 }

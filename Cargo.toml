@@ -27,6 +27,7 @@ pulldown-cmark = "0.13"
 tokio = { version = "1", features = [
   "rt-multi-thread",
   "macros",
+  "time",
 ], optional = true }
 wasm-bindgen = { version = "0.2.106", optional = true }
 sqlx = { version = "0.9", features = [

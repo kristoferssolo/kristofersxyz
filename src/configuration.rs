@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use std::{env, str::FromStr};
+use time::Duration;
 
 use axum::http::Uri;
 
@@ -48,15 +49,19 @@ pub enum DeploymentMode {
 
 impl DeploymentMode {
     #[must_use]
-    pub const fn session_cookie(self) -> SessionCookiePolicy {
+    pub const fn session_policy(self) -> SessionPolicy {
         match self {
-            Self::Local => SessionCookiePolicy {
+            Self::Local => SessionPolicy {
                 name: "kristofersxyz-session",
                 secure: false,
+                idle_timeout: Duration::hours(1),
+                absolute_timeout: Duration::hours(8),
             },
-            Self::ProductionBehindTrustedProxy => SessionCookiePolicy {
+            Self::ProductionBehindTrustedProxy => SessionPolicy {
                 name: "__Host-kristofersxyz-session",
                 secure: true,
+                idle_timeout: Duration::hours(1),
+                absolute_timeout: Duration::hours(8),
             },
         }
     }
@@ -83,14 +88,16 @@ impl<'de> Deserialize<'de> for DeploymentMode {
     }
 }
 
-/// Cookie attributes derived from the deployment mode.
+/// Cookie and lifetime constraints for owner sessions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SessionCookiePolicy {
+pub struct SessionPolicy {
     name: &'static str,
     secure: bool,
+    idle_timeout: Duration,
+    absolute_timeout: Duration,
 }
 
-impl SessionCookiePolicy {
+impl SessionPolicy {
     #[must_use]
     pub const fn name(self) -> &'static str {
         self.name
@@ -99,6 +106,16 @@ impl SessionCookiePolicy {
     #[must_use]
     pub const fn secure(self) -> bool {
         self.secure
+    }
+
+    #[must_use]
+    pub const fn idle_timeout(self) -> Duration {
+        self.idle_timeout
+    }
+
+    #[must_use]
+    pub const fn absolute_timeout(self) -> Duration {
+        self.absolute_timeout
     }
 }
 
@@ -283,7 +300,7 @@ mod tests {
             PublicOrigin("http://localhost:3000".to_owned()),
         );
         assert!(local.validate().is_ok());
-        assert!(!local.deployment.session_cookie().secure());
+        assert!(!local.deployment.session_policy().secure());
 
         let production = Settings::new(
             local.database.url,
@@ -291,13 +308,21 @@ mod tests {
             PublicOrigin("https://kristofers.xyz".to_owned()),
         );
         assert!(production.validate().is_ok());
-        assert!(production.deployment.session_cookie().secure());
+        assert!(production.deployment.session_policy().secure());
         assert!(
             production
                 .deployment
-                .session_cookie()
+                .session_policy()
                 .name()
                 .starts_with("__Host-")
+        );
+        assert_eq!(
+            production.deployment.session_policy().idle_timeout(),
+            Duration::hours(1)
+        );
+        assert_eq!(
+            production.deployment.session_policy().absolute_timeout(),
+            Duration::hours(8)
         );
     }
 

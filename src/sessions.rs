@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use time::OffsetDateTime;
 use tower_sessions::{
     session::{Id, Record},
-    session_store::{self, SessionStore},
+    session_store::{self, ExpiredDeletion, SessionStore},
 };
 
 /// Stores the id, JSON record, and Unix expiry timestamp in one row.
@@ -22,6 +22,20 @@ impl SqliteSessionStore {
     #[must_use]
     pub const fn new(pool: DbPool) -> Self {
         Self { pool }
+    }
+
+    /// Deletes expired records and returns how many rows were removed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`sqlx::Error`] when SQLite cannot perform the deletion.
+    #[tracing::instrument(name = "Purge expired sessions", skip_all, err)]
+    pub async fn purge_expired(&self) -> Result<u64, sqlx::Error> {
+        let now = OffsetDateTime::now_utc().unix_timestamp();
+        let result = sqlx::query!("DELETE FROM sessions WHERE expiry_date <= ?1", now)
+            .execute(&self.pool)
+            .await?;
+        Ok(result.rows_affected())
     }
 
     /// Checks for an id collision before insertion.
@@ -49,6 +63,16 @@ impl SqliteSessionStore {
         .execute(&self.pool)
         .await
         .map_err(|error| backend(&error))?;
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl ExpiredDeletion for SqliteSessionStore {
+    async fn delete_expired(&self) -> session_store::Result<()> {
+        self.purge_expired()
+            .await
+            .map_err(|error| backend(&error))?;
         Ok(())
     }
 }
@@ -153,6 +177,22 @@ mod tests {
         store.create(&mut record).await.expect("create the session");
 
         assert_eq!(store.load(&record.id).await.expect("load"), None);
+    }
+
+    #[tokio::test]
+    async fn purge_expired_deletes_only_expired_sessions() {
+        let store = store().await;
+        let mut expired = record(-Duration::hours(1));
+        let mut active = record(Duration::hours(1));
+        store.create(&mut expired).await.expect("create expired");
+        store.create(&mut active).await.expect("create active");
+
+        assert_eq!(store.purge_expired().await.expect("purge expired"), 1);
+        assert_eq!(store.load(&expired.id).await.expect("load expired"), None);
+        assert_eq!(
+            store.load(&active.id).await.expect("load active"),
+            Some(active)
+        );
     }
 
     #[tokio::test]

@@ -2,14 +2,13 @@ mod csrf;
 
 use crate::{
     app::{App, content::server_content, shell},
-    configuration::SessionCookiePolicy,
+    configuration::SessionPolicy,
     db::DbPool,
     sessions::SqliteSessionStore,
     startup::ApplicationState,
 };
 use axum::{Router, middleware};
 use leptos_axum::{LeptosRoutes, file_and_error_handler, generate_route_list};
-use time::Duration;
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::SameSite};
 
 pub fn route(state: ApplicationState) -> Router {
@@ -23,7 +22,7 @@ pub fn route(state: ApplicationState) -> Router {
         .fallback(file_and_error_handler::<ApplicationState, _>(|options| {
             shell(options, server_content().as_ref())
         }))
-        .layer(session_layer(state.pool.clone(), state.session_cookie))
+        .layer(session_layer(state.pool.clone(), state.session_policy))
         .layer(middleware::from_fn_with_state(
             state.public_origin.clone(),
             csrf::verify_origin,
@@ -35,15 +34,12 @@ pub fn route(state: ApplicationState) -> Router {
 ///
 /// The validated deployment mode supplies a coherent cookie name and transport
 /// policy. No `Domain` attribute is set, so the cookie remains host-only.
-fn session_layer(
-    pool: DbPool,
-    cookie: SessionCookiePolicy,
-) -> SessionManagerLayer<SqliteSessionStore> {
+fn session_layer(pool: DbPool, policy: SessionPolicy) -> SessionManagerLayer<SqliteSessionStore> {
     SessionManagerLayer::new(SqliteSessionStore::new(pool))
-        .with_name(cookie.name())
+        .with_name(policy.name())
         .with_http_only(true)
         .with_same_site(SameSite::Strict)
-        .with_secure(cookie.secure())
+        .with_secure(policy.secure())
         .with_path("/")
-        .with_expiry(Expiry::OnInactivity(Duration::hours(1)))
+        .with_expiry(Expiry::OnInactivity(policy.idle_timeout()))
 }

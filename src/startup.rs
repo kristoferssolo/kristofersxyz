@@ -1,16 +1,19 @@
 use crate::{
     authentication::LoginThrottle,
-    configuration::{ConfigurationError, PublicOrigin, SessionCookiePolicy, Settings},
+    configuration::{ConfigurationError, PublicOrigin, SessionPolicy, Settings},
     db,
     db::DbPool,
     errors::ApplicationError,
     router::route,
+    sessions::SqliteSessionStore,
 };
 use axum::extract::FromRef;
 use leptos::{config::errors::LeptosConfigError, prelude::*};
 use sqlx::migrate::MigrateError;
 use std::net::SocketAddr;
-use tokio::{net::TcpListener, task::JoinHandle};
+use tokio::{net::TcpListener, task::JoinHandle, time};
+
+const SESSION_CLEANUP_INTERVAL: std::time::Duration = std::time::Duration::from_hours(1);
 
 #[derive(Debug, thiserror::Error)]
 pub enum StartupError {
@@ -35,8 +38,8 @@ pub struct ApplicationState {
     /// Shared by login and content-edit requests after startup.
     pub pool: DbPool,
     pub leptos_options: LeptosOptions,
-    /// Cookie policy derived from the validated deployment mode.
-    pub session_cookie: SessionCookiePolicy,
+    /// Cookie and lifetime policy derived from the deployment mode.
+    pub session_policy: SessionPolicy,
     pub login_throttle: LoginThrottle,
     pub public_origin: PublicOrigin,
 }
@@ -45,6 +48,7 @@ pub struct ApplicationState {
 pub struct Application {
     port: u16,
     server: JoinHandle<Result<(), std::io::Error>>,
+    session_cleanup: JoinHandle<()>,
 }
 
 impl ApplicationState {
@@ -60,6 +64,9 @@ impl ApplicationState {
         settings.validate()?;
         let pool = db::connect(&settings.database.url).await?;
         db::migrate(&pool).await?;
+        SqliteSessionStore::new(pool.clone())
+            .purge_expired()
+            .await?;
         db::seed_if_empty(&pool).await?;
         let content = db::portfolio::load(&pool).await?;
 
@@ -69,7 +76,7 @@ impl ApplicationState {
         Ok(Self {
             pool,
             leptos_options,
-            session_cookie: settings.deployment.session_cookie(),
+            session_policy: settings.deployment.session_policy(),
             login_throttle: LoginThrottle::default(),
             public_origin: settings.http.public_origin.clone(),
         })
@@ -98,6 +105,9 @@ impl Application {
         let addr = app.leptos_options.site_addr;
         let listener = TcpListener::bind(addr).await?;
         let port = listener.local_addr()?.port();
+        let session_cleanup = tokio::spawn(clean_expired_sessions(SqliteSessionStore::new(
+            app.pool.clone(),
+        )));
         let server = tokio::spawn(async move {
             axum::serve(
                 listener,
@@ -106,7 +116,11 @@ impl Application {
             .await
         });
 
-        Ok(Self { port, server })
+        Ok(Self {
+            port,
+            server,
+            session_cleanup,
+        })
     }
 
     #[must_use]
@@ -122,7 +136,30 @@ impl Application {
     /// Returns `std::io::Error` if the server task fails.
     #[inline]
     pub async fn run_until_stopped(self) -> Result<(), std::io::Error> {
-        self.server.await?
+        let result = self.server.await;
+        self.session_cleanup.abort();
+        result?
+    }
+}
+
+async fn clean_expired_sessions(store: SqliteSessionStore) {
+    let mut interval = time::interval(SESSION_CLEANUP_INTERVAL);
+    interval.tick().await;
+
+    loop {
+        interval.tick().await;
+        match store.purge_expired().await {
+            Ok(deleted) => tracing::debug!(
+                event = "expired_sessions_purged",
+                deleted,
+                "Purged expired sessions"
+            ),
+            Err(error) => tracing::error!(
+                event = "expired_session_purge_failed",
+                error = %error,
+                "Failed to purge expired sessions"
+            ),
+        }
     }
 }
 

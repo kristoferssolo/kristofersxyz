@@ -1,16 +1,41 @@
 //! The owner session and its valid authentication transitions.
 
 use crate::{
+    configuration::SessionPolicy,
     db::DbPool,
     domain::{OwnerId, Username},
 };
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use time::{Duration, OffsetDateTime};
 use tokio::sync::Mutex;
 use tower_sessions::{Session, session};
 
 const OWNER_ID_KEY: &str = "owner_id";
 const LEGACY_USER_ID_KEY: &str = "user_id";
 const LEGACY_USERNAME_KEY: &str = "username";
+const ISSUED_AT_KEY: &str = "issued_at";
 static SIGN_INS: Mutex<()> = Mutex::const_new(());
+
+#[derive(Clone, Copy, Deserialize, Serialize)]
+struct SessionIssuedAt(i64);
+
+impl SessionIssuedAt {
+    fn now() -> Self {
+        Self(OffsetDateTime::now_utc().unix_timestamp())
+    }
+
+    fn expires_at(self, lifetime: Duration) -> Option<OffsetDateTime> {
+        OffsetDateTime::from_unix_timestamp(self.0)
+            .ok()?
+            .checked_add(lifetime)
+    }
+}
+
+enum StoredClaim<T> {
+    Missing,
+    Value(T),
+    Corrupt,
+}
 
 /// A session whose stored authentication data has not been checked yet.
 pub struct Unverified;
@@ -65,16 +90,38 @@ impl AuthSession<Unverified> {
     /// Returns [`AuthSessionError`] if SQLite or the session store cannot be
     /// reached.
     #[tracing::instrument(name = "Resolve owner session", skip_all, err)]
-    pub async fn resolve(self, pool: &DbPool) -> Result<SessionState, AuthSessionError> {
-        let Ok(owner_id) = self.read_owner_id().await else {
+    pub async fn resolve(
+        self,
+        pool: &DbPool,
+        policy: SessionPolicy,
+    ) -> Result<SessionState, AuthSessionError> {
+        self.resolve_at(pool, policy, OffsetDateTime::now_utc())
+            .await
+    }
+
+    async fn resolve_at(
+        self,
+        pool: &DbPool,
+        policy: SessionPolicy,
+        now: OffsetDateTime,
+    ) -> Result<SessionState, AuthSessionError> {
+        let owner_id = match self.read_owner_id().await? {
+            StoredClaim::Value(owner_id) => owner_id,
+            StoredClaim::Missing if self.inner.is_empty().await => return Ok(self.anonymous()),
+            StoredClaim::Missing => return self.reject("session_partial_identity").await,
+            StoredClaim::Corrupt => return self.reject("session_corrupt").await,
+        };
+        let issued_at = match self.claim::<SessionIssuedAt>(ISSUED_AT_KEY).await? {
+            StoredClaim::Value(issued_at) => issued_at,
+            StoredClaim::Missing => return self.reject("session_partial_identity").await,
+            StoredClaim::Corrupt => return self.reject("session_corrupt").await,
+        };
+        let Some(expires_at) = issued_at.expires_at(policy.absolute_timeout()) else {
             return self.reject("session_corrupt").await;
         };
-        let Some(owner_id) = owner_id else {
-            if self.inner.is_empty().await {
-                return Ok(self.anonymous());
-            }
-            return self.reject("session_partial_identity").await;
-        };
+        if now >= expires_at {
+            return self.reject("session_absolute_expired").await;
+        }
 
         let row = sqlx::query!(
             "SELECT username FROM users WHERE user_id = ?1",
@@ -89,7 +136,9 @@ impl AuthSession<Unverified> {
             return self.reject("session_owner_corrupt").await;
         };
 
-        self.inner.remove_value(LEGACY_USERNAME_KEY).await?;
+        if self.inner.get_value(LEGACY_USERNAME_KEY).await?.is_some() {
+            self.inner.remove_value(LEGACY_USERNAME_KEY).await?;
+        }
         tracing::debug!(
             event = "session_resolved",
             owner_id = %owner_id,
@@ -102,17 +151,28 @@ impl AuthSession<Unverified> {
         }))
     }
 
-    async fn read_owner_id(&self) -> Result<Option<OwnerId>, session::Error> {
-        if let Some(owner_id) = self.inner.get::<OwnerId>(OWNER_ID_KEY).await? {
-            return Ok(Some(owner_id));
+    async fn read_owner_id(&self) -> Result<StoredClaim<OwnerId>, session::Error> {
+        match self.claim(OWNER_ID_KEY).await? {
+            StoredClaim::Missing => {}
+            claim => return Ok(claim),
         }
 
-        let legacy_owner_id = self.inner.get::<OwnerId>(LEGACY_USER_ID_KEY).await?;
-        if let Some(owner_id) = legacy_owner_id {
+        let legacy_owner_id = self.claim(LEGACY_USER_ID_KEY).await?;
+        if let StoredClaim::Value(owner_id) = legacy_owner_id {
             self.inner.insert(OWNER_ID_KEY, owner_id).await?;
             self.inner.remove_value(LEGACY_USER_ID_KEY).await?;
         }
         Ok(legacy_owner_id)
+    }
+
+    async fn claim<T>(&self, key: &str) -> Result<StoredClaim<T>, session::Error>
+    where
+        T: DeserializeOwned,
+    {
+        let Some(value) = self.inner.get_value(key).await? else {
+            return Ok(StoredClaim::Missing);
+        };
+        Ok(serde_json::from_value(value).map_or(StoredClaim::Corrupt, StoredClaim::Value))
     }
 
     async fn reject(self, event: &'static str) -> Result<SessionState, AuthSessionError> {
@@ -154,6 +214,9 @@ impl AuthSession<Anonymous> {
         let _guard = SIGN_INS.lock().await;
         self.inner.cycle_id().await?;
         self.inner.insert(OWNER_ID_KEY, owner_id).await?;
+        self.inner
+            .insert(ISSUED_AT_KEY, SessionIssuedAt::now())
+            .await?;
         self.inner.save().await?;
         let session_id = self.inner.id().ok_or(AuthSessionError::MissingSessionId)?;
         sqlx::query!(
@@ -215,7 +278,7 @@ impl AuthSession<Authenticated> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::test_support::migrated_pool;
+    use crate::{configuration::DeploymentMode, db::test_support::migrated_pool};
     use claims::{assert_ok, assert_some};
     use std::sync::Arc;
     use tower_sessions::{MemoryStore, SessionStore};
@@ -237,6 +300,20 @@ mod tests {
         Session::new(None, store, None)
     }
 
+    fn policy() -> SessionPolicy {
+        DeploymentMode::Local.session_policy()
+    }
+
+    async fn insert_identity(session: &Session, owner_id: OwnerId, issued_at: OffsetDateTime) {
+        assert_ok!(session.insert(OWNER_ID_KEY, owner_id).await);
+        assert_ok!(
+            session
+                .insert(ISSUED_AT_KEY, SessionIssuedAt(issued_at.unix_timestamp()))
+                .await
+        );
+        assert_ok!(session.save().await);
+    }
+
     fn anonymous(state: SessionState) -> Option<AuthSession<Anonymous>> {
         match state {
             SessionState::Anonymous(session) => Some(session),
@@ -250,7 +327,7 @@ mod tests {
         let pool = pool_with_owner(owner_id, "owner").await;
         let state = assert_ok!(
             AuthSession::new(session(Arc::new(MemoryStore::default())))
-                .resolve(&pool)
+                .resolve(&pool, policy())
                 .await
         );
         assert!(matches!(state, SessionState::Anonymous(_)));
@@ -264,7 +341,11 @@ mod tests {
         assert_ok!(session.insert(LEGACY_USERNAME_KEY, "owner").await);
         assert_ok!(session.save().await);
 
-        let state = assert_ok!(AuthSession::new(session.clone()).resolve(&pool).await);
+        let state = assert_ok!(
+            AuthSession::new(session.clone())
+                .resolve(&pool, policy())
+                .await
+        );
         assert!(matches!(state, SessionState::Anonymous(_)));
         assert!(session.id().is_none());
         assert!(session.is_empty().await);
@@ -276,11 +357,15 @@ mod tests {
         let pool = pool_with_owner(owner_id, "owner").await;
         let store = Arc::new(MemoryStore::default());
         let session = session(store);
-        assert_ok!(session.insert(OWNER_ID_KEY, owner_id).await);
+        insert_identity(&session, owner_id, OffsetDateTime::now_utc()).await;
         assert_ok!(session.insert(LEGACY_USERNAME_KEY, "stale name").await);
         assert_ok!(session.save().await);
 
-        let state = assert_ok!(AuthSession::new(session.clone()).resolve(&pool).await);
+        let state = assert_ok!(
+            AuthSession::new(session.clone())
+                .resolve(&pool, policy())
+                .await
+        );
         let authenticated = assert_some!(match state {
             SessionState::Authenticated(session) => Some(session),
             SessionState::Anonymous(_) => None,
@@ -298,17 +383,49 @@ mod tests {
         let pool = pool_with_owner(owner_id, "owner").await;
         let store = Arc::new(MemoryStore::default());
         let session = session(store.clone());
-        assert_ok!(session.insert(OWNER_ID_KEY, owner_id).await);
-        assert_ok!(session.save().await);
+        insert_identity(&session, owner_id, OffsetDateTime::now_utc()).await;
         let session_id = assert_some!(session.id());
         sqlx::query!("DELETE FROM users WHERE user_id = ?1", owner_id.to_string())
             .execute(&pool)
             .await
             .expect("delete the owner");
 
-        let state = assert_ok!(AuthSession::new(session.clone()).resolve(&pool).await);
+        let state = assert_ok!(
+            AuthSession::new(session.clone())
+                .resolve(&pool, policy())
+                .await
+        );
         assert!(matches!(state, SessionState::Anonymous(_)));
         assert_eq!(assert_ok!(store.load(&session_id).await), None);
+    }
+
+    #[tokio::test]
+    async fn the_absolute_lifetime_expires_at_the_policy_boundary() {
+        let owner_id = OwnerId::new();
+        let pool = pool_with_owner(owner_id, "owner").await;
+        let policy = policy();
+        let issued_at = OffsetDateTime::now_utc();
+        let expires_at = assert_some!(issued_at.checked_add(policy.absolute_timeout()));
+        let just_before = assert_some!(expires_at.checked_sub(Duration::seconds(1)));
+
+        let active = session(Arc::new(MemoryStore::default()));
+        insert_identity(&active, owner_id, issued_at).await;
+        let active_state = assert_ok!(
+            AuthSession::new(active)
+                .resolve_at(&pool, policy, just_before)
+                .await
+        );
+        assert!(matches!(active_state, SessionState::Authenticated(_)));
+
+        let expired = session(Arc::new(MemoryStore::default()));
+        insert_identity(&expired, owner_id, issued_at).await;
+        let expired_state = assert_ok!(
+            AuthSession::new(expired.clone())
+                .resolve_at(&pool, policy, expires_at)
+                .await
+        );
+        assert!(matches!(expired_state, SessionState::Anonymous(_)));
+        assert!(expired.id().is_none());
     }
 
     #[tokio::test]
@@ -316,7 +433,11 @@ mod tests {
         let owner_id = OwnerId::new();
         let pool = pool_with_owner(owner_id, "owner").await;
         let store = Arc::new(MemoryStore::default());
-        let state = assert_ok!(AuthSession::new(session(store)).resolve(&pool).await);
+        let state = assert_ok!(
+            AuthSession::new(session(store))
+                .resolve(&pool, policy())
+                .await
+        );
         let session = assert_some!(anonymous(state));
         let username = assert_ok!(Username::new("owner".to_owned()));
         let authenticated = assert_ok!(session.sign_in(&pool, owner_id, username.clone()).await);
@@ -324,7 +445,11 @@ mod tests {
         assert_eq!(authenticated.username(), &username);
 
         let anonymous = assert_ok!(authenticated.sign_out().await);
-        let state = assert_ok!(AuthSession::new(anonymous.inner).resolve(&pool).await);
+        let state = assert_ok!(
+            AuthSession::new(anonymous.inner)
+                .resolve(&pool, policy())
+                .await
+        );
         assert!(matches!(state, SessionState::Anonymous(_)));
     }
 }
