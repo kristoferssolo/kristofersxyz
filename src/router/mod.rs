@@ -1,3 +1,4 @@
+mod cache_policy;
 mod csrf;
 mod security_headers;
 
@@ -46,6 +47,7 @@ pub fn route(state: ApplicationState) -> Router {
             deployment,
             security_headers::add,
         ))
+        .layer(middleware::from_fn(cache_policy::add))
         .with_state(state)
 }
 

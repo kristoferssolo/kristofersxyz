@@ -224,6 +224,43 @@ async fn production_responses_enable_strict_transport_security() {
 }
 
 #[tokio::test]
+async fn owner_pages_and_server_functions_are_not_cacheable() {
+    let (router, _database) = app_with_owner().await;
+
+    let login_page = router
+        .clone()
+        .oneshot(get_request("/login", None))
+        .await
+        .expect("send the login page request");
+    assert_eq!(login_page.headers()[header::CACHE_CONTROL], "no-store");
+
+    let login_attempt = router
+        .clone()
+        .oneshot(login_request("owner", "wrong"))
+        .await
+        .expect("send the login attempt");
+    assert_eq!(login_attempt.headers()[header::CACHE_CONTROL], "no-store");
+
+    let cookie = sign_in(&router).await;
+    let admin_page = router
+        .oneshot(get_request("/admin", Some(&cookie)))
+        .await
+        .expect("send the admin page request");
+    assert_eq!(admin_page.headers()[header::CACHE_CONTROL], "no-store");
+}
+
+#[tokio::test]
+async fn public_pages_do_not_inherit_the_owner_cache_policy() {
+    let (router, _database) = app_with_owner().await;
+    let response = router
+        .oneshot(get_request("/work/traxor", None))
+        .await
+        .expect("send the public request");
+
+    assert!(!response.headers().contains_key(header::CACHE_CONTROL));
+}
+
+#[tokio::test]
 async fn signed_out_visitors_are_redirected_before_admin_routes_render() {
     let (router, _database) = app_with_owner().await;
     let response = router
