@@ -380,7 +380,8 @@ async fn deleting_the_owner_invalidates_an_existing_session() {
     let pool = db::connect(&settings_for(&database).database.url)
         .await
         .expect("connect to the database");
-    sqlx::query!("DELETE FROM users")
+    sqlx::query!("DELETE FROM
+    users")
         .execute(&pool)
         .await
         .expect("delete the owner");
@@ -392,7 +393,10 @@ async fn deleting_the_owner_invalidates_an_existing_session() {
     assert_eq!(response.status(), StatusCode::FOUND);
     assert_eq!(response.headers()[header::LOCATION], "/login");
 
-    let sessions = sqlx::query_scalar!("SELECT COUNT(*) FROM sessions")
+    let sessions = sqlx::query_scalar!("SELECT
+    COUNT(*)
+FROM
+    sessions")
         .fetch_one(&pool)
         .await
         .expect("count sessions");
@@ -407,7 +411,10 @@ async fn rotating_the_session_version_invalidates_an_existing_session() {
         .await
         .expect("connect to the database");
     let session_version = uuid::Uuid::new_v4().to_string();
-    sqlx::query!("UPDATE users SET session_version = ?1", session_version)
+    sqlx::query!("UPDATE
+    users
+SET
+    session_version = ?1", session_version)
         .execute(&pool)
         .await
         .expect("rotate the session version");
@@ -419,7 +426,10 @@ async fn rotating_the_session_version_invalidates_an_existing_session() {
     assert_eq!(response.status(), StatusCode::FOUND);
     assert_eq!(response.headers()[header::LOCATION], "/login");
 
-    let sessions = sqlx::query_scalar!("SELECT COUNT(*) FROM sessions")
+    let sessions = sqlx::query_scalar!("SELECT
+    COUNT(*)
+FROM
+    sessions")
         .fetch_one(&pool)
         .await
         .expect("count sessions");
@@ -433,7 +443,10 @@ async fn the_absolute_lifetime_invalidates_an_existing_session() {
     let pool = db::connect(&settings_for(&database).database.url)
         .await
         .expect("connect to the database");
-    let data = sqlx::query_scalar!("SELECT data FROM sessions")
+    let data = sqlx::query_scalar!("SELECT
+    data
+FROM
+    sessions")
         .fetch_one(&pool)
         .await
         .expect("load the session");
@@ -443,7 +456,10 @@ async fn the_absolute_lifetime_invalidates_an_existing_session() {
         .data
         .insert("owner-issued-at".to_owned(), serde_json::json!(0));
     let data = serde_json::to_string(&record).expect("serialize the expired session");
-    sqlx::query!("UPDATE sessions SET data = ?1", data)
+    sqlx::query!("UPDATE
+    sessions
+SET
+    data = ?1", data)
         .execute(&pool)
         .await
         .expect("expire the session");
@@ -458,7 +474,10 @@ async fn the_absolute_lifetime_invalidates_an_existing_session() {
     assert_eq!(status, StatusCode::FOUND, "{body}");
     assert_eq!(location.expect("redirect location"), "/login");
 
-    let sessions = sqlx::query_scalar!("SELECT COUNT(*) FROM sessions")
+    let sessions = sqlx::query_scalar!("SELECT
+    COUNT(*)
+FROM
+    sessions")
         .fetch_one(&pool)
         .await
         .expect("count sessions");

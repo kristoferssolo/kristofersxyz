@@ -20,7 +20,7 @@ build:
 
 # Run all checks (fmt, feature matrix, clippy, docs, test)
 [group("dev")]
-check: fmt features clippy sqruff docs test
+check: fmt features clippy sleek docs test
 
 # Check the library configuration used by editors and plain Cargo commands
 [group("dev")]
@@ -42,10 +42,10 @@ fmt:
 clippy:
     cargo clippy --all-targets --all-features -- -D warnings
 
-# Run sqruff
+# Format sql
 [group("dev")]
-sqruff:
-    sqruff lint migrations/* --parsing-errors
+sleek:
+    sleek migrations/*.sql
 
 # Build documentation
 [group("dev")]
