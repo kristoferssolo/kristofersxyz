@@ -57,6 +57,32 @@ WHERE
     .fetch_one(pool)
     .await?;
 
+    let contact = sqlx::query_as!(
+        Contact,
+        r#"
+SELECT
+    name,
+    body
+FROM
+    contact
+WHERE
+    id = 1
+    "#
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(PortfolioContent {
+        site,
+        profile: load_profile(pool).await?,
+        projects: projects::load(pool).await?,
+        contact,
+    })
+}
+
+/// Reads the profile singleton with its ordered technology, working-style, and
+/// link lists and assembles them into [`Profile`].
+async fn load_profile(pool: &DbPool) -> Result<Profile, LoadError> {
     let profile = sqlx::query_as!(
         ProfileRow,
         r#"
@@ -119,35 +145,15 @@ ORDER BY
     .fetch_all(pool)
     .await?;
 
-    let contact = sqlx::query_as!(
-        Contact,
-        r#"
-SELECT
-    name,
-    body
-FROM
-    contact
-WHERE
-    id = 1
-    "#
-    )
-    .fetch_one(pool)
-    .await?;
-
-    Ok(PortfolioContent {
-        site,
-        profile: Profile {
-            name: profile.name,
-            title: profile.title,
-            summary: profile.summary,
-            about: profile.about,
-            technologies,
-            working_style,
-            email: profile.email,
-            links,
-        },
-        projects: projects::load(pool).await?,
-        contact,
+    Ok(Profile {
+        name: profile.name,
+        title: profile.title,
+        summary: profile.summary,
+        about: profile.about,
+        technologies,
+        working_style,
+        email: profile.email,
+        links,
     })
 }
 
