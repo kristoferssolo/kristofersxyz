@@ -28,6 +28,13 @@ impl Portfolio {
         self.0.get()
     }
 
+    /// Returns a snapshot for one-time component setup without subscribing the
+    /// caller to later replacements.
+    #[must_use]
+    pub fn snapshot(self) -> PortfolioContent {
+        self.0.get_untracked()
+    }
+
     pub fn replace(self, content: PortfolioContent) {
         self.0.set(content);
     }

@@ -11,16 +11,12 @@ use std::time::Duration;
 
 #[component]
 pub fn Eyebrow(children: Children) -> impl IntoView {
-    view! {
-        <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">{children()}</p>
-    }
+    view! { <p class="text-[10px] tracking-[.24em] text-[#767d87] uppercase">{children()}</p> }
 }
 
 #[component]
 pub fn PageHeading(children: Children) -> impl IntoView {
-    view! {
-        <h1 class="mt-[.7rem] font-sans text-2xl font-semibold text-white">{children()}</h1>
-    }
+    view! { <h1 class="mt-[.7rem] font-sans text-2xl font-semibold text-white">{children()}</h1> }
 }
 
 #[derive(Clone, Copy)]
@@ -124,7 +120,10 @@ pub fn InfoList(rows: Vec<InfoRow>) -> impl IntoView {
                     } else {
                         view! { {value} }.into_any()
                     };
-                    view! { <dt>{row.label}</dt><dd>{value}</dd> }
+                    view! {
+                        <dt>{row.label}</dt>
+                        <dd>{value}</dd>
+                    }
                 })
                 .collect_view()}
         </dl>
@@ -207,25 +206,25 @@ pub fn EditorLayout(
 
     view! {
         <CommandShell filename=filename>
-        <div class="h-full overflow-hidden bg-black font-mono text-[#d4d7db]">
-            <AdminSidebarShortcut sidebar />
-            <CollapsibleSidebar
-                id="admin-navigation"
-                label="admin navigation"
-                width="320px"
-                open
-                on_toggle=Callback::new(move |()| sidebar.toggle())
-                navigation=view! { <EditorNavigation active /> }.into_any()
-            >
-                <main class="relative flex h-full flex-col overflow-x-hidden overflow-y-auto px-[3.25rem] py-12">
-                    <div class=wrap>
-                        <Eyebrow>{breadcrumb}</Eyebrow>
-                        <PageHeading>{heading}</PageHeading>
-                        {children()}
-                    </div>
-                </main>
-            </CollapsibleSidebar>
-        </div>
+            <div class="h-full overflow-hidden bg-black font-mono text-[#d4d7db]">
+                <AdminSidebarShortcut sidebar />
+                <CollapsibleSidebar
+                    id="admin-navigation"
+                    label="admin navigation"
+                    width="320px"
+                    open
+                    on_toggle=Callback::new(move |()| sidebar.toggle())
+                    navigation=view! { <EditorNavigation active /> }.into_any()
+                >
+                    <main class="relative flex h-full flex-col overflow-x-hidden overflow-y-auto px-[3.25rem] py-12">
+                        <div class=wrap>
+                            <Eyebrow>{breadcrumb}</Eyebrow>
+                            <PageHeading>{heading}</PageHeading>
+                            {children()}
+                        </div>
+                    </main>
+                </CollapsibleSidebar>
+            </div>
         </CommandShell>
     }
 }
@@ -249,7 +248,7 @@ fn AdminSidebarShortcut(sidebar: SidebarPreference) -> impl IntoView {
 
 #[component]
 fn EditorNavigation(active: String) -> impl IntoView {
-    let content = expect_context::<Portfolio>().current();
+    let content = expect_context::<Portfolio>().snapshot();
     let projects = content
         .projects
         .into_iter()

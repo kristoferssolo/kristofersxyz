@@ -27,7 +27,7 @@ pub fn MissingPage(
     heading: &'static str,
     description: &'static str,
 ) -> impl IntoView {
-    let content = expect_context::<Portfolio>().current();
+    let content = expect_context::<Portfolio>().snapshot();
     let editor = EditorController::routes(&content, &EntryId::Profile);
     let status = editor.status("[No Name]", || StatusLocation::Cursor {
         line: 0,

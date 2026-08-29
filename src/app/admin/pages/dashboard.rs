@@ -13,7 +13,7 @@ use leptos_router::components::A;
 /// The authenticated landing page and its editable entries.
 #[component]
 pub fn DashboardPage() -> impl IntoView {
-    let content = expect_context::<Portfolio>().current();
+    let content = expect_context::<Portfolio>().snapshot();
     let user = expect_context::<SessionUser>();
     let projects_count = content.projects.len();
     let pages_count = projects_count.saturating_add(2);

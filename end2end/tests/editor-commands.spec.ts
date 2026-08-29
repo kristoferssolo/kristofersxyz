@@ -1,97 +1,97 @@
 import { expect, type Page, test } from "@playwright/test";
 
+test("portfolio setup does not read signals outside a reactive context", async ({ page }) => {
+    const warnings: string[] = [];
+    page.on("console", (message) => {
+        if (message.type() === "warning") {
+            warnings.push(message.text());
+        }
+    });
+
+    await page.goto("http://localhost:3000/");
+    await expect(page.getByRole("heading", { name: "Kristofers Solo" })).toBeVisible();
+
+    expect(warnings.join("\n")).not.toContain("outside a reactive tracking context");
+});
+
 async function runHelpCommand(page: Page) {
-  await page.locator("main").click();
-  await page.keyboard.type(":");
-  await expect(page.locator("footer > div").first()).toHaveCSS(
-    "border-radius",
-    "0px",
-  );
-  await page.keyboard.type("help");
-  await expect(page.locator("footer")).toContainText(":help");
-  await page.keyboard.press("Enter");
-  await expect(
-    page.getByRole("dialog", { name: "Keyboard help" }),
-  ).toBeVisible();
+    await page.locator("main").click();
+    await page.keyboard.type(":");
+    await expect(page.locator("footer > div").first()).toHaveCSS("border-radius", "0px");
+    await page.keyboard.type("help");
+    await expect(page.locator("footer")).toContainText(":help");
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("dialog", { name: "Keyboard help" })).toBeVisible();
 }
 
 test("commands work on the homepage and project details", async ({ page }) => {
-  await page.goto("http://localhost:3000/");
-  await runHelpCommand(page);
+    await page.goto("http://localhost:3000/");
+    await runHelpCommand(page);
 
-  await page.goto("http://localhost:3000/work/guenther");
-  await runHelpCommand(page);
+    await page.goto("http://localhost:3000/work/guenther");
+    await runHelpCommand(page);
 
-  await page.keyboard.press("Escape");
-  await page.keyboard.type(":contact");
-  await expect(page.locator("footer")).toContainText(":contact");
-  await page.keyboard.press("Enter");
-  await expect(page).toHaveURL("http://localhost:3000/#contact");
+    await page.keyboard.press("Escape");
+    await page.keyboard.type(":contact");
+    await expect(page.locator("footer")).toContainText(":contact");
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL("http://localhost:3000/#contact");
 });
 
-test("the status line spans the viewport, its text clear of the link preview", async ({
-  page,
-}) => {
-  const width = 1280;
-  await page.setViewportSize({ width, height: 800 });
-  await page.goto("http://localhost:3000/");
+test("the status line spans the viewport, its text clear of the link preview", async ({ page }) => {
+    const width = 1280;
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("http://localhost:3000/");
 
-  const status = await page.locator("footer > div").first().boundingBox();
-  const filename = await page
-    .locator("footer")
-    .getByText("kristofers.xyz")
-    .boundingBox();
+    const status = await page.locator("footer > div").first().boundingBox();
+    const filename = await page.locator("footer").getByText("kristofers.xyz").boundingBox();
 
-  expect(status).not.toBeNull();
-  expect(filename).not.toBeNull();
-  if (status === null || filename === null) {
-    throw new Error("the shared page chrome did not render");
-  }
+    expect(status).not.toBeNull();
+    expect(filename).not.toBeNull();
+    if (status === null || filename === null) {
+        throw new Error("the shared page chrome did not render");
+    }
 
-  expect(status.x).toBeLessThanOrEqual(1);
-  expect(status.width).toBeGreaterThanOrEqual(width - 1);
-  expect(filename.x).toBeGreaterThan(width / 2);
+    expect(status.x).toBeLessThanOrEqual(1);
+    expect(status.width).toBeGreaterThanOrEqual(width - 1);
+    expect(filename.x).toBeGreaterThan(width / 2);
 });
 
-test("ctrl+b collapses the sidebar and movement leaves it collapsed", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto("http://localhost:3000/");
+test("ctrl+b collapses the sidebar and movement leaves it collapsed", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("http://localhost:3000/");
 
-  const navigation = page.getByRole("navigation", { name: "Portfolio" });
-  const toggle = page.getByRole("button", { name: /portfolio navigation/ });
+    const navigation = page.getByRole("navigation", { name: "Portfolio" });
+    const toggle = page.getByRole("button", { name: /portfolio navigation/ });
 
-  await expect(navigation).toBeVisible();
-  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(navigation).toBeVisible();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
 
-  await page.keyboard.press("Tab");
-  await expect(toggle).toBeFocused();
-  await page.keyboard.press("Enter");
-  await expect(navigation).toBeHidden();
-  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await page.keyboard.press("Tab");
+    await expect(toggle).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(navigation).toBeHidden();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
 
-  await page.keyboard.press("G");
-  await expect(page.locator("footer")).toContainText("[5/5]");
-  await expect(navigation).toBeHidden();
+    await page.keyboard.press("G");
+    await expect(page.locator("footer")).toContainText("[5/5]");
+    await expect(navigation).toBeHidden();
 
-  await toggle.click();
-  await expect(navigation).toBeVisible();
+    await toggle.click();
+    await expect(navigation).toBeVisible();
 });
 
 test(":e opens a page by name from another route", async ({ page }) => {
-  await page.goto("http://localhost:3000/work/guenther");
-  await page.locator("main").click();
+    await page.goto("http://localhost:3000/work/guenther");
+    await page.locator("main").click();
 
-  await page.keyboard.type(":e traxor");
-  await expect(page.locator("footer")).toContainText(":e traxor");
-  await page.keyboard.press("Enter");
-  await expect(page).toHaveURL("http://localhost:3000/work/traxor");
+    await page.keyboard.type(":e traxor");
+    await expect(page.locator("footer")).toContainText(":e traxor");
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL("http://localhost:3000/work/traxor");
 
-  await page.keyboard.type(":e nowhere");
-  await page.keyboard.press("Enter");
-  await expect(page.locator('[aria-live="polite"]')).toContainText(
-    "E94: No matching buffer for nowhere",
-  );
-  await expect(page).toHaveURL("http://localhost:3000/work/traxor");
+    await page.keyboard.type(":e nowhere");
+    await page.keyboard.press("Enter");
+    await expect(page.locator('[aria-live="polite"]')).toContainText("E94: No matching buffer for nowhere");
+    await expect(page).toHaveURL("http://localhost:3000/work/traxor");
 });

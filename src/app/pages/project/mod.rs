@@ -42,7 +42,7 @@ pub fn ProjectPage() -> impl IntoView {
 
 #[component]
 fn ProjectReader(project: Project) -> impl IntoView {
-    let content = expect_context::<Portfolio>().current();
+    let content = expect_context::<Portfolio>().snapshot();
     let active_id = EntryId::Project(project.slug.clone());
     let editor = EditorController::routes(&content, &active_id);
     let description = markdown::render(&project.description);

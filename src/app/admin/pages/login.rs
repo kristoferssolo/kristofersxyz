@@ -10,7 +10,7 @@ use leptos_meta::Title;
 #[component]
 pub fn LoginPage() -> impl IntoView {
     let login = ServerAction::<Login>::new();
-    let content = expect_context::<Portfolio>().current();
+    let content = expect_context::<Portfolio>().snapshot();
     let projects = content.projects.len();
     let names = std::iter::once(content.profile.name)
         .chain(content.projects.into_iter().map(|project| project.title))

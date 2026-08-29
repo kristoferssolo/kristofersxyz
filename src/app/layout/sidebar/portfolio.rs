@@ -18,7 +18,7 @@ pub fn PortfolioNavigation(
     #[prop(into)] active: Signal<EntryId>,
     on_select: Option<Callback<EntryId>>,
 ) -> impl IntoView {
-    let content = expect_context::<Portfolio>().current();
+    let content = expect_context::<Portfolio>().snapshot();
     let groups = navigation(&content);
 
     view! {

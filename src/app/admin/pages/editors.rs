@@ -70,7 +70,7 @@ pub fn ProjectEditorPage() -> impl IntoView {
 #[component]
 pub fn ProfileEditorPage() -> impl IntoView {
     let portfolio = expect_context::<Portfolio>();
-    let profile = portfolio.current().profile;
+    let profile = portfolio.snapshot().profile;
     let action = ServerAction::<SaveProfile>::new();
     follow_save(action, portfolio);
     view! {
@@ -92,7 +92,7 @@ pub fn ProfileEditorPage() -> impl IntoView {
 #[component]
 pub fn ContactEditorPage() -> impl IntoView {
     let portfolio = expect_context::<Portfolio>();
-    let contact = portfolio.current().contact;
+    let contact = portfolio.snapshot().contact;
     let action = ServerAction::<SaveContact>::new();
     follow_save(action, portfolio);
     view! {
@@ -111,7 +111,7 @@ pub fn ContactEditorPage() -> impl IntoView {
 #[component]
 pub fn SiteEditorPage() -> impl IntoView {
     let portfolio = expect_context::<Portfolio>();
-    let site = portfolio.current().site;
+    let site = portfolio.snapshot().site;
     let action = ServerAction::<SaveSite>::new();
     follow_save(action, portfolio);
     view! {

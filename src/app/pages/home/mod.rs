@@ -15,7 +15,7 @@ use leptos::prelude::*;
 /// editor reducer while each pane owns its own rendering module.
 #[component]
 pub fn HomePage() -> impl IntoView {
-    let content = expect_context::<Portfolio>().current();
+    let content = expect_context::<Portfolio>().snapshot();
     let view_model = HomeViewModel::new(&content);
     provide_context(view_model);
     let editor = view_model.editor();

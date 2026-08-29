@@ -4,7 +4,7 @@ use leptos::prelude::*;
 
 #[component]
 pub fn CommandShell(#[prop(into)] filename: String, children: Children) -> impl IntoView {
-    let content = expect_context::<Portfolio>().current();
+    let content = expect_context::<Portfolio>().snapshot();
     let editor = EditorController::restricted(&content, &EntryId::Profile);
     let status = editor.status(filename, || StatusLocation::Cursor { line: 0, column: 0 });
 
