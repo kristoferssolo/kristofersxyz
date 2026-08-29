@@ -6,7 +6,7 @@ use crate::{
     authentication::{AuthError, OwnerId, Password, PasswordError, compute_password_hash},
     configuration::Settings,
     db,
-    domain::{Username, UsernameError},
+    domain::{SessionVersion, Username, UsernameError},
 };
 use sqlx::migrate::MigrateError;
 
@@ -50,17 +50,22 @@ pub async fn set_password(
     password: &Password,
 ) -> Result<(), AdminCliError> {
     let hash = compute_password_hash(password)?;
+    let session_version = SessionVersion::new().to_storage();
 
     let pool = db::connect(&settings.database.url).await?;
     db::migrate(&pool).await?;
 
     let mut transaction = pool.begin().await?;
     sqlx::query!(
-        "INSERT INTO users (user_id, username, password_hash) VALUES (?1, ?2, ?3)
-         ON CONFLICT(username) DO UPDATE SET password_hash = excluded.password_hash",
+        "INSERT INTO users (user_id, username, password_hash, session_version)
+         VALUES (?1, ?2, ?3, ?4)
+         ON CONFLICT(username) DO UPDATE SET
+             password_hash = excluded.password_hash,
+             session_version = excluded.session_version",
         OwnerId::new().to_string(),
         username.as_str(),
-        hash.expose_secret()
+        hash.expose_secret(),
+        session_version,
     )
     .execute(&mut *transaction)
     .await?;

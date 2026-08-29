@@ -285,10 +285,13 @@ mod tests {
 
     async fn pool_with_owner(owner_id: OwnerId, username: &str) -> DbPool {
         let pool = migrated_pool().await;
+        let session_version = crate::domain::SessionVersion::new().to_storage();
         sqlx::query!(
-            "INSERT INTO users (user_id, username, password_hash) VALUES (?1, ?2, 'hash')",
+            "INSERT INTO users (user_id, username, password_hash, session_version)
+             VALUES (?1, ?2, 'hash', ?3)",
             owner_id.to_string(),
             username,
+            session_version,
         )
         .execute(&pool)
         .await

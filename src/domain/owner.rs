@@ -139,6 +139,37 @@ impl fmt::Display for OwnerId {
     }
 }
 
+/// Rotates when the Owner's credentials change so old sessions fail closed.
+#[cfg(feature = "ssr")]
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub struct SessionVersion(Uuid);
+
+#[cfg(feature = "ssr")]
+impl SessionVersion {
+    #[must_use]
+    pub fn new() -> Self {
+        Self(Uuid::new_v4())
+    }
+
+    #[must_use]
+    pub const fn as_bytes(&self) -> &[u8] {
+        self.0.as_bytes()
+    }
+
+    pub fn to_storage(self) -> String {
+        self.0.to_string()
+    }
+}
+
+#[cfg(feature = "ssr")]
+impl TryFrom<&str> for SessionVersion {
+    type Error = uuid::Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Uuid::parse_str(value).map(Self)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

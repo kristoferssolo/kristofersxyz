@@ -2,17 +2,22 @@ mod csrf;
 
 use crate::{
     app::{App, content::server_content, shell},
+    authentication::AuthBackend,
     configuration::SessionPolicy,
     db::DbPool,
     sessions::SqliteSessionStore,
     startup::ApplicationState,
 };
 use axum::{Router, middleware};
+use axum_login::AuthManagerLayerBuilder;
 use leptos_axum::{LeptosRoutes, file_and_error_handler, generate_route_list};
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::SameSite};
 
 pub fn route(state: ApplicationState) -> Router {
     let routes = generate_route_list(App);
+    let sessions = session_layer(state.pool.clone(), state.session_policy);
+    let authentication =
+        AuthManagerLayerBuilder::new(AuthBackend::new(state.pool.clone()), sessions).build();
 
     Router::new()
         .leptos_routes_with_context(&state, routes, || {}, {
@@ -22,7 +27,7 @@ pub fn route(state: ApplicationState) -> Router {
         .fallback(file_and_error_handler::<ApplicationState, _>(|options| {
             shell(options, server_content().as_ref())
         }))
-        .layer(session_layer(state.pool.clone(), state.session_policy))
+        .layer(authentication)
         .layer(middleware::from_fn_with_state(
             state.public_origin.clone(),
             csrf::verify_origin,

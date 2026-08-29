@@ -20,6 +20,7 @@ lucide-leptos = { version = "3.34", features = [
   "shapes",
 ] }
 axum = { version = "0.8", optional = true }
+axum-login = { version = "0.18", default-features = false, optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
 leptos_axum = { version = "0.8", optional = true }
 leptos_meta = { version = "0.8" }
@@ -58,7 +59,7 @@ tracing-subscriber = { version = "0.3", features = [
 ], optional = true }
 tracing-bunyan-formatter = { version = "0.3", optional = true }
 tracing-log = { version = "0.2", optional = true }
-tower-sessions = { version = "0.15", optional = true }
+tower-sessions = { version = "0.14", optional = true }
 time = { version = "0.3", optional = true }
 
 [features]
@@ -69,6 +70,7 @@ ssr = [
   "leptos_meta/ssr",
   "leptos_router/ssr",
   "dep:axum",
+  "dep:axum-login",
   "dep:leptos_axum",
   "dep:arc-swap",
   "dep:argon2",

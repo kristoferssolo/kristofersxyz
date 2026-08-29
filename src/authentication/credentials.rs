@@ -1,7 +1,7 @@
 use super::password::{Password, PasswordHash, verify_password_hash};
 use crate::{
     db::DbPool,
-    domain::{OwnerId, Username},
+    domain::{OwnerId, Username, UsernameError},
 };
 use tokio::sync::{Semaphore, SemaphorePermit};
 
@@ -26,6 +26,10 @@ pub enum AuthError {
     Database(#[from] sqlx::Error),
     #[error("stored user id is not a valid UUID")]
     MalformedUserId(#[from] uuid::Error),
+    #[error("stored username is invalid")]
+    MalformedUsername(#[from] UsernameError),
+    #[error("stored session version is not a valid UUID")]
+    MalformedSessionVersion,
     #[error("failed to hash or verify the password: {0}")]
     PasswordHash(argon2::password_hash::Error),
     #[error("the password hashing task failed to complete")]
@@ -133,13 +137,16 @@ mod tests {
     async fn pool_with_user(username: &str, password: &str) -> (DbPool, OwnerId) {
         let pool = migrated_pool().await;
         let id = OwnerId::new();
+        let session_version = crate::domain::SessionVersion::new().to_storage();
         let password = assert_ok!(Password::new(SecretString::from(password.to_owned())));
         let hash = compute_password_hash(&password).expect("hash the password");
         sqlx::query!(
-            "INSERT INTO users (user_id, username, password_hash) VALUES (?1, ?2, ?3)",
+            "INSERT INTO users (user_id, username, password_hash, session_version)
+             VALUES (?1, ?2, ?3, ?4)",
             id.to_string(),
             username,
-            hash.expose_secret()
+            hash.expose_secret(),
+            session_version,
         )
         .execute(&pool)
         .await
