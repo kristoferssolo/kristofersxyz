@@ -9,8 +9,9 @@ equivalent, and nothing is reachable only by keyboard.
 
 ## Stack
 
-Leptos 0.8 with server-side rendering and hydration, Axum, Tailwind, SQLite via
-sqlx. Built with [cargo-leptos](https://github.com/leptos-rs/cargo-leptos).
+Leptos 0.8 with server-side rendering and hydration, Axum, axum-login,
+Tailwind, and SQLite via SQLx. Built with
+[cargo-leptos](https://github.com/leptos-rs/cargo-leptos).
 
 ## Layout
 
@@ -19,7 +20,7 @@ src/app/editor/   pure reducer over key input, no web_sys, no DOM
 src/app/pages/    public Leptos route components
 src/app/admin/    authenticated Leptos routes, forms, and server functions
 src/app/content.rs  reactive portfolio content shared across routes
-src/authentication/  credentials and typed owner-session transitions
+src/authentication/  axum-login backend and typed Owner-session policy
 src/db/           SQLite content and session persistence
 migrations/       SQLite schema
 end2end/          Playwright tests
