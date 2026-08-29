@@ -222,7 +222,12 @@ impl OwnerSession<Anonymous> {
             .id()
             .ok_or(OwnerSessionError::MissingSessionId)?;
         if let Err(error) = sqlx::query!(
-            "DELETE FROM sessions WHERE id <> ?1",
+            r#"
+DELETE FROM
+    sessions
+WHERE
+    id <> ?1
+        "#,
             session_id.to_string()
         )
         .execute(pool)

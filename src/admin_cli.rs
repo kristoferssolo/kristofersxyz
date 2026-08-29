@@ -55,11 +55,21 @@ pub async fn set_password(
 
     let mut transaction = pool.begin().await?;
     sqlx::query!(
-        "INSERT INTO users (user_id, username, password_hash, session_version)
-         VALUES (?1, ?2, ?3, ?4)
-         ON CONFLICT(username) DO UPDATE SET
-             password_hash = excluded.password_hash,
-             session_version = excluded.session_version",
+        r#"
+INSERT INTO
+    users (
+        user_id,
+        username,
+        password_hash,
+        session_version
+    )
+VALUES
+    (?1, ?2, ?3, ?4) ON CONFLICT(username) DO
+UPDATE
+SET
+    password_hash = excluded.password_hash,
+    session_version = excluded.session_version
+    "#,
         OwnerId::new().to_string(),
         username.as_str(),
         hash.expose_secret(),
@@ -67,9 +77,14 @@ pub async fn set_password(
     )
     .execute(&mut *transaction)
     .await?;
-    sqlx::query!("DELETE FROM sessions")
-        .execute(&mut *transaction)
-        .await?;
+    sqlx::query!(
+        r#"
+DELETE FROM
+    sessions
+    "#
+    )
+    .execute(&mut *transaction)
+    .await?;
     transaction.commit().await?;
 
     Ok(())
@@ -166,7 +181,12 @@ mod tests {
         .expect("create the user");
         let pool = db::connect(&settings.database.url).await.expect("connect");
         sqlx::query!(
-            "INSERT INTO sessions (id, data, expiry_date) VALUES ('active', '{}', 4102444800)"
+            r#"
+INSERT INTO
+    sessions (id, data, expiry_date)
+VALUES
+    ('active', '{}', 4102444800)
+        "#
         )
         .execute(&pool)
         .await
@@ -180,10 +200,17 @@ mod tests {
         .await
         .expect("replace the password");
 
-        let sessions = sqlx::query_scalar!("SELECT COUNT(*) FROM sessions")
-            .fetch_one(&pool)
-            .await
-            .expect("count sessions");
+        let sessions = sqlx::query_scalar!(
+            r#"
+SELECT
+    COUNT(*)
+FROM
+    sessions
+        "#
+        )
+        .fetch_one(&pool)
+        .await
+        .expect("count sessions");
         assert_eq!(sessions, 0);
     }
 
@@ -202,14 +229,23 @@ mod tests {
         .expect("create the user");
         let pool = db::connect(&settings.database.url).await.expect("connect");
         sqlx::query!(
-            "INSERT INTO sessions (id, data, expiry_date) VALUES ('active', '{}', 4102444800)"
+            r#"
+INSERT INTO
+    sessions (id, data, expiry_date)
+VALUES
+    ('active', '{}', 4102444800)
+        "#
         )
         .execute(&pool)
         .await
         .expect("insert an active session");
         sqlx::query!(
-            "CREATE TRIGGER reject_session_deletion BEFORE DELETE ON sessions
-             BEGIN SELECT RAISE(ABORT, 'session deletion rejected'); END"
+            r#"
+CREATE TRIGGER reject_session_deletion BEFORE DELETE ON sessions
+BEGIN
+    SELECT RAISE(ABORT, 'session deletion rejected');
+END
+        "#
         )
         .execute(&pool)
         .await

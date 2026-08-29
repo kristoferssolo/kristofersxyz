@@ -79,7 +79,15 @@ pub async fn validate_credentials(
     let owner_id = owner_id.ok_or(AuthError::InvalidCredentials)?;
     if let Some(replacement) = replacement {
         sqlx::query!(
-            "UPDATE users SET password_hash = ?1 WHERE user_id = ?2 AND password_hash = ?3",
+            r#"
+UPDATE
+    users
+SET
+    password_hash = ?1
+WHERE
+    user_id = ?2
+    AND password_hash = ?3
+        "#,
             replacement.expose_secret(),
             owner_id.to_string(),
             previous_hash,
@@ -108,7 +116,15 @@ async fn get_stored_credentials(
     pool: &DbPool,
 ) -> Result<Option<(OwnerId, PasswordHash)>, AuthError> {
     let row = sqlx::query!(
-        "SELECT user_id, password_hash FROM users WHERE username = ?1",
+        r#"
+SELECT
+    user_id,
+    password_hash
+FROM
+    users
+WHERE
+    username = ?1
+    "#,
         username.as_str()
     )
     .fetch_optional(pool)
@@ -141,8 +157,17 @@ mod tests {
         let password = assert_ok!(Password::new(SecretString::from(password.to_owned())));
         let hash = compute_password_hash(&password);
         sqlx::query!(
-            "INSERT INTO users (user_id, username, password_hash, session_version)
-             VALUES (?1, ?2, ?3, ?4)",
+            r#"
+INSERT INTO
+    users (
+        user_id,
+        username,
+        password_hash,
+        session_version
+    )
+VALUES
+    (?1, ?2, ?3, ?4)
+        "#,
             id.to_string(),
             username,
             hash.expose_secret(),
@@ -193,7 +218,14 @@ mod tests {
         let old_hash = test_support::obsolete_password_hash();
         let old_hash = old_hash.expose_secret().to_owned();
         sqlx::query!(
-            "UPDATE users SET password_hash = ?1 WHERE user_id = ?2",
+            r#"
+UPDATE
+    users
+SET
+    password_hash = ?1
+WHERE
+    user_id = ?2
+        "#,
             old_hash,
             id.to_string(),
         )
@@ -206,7 +238,14 @@ mod tests {
         );
 
         let upgraded = sqlx::query_scalar!(
-            "SELECT password_hash FROM users WHERE user_id = ?1",
+            r#"
+SELECT
+    password_hash
+FROM
+    users
+WHERE
+    user_id = ?1
+        "#,
             id.to_string(),
         )
         .fetch_one(&pool)

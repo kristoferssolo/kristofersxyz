@@ -93,7 +93,15 @@ impl AuthnBackend for AuthBackend {
     )]
     async fn get_user(&self, owner_id: &OwnerId) -> Result<Option<Self::User>, Self::Error> {
         let row = sqlx::query!(
-            "SELECT username, session_version FROM users WHERE user_id = ?1",
+            r#"
+SELECT
+    username,
+    session_version
+FROM
+    users
+WHERE
+    user_id = ?1
+        "#,
             owner_id.to_string()
         )
         .fetch_optional(&self.pool)

@@ -3,6 +3,8 @@
 #![cfg(feature = "ssr")]
 #![allow(clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+
 use axum::{
     Router,
     body::{Body, to_bytes},
@@ -21,8 +23,7 @@ use kristofersxyz::{
 use tempfile::NamedTempFile;
 use tower::ServiceExt;
 
-const TEST_PEER: std::net::SocketAddr =
-    std::net::SocketAddr::new(std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST), 41_000);
+const TEST_PEER: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 41_000);
 const TEST_ORIGIN: &str = "http://localhost:3000";
 
 fn username(value: &str) -> Username {
@@ -380,11 +381,13 @@ async fn deleting_the_owner_invalidates_an_existing_session() {
     let pool = db::connect(&settings_for(&database).database.url)
         .await
         .expect("connect to the database");
-    sqlx::query!("DELETE FROM
-    users")
-        .execute(&pool)
-        .await
-        .expect("delete the owner");
+    sqlx::query!(
+        "DELETE FROM
+    users"
+    )
+    .execute(&pool)
+    .await
+    .expect("delete the owner");
 
     let response = router
         .oneshot(get_request("/admin", Some(&cookie)))
@@ -393,13 +396,15 @@ async fn deleting_the_owner_invalidates_an_existing_session() {
     assert_eq!(response.status(), StatusCode::FOUND);
     assert_eq!(response.headers()[header::LOCATION], "/login");
 
-    let sessions = sqlx::query_scalar!("SELECT
+    let sessions = sqlx::query_scalar!(
+        "SELECT
     COUNT(*)
 FROM
-    sessions")
-        .fetch_one(&pool)
-        .await
-        .expect("count sessions");
+    sessions"
+    )
+    .fetch_one(&pool)
+    .await
+    .expect("count sessions");
     assert_eq!(sessions, 0);
 }
 
@@ -411,13 +416,18 @@ async fn rotating_the_session_version_invalidates_an_existing_session() {
         .await
         .expect("connect to the database");
     let session_version = uuid::Uuid::new_v4().to_string();
-    sqlx::query!("UPDATE
+    sqlx::query!(
+        r#"
+UPDATE
     users
 SET
-    session_version = ?1", session_version)
-        .execute(&pool)
-        .await
-        .expect("rotate the session version");
+    session_version = ?1
+    "#,
+        session_version
+    )
+    .execute(&pool)
+    .await
+    .expect("rotate the session version");
 
     let response = router
         .oneshot(get_request("/admin", Some(&cookie)))
@@ -426,13 +436,15 @@ SET
     assert_eq!(response.status(), StatusCode::FOUND);
     assert_eq!(response.headers()[header::LOCATION], "/login");
 
-    let sessions = sqlx::query_scalar!("SELECT
+    let sessions = sqlx::query_scalar!(
+        "SELECT
     COUNT(*)
 FROM
-    sessions")
-        .fetch_one(&pool)
-        .await
-        .expect("count sessions");
+    sessions"
+    )
+    .fetch_one(&pool)
+    .await
+    .expect("count sessions");
     assert_eq!(sessions, 0);
 }
 
@@ -443,26 +455,31 @@ async fn the_absolute_lifetime_invalidates_an_existing_session() {
     let pool = db::connect(&settings_for(&database).database.url)
         .await
         .expect("connect to the database");
-    let data = sqlx::query_scalar!("SELECT
+    let data = sqlx::query_scalar!(
+        "SELECT
     data
 FROM
-    sessions")
-        .fetch_one(&pool)
-        .await
-        .expect("load the session");
+    sessions"
+    )
+    .fetch_one(&pool)
+    .await
+    .expect("load the session");
     let mut record: tower_sessions::session::Record =
         serde_json::from_str(&data).expect("stored session record is valid");
     record
         .data
         .insert("owner-issued-at".to_owned(), serde_json::json!(0));
     let data = serde_json::to_string(&record).expect("serialize the expired session");
-    sqlx::query!("UPDATE
+    sqlx::query!(
+        "UPDATE
     sessions
 SET
-    data = ?1", data)
-        .execute(&pool)
-        .await
-        .expect("expire the session");
+    data = ?1",
+        data
+    )
+    .execute(&pool)
+    .await
+    .expect("expire the session");
 
     let response = router
         .oneshot(get_request("/admin", Some(&cookie)))
@@ -474,13 +491,15 @@ SET
     assert_eq!(status, StatusCode::FOUND, "{body}");
     assert_eq!(location.expect("redirect location"), "/login");
 
-    let sessions = sqlx::query_scalar!("SELECT
+    let sessions = sqlx::query_scalar!(
+        "SELECT
     COUNT(*)
 FROM
-    sessions")
-        .fetch_one(&pool)
-        .await
-        .expect("count sessions");
+    sessions"
+    )
+    .fetch_one(&pool)
+    .await
+    .expect("count sessions");
     assert_eq!(sessions, 0);
 }
 

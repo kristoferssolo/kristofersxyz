@@ -32,16 +32,31 @@ impl SqliteSessionStore {
     #[tracing::instrument(name = "Purge expired sessions", skip_all, err)]
     pub async fn purge_expired(&self) -> Result<u64, sqlx::Error> {
         let now = OffsetDateTime::now_utc().unix_timestamp();
-        let result = sqlx::query!("DELETE FROM sessions WHERE expiry_date <= ?1", now)
-            .execute(&self.pool)
-            .await?;
+        let result = sqlx::query!(
+            r#"
+DELETE FROM
+    sessions
+WHERE
+    expiry_date <= ?1
+        "#,
+            now
+        )
+        .execute(&self.pool)
+        .await?;
         Ok(result.rows_affected())
     }
 
     /// Checks for an id collision before insertion.
     async fn id_taken(&self, id: &Id) -> session_store::Result<bool> {
         let count = sqlx::query_scalar!(
-            "SELECT COUNT(*) FROM sessions WHERE id = ?1",
+            r#"
+SELECT
+    COUNT(*)
+FROM
+    sessions
+WHERE
+    id = ?1
+        "#,
             id.to_string()
         )
         .fetch_one(&self.pool)
@@ -54,8 +69,16 @@ impl SqliteSessionStore {
         let data = serde_json::to_string(record)
             .map_err(|error| session_store::Error::Encode(error.to_string()))?;
         sqlx::query!(
-            "INSERT INTO sessions (id, data, expiry_date) VALUES (?1, ?2, ?3)
-             ON CONFLICT(id) DO UPDATE SET data = excluded.data, expiry_date = excluded.expiry_date",
+            r#"
+INSERT INTO
+    sessions (id, data, expiry_date)
+VALUES
+    (?1, ?2, ?3) ON CONFLICT(id) DO
+UPDATE
+SET
+    data = excluded.data,
+    expiry_date = excluded.expiry_date
+        "#,
             record.id.to_string(),
             data,
             record.expiry_date.unix_timestamp()
@@ -93,7 +116,15 @@ impl SessionStore for SqliteSessionStore {
     async fn load(&self, session_id: &Id) -> session_store::Result<Option<Record>> {
         let now = OffsetDateTime::now_utc().unix_timestamp();
         let row = sqlx::query!(
-            "SELECT data FROM sessions WHERE id = ?1 AND expiry_date > ?2",
+            r#"
+SELECT
+    data
+FROM
+    sessions
+WHERE
+    id = ?1
+    AND expiry_date > ?2
+        "#,
             session_id.to_string(),
             now
         )
@@ -109,10 +140,18 @@ impl SessionStore for SqliteSessionStore {
     }
 
     async fn delete(&self, session_id: &Id) -> session_store::Result<()> {
-        sqlx::query!("DELETE FROM sessions WHERE id = ?1", session_id.to_string())
-            .execute(&self.pool)
-            .await
-            .map_err(|error| backend(&error))?;
+        sqlx::query!(
+            r#"
+DELETE FROM
+    sessions
+WHERE
+    id = ?1
+        "#,
+            session_id.to_string()
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|error| backend(&error))?;
         Ok(())
     }
 }

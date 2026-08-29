@@ -13,9 +13,16 @@ use super::DbPool;
 ///
 /// Returns [`sqlx::Error`] if the emptiness check or the seed fails.
 pub async fn seed_if_empty(pool: &DbPool) -> Result<(), sqlx::Error> {
-    let existing = sqlx::query_scalar!("SELECT COUNT(*) FROM site")
-        .fetch_one(pool)
-        .await?;
+    let existing = sqlx::query_scalar!(
+        r#"
+SELECT
+    COUNT(*)
+FROM
+    site
+    "#
+    )
+    .fetch_one(pool)
+    .await?;
     if existing > 0 {
         return Ok(());
     }
@@ -36,10 +43,17 @@ mod tests {
         let pool = migrated_pool().await;
         seed_if_empty(&pool).await.expect("seed the empty database");
 
-        let projects = sqlx::query_scalar!("SELECT COUNT(*) FROM project")
-            .fetch_one(&pool)
-            .await
-            .expect("count projects");
+        let projects = sqlx::query_scalar!(
+            r#"
+SELECT
+    COUNT(*)
+FROM
+    project
+        "#
+        )
+        .fetch_one(&pool)
+        .await
+        .expect("count projects");
         assert_eq!(projects, 3);
     }
 
@@ -49,16 +63,34 @@ mod tests {
         let pool = migrated_pool().await;
         seed_if_empty(&pool).await.expect("first seed");
 
-        sqlx::query!("UPDATE site SET title = 'edited' WHERE id = 1")
-            .execute(&pool)
-            .await
-            .expect("edit the seeded content");
+        sqlx::query!(
+            r#"
+UPDATE
+    site
+SET
+    title = 'edited'
+WHERE
+    id = 1
+        "#
+        )
+        .execute(&pool)
+        .await
+        .expect("edit the seeded content");
         seed_if_empty(&pool).await.expect("second seed is a no-op");
 
-        let title = sqlx::query_scalar!("SELECT title FROM site WHERE id = 1")
-            .fetch_one(&pool)
-            .await
-            .expect("read the title back");
+        let title = sqlx::query_scalar!(
+            r#"
+SELECT
+    title
+FROM
+    site
+WHERE
+    id = 1
+        "#
+        )
+        .fetch_one(&pool)
+        .await
+        .expect("read the title back");
         assert_eq!(title, "edited");
     }
 }

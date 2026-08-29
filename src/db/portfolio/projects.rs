@@ -14,7 +14,16 @@ pub async fn set(
     description: &str,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query!(
-        "UPDATE project SET title = ?1, summary = ?2, description_markdown = ?3 WHERE slug = ?4",
+        r#"
+UPDATE
+    project
+SET
+    title = ?1,
+    summary = ?2,
+    description_markdown = ?3
+WHERE
+    slug = ?4
+    "#,
         title,
         summary,
         description,
@@ -30,21 +39,51 @@ pub async fn set(
 pub async fn load(pool: &DbPool) -> Result<Vec<Project>, super::LoadError> {
     let rows = sqlx::query_as!(
         ProjectRow,
-        "SELECT id, slug, title, summary, description_markdown FROM project ORDER BY sort_order",
+        r#"
+SELECT
+    id,
+    slug,
+    title,
+    summary,
+    description_markdown
+FROM
+    project
+ORDER BY
+    sort_order
+    "#,
     )
     .fetch_all(pool)
     .await?;
 
     let technologies = sqlx::query_as!(
         ProjectItemRow,
-        "SELECT project_id, item FROM project_technology ORDER BY project_id, sort_order",
+        r#"
+SELECT
+    project_id,
+    item
+FROM
+    project_technology
+ORDER BY
+    project_id,
+    sort_order
+    "#,
     )
     .fetch_all(pool)
     .await?;
 
     let links = sqlx::query_as!(
         ProjectLinkRow,
-        "SELECT project_id, label, href FROM project_link ORDER BY project_id, sort_order",
+        r#"
+SELECT
+    project_id,
+    label,
+    href
+FROM
+    project_link
+ORDER BY
+    project_id,
+    sort_order
+    "#,
     )
     .fetch_all(pool)
     .await?;
