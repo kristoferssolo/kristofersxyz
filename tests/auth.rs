@@ -261,6 +261,47 @@ async fn public_pages_do_not_inherit_the_owner_cache_policy() {
 }
 
 #[tokio::test]
+async fn oversized_login_bodies_are_rejected_before_throttling() {
+    let (router, _database) = app_with_owner().await;
+    let oversized_password = "x".repeat(5 * 1_024);
+
+    for _ in 0..6 {
+        let response = router
+            .clone()
+            .oneshot(login_request("owner", &oversized_password))
+            .await
+            .expect("send the oversized login request");
+        assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    }
+
+    let response = router
+        .oneshot(login_request("owner", "s3cret"))
+        .await
+        .expect("send a valid login after oversized requests");
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn oversized_content_edits_are_rejected_before_form_extraction() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+    let oversized_markdown = "x".repeat(257 * 1_024);
+
+    let response = router
+        .oneshot(project_edit(
+            "traxor",
+            "Traxor",
+            "Summary",
+            &oversized_markdown,
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the oversized content request");
+
+    assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+}
+
+#[tokio::test]
 async fn signed_out_visitors_are_redirected_before_admin_routes_render() {
     let (router, _database) = app_with_owner().await;
     let response = router

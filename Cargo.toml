@@ -21,6 +21,7 @@ lucide-leptos = { version = "3.34", features = [
 ] }
 axum = { version = "0.8", optional = true }
 axum-login = { version = "0.18", default-features = false, optional = true }
+http-body-util = { version = "0.1", optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
 leptos_axum = { version = "0.8", optional = true }
 leptos_meta = { version = "0.8" }
@@ -69,6 +70,7 @@ ssr = [
   "leptos_router/ssr",
   "dep:axum",
   "dep:axum-login",
+  "dep:http-body-util",
   "dep:leptos_axum",
   "dep:async-trait",
   "dep:config",

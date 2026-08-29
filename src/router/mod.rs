@@ -1,5 +1,6 @@
 mod cache_policy;
 mod csrf;
+mod request_limits;
 mod security_headers;
 
 use crate::{
@@ -39,6 +40,7 @@ pub fn route(state: ApplicationState) -> Router {
             |options| shell(options, server_content().as_ref()),
         ))
         .layer(authentication)
+        .layer(middleware::from_fn(request_limits::enforce))
         .layer(middleware::from_fn_with_state(
             state.public_origin.clone(),
             csrf::verify_origin,

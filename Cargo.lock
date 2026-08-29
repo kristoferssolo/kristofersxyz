@@ -1455,6 +1455,7 @@ dependencies = [
  "console_error_panic_hook",
  "criterion",
  "dotenvy",
+ "http-body-util",
  "leptos",
  "leptos_axum",
  "leptos_meta",
