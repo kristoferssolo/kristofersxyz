@@ -2,11 +2,15 @@ use tracing::Subscriber;
 use tracing::subscriber::set_global_default;
 use tracing_log::LogTracer;
 use tracing_subscriber::fmt::MakeWriter;
+use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::{EnvFilter, Registry, layer::SubscriberExt};
 
 /// Builds a tracing subscriber writing human-readable events to `sink`.
 ///
 /// `env_filter` is the fallback directive used when `RUST_LOG` is unset.
+/// Spans report their own creation and closure, so an `#[instrument]`ed
+/// function stays visible with its busy and idle time even when its body
+/// logs nothing.
 ///
 /// # Panics
 ///
@@ -17,7 +21,9 @@ where
 {
     let env_filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(env_filter));
-    let formatting_layer = tracing_subscriber::fmt::layer().with_writer(sink);
+    let formatting_layer = tracing_subscriber::fmt::layer()
+        .with_writer(sink)
+        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE);
     Registry::default().with(env_filter).with(formatting_layer)
 }
 
