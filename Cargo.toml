@@ -48,7 +48,7 @@ thiserror = "2.0"
 arc-swap = { version = "1", optional = true }
 async-trait = { version = "0.1", optional = true }
 serde_json = { version = "1", optional = true }
-argon2 = { version = "0.5", features = ["std"], optional = true }
+password-auth = { version = "1", optional = true }
 rpassword = { version = "7", optional = true }
 secrecy = { version = "0.10", features = ["serde"], optional = true }
 uuid = { version = "1", features = ["v4", "serde"], optional = true }
@@ -73,10 +73,10 @@ ssr = [
   "dep:axum-login",
   "dep:leptos_axum",
   "dep:arc-swap",
-  "dep:argon2",
   "dep:async-trait",
   "dep:config",
   "dep:dotenvy",
+  "dep:password-auth",
   "dep:rpassword",
   "dep:secrecy",
   "dep:serde_json",

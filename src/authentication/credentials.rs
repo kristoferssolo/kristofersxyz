@@ -1,4 +1,4 @@
-use super::password::{Password, PasswordHash, verify_password_hash};
+use super::password::{Password, PasswordHash, PasswordHashError, verify_password_hash};
 use crate::{
     db::DbPool,
     domain::{OwnerId, Username, UsernameError},
@@ -30,8 +30,8 @@ pub enum AuthError {
     MalformedUsername(#[from] UsernameError),
     #[error("stored session version is not a valid UUID")]
     MalformedSessionVersion,
-    #[error("failed to hash or verify the password: {0}")]
-    PasswordHash(argon2::password_hash::Error),
+    #[error(transparent)]
+    PasswordHash(#[from] PasswordHashError),
     #[error("the password hashing task failed to complete")]
     Join(#[from] tokio::task::JoinError),
     #[error("password verification is unavailable")]
@@ -63,9 +63,9 @@ pub async fn validate_credentials(
 ) -> Result<OwnerId, AuthError> {
     let stored = get_stored_credentials(&credentials.username, pool).await?;
     let (owner_id, expected_hash) = stored.map_or_else(
-        || (None, PasswordHash::from(DUMMY_PASSWORD_HASH.to_owned())),
-        |(id, hash)| (Some(id), hash),
-    );
+        || PasswordHash::try_from(DUMMY_PASSWORD_HASH.to_owned()).map(|hash| (None, hash)),
+        |(id, hash)| Ok((Some(id), hash)),
+    )?;
 
     let previous_hash = expected_hash.expose_secret().to_owned();
     let password = credentials.password;
@@ -117,7 +117,7 @@ async fn get_stored_credentials(
     row.map(|row| {
         Ok((
             OwnerId::try_from(row.user_id.as_str())?,
-            PasswordHash::from(row.password_hash),
+            PasswordHash::try_from(row.password_hash)?,
         ))
     })
     .transpose()
@@ -127,11 +127,11 @@ async fn get_stored_credentials(
 mod tests {
     use super::*;
     use crate::{
-        authentication::{compute_password_hash, password::assert_current_policy, test_support},
+        authentication::{compute_password_hash, test_support},
         db::test_support::migrated_pool,
     };
-    use argon2::PasswordHash as ArgonPasswordHash;
     use claims::{assert_err, assert_ok, assert_ok_eq};
+    use password_auth::is_hash_obsolete;
     use secrecy::SecretString;
     /// A migrated in-memory database holding one user with a known password.
     async fn pool_with_user(username: &str, password: &str) -> (DbPool, OwnerId) {
@@ -139,7 +139,7 @@ mod tests {
         let id = OwnerId::new();
         let session_version = crate::domain::SessionVersion::new().to_storage();
         let password = assert_ok!(Password::new(SecretString::from(password.to_owned())));
-        let hash = compute_password_hash(&password).expect("hash the password");
+        let hash = compute_password_hash(&password);
         sqlx::query!(
             "INSERT INTO users (user_id, username, password_hash, session_version)
              VALUES (?1, ?2, ?3, ?4)",
@@ -189,9 +189,8 @@ mod tests {
     #[tokio::test]
     async fn a_successful_login_upgrades_an_old_hash() {
         let (pool, id) = pool_with_user("kristofers", "correct horse battery staple").await;
-        let password = "correct horse battery staple";
-        let old_hash =
-            test_support::old_password_hash(&assert_ok!(Password::try_from(password.to_owned())));
+        let password = "password";
+        let old_hash = test_support::obsolete_password_hash();
         let old_hash = old_hash.expose_secret().to_owned();
         sqlx::query!(
             "UPDATE users SET password_hash = ?1 WHERE user_id = ?2",
@@ -203,11 +202,7 @@ mod tests {
         .expect("install the old password hash");
 
         assert_ok!(
-            validate_credentials(
-                test_support::credentials("kristofers", "correct horse battery staple"),
-                &pool,
-            )
-            .await
+            validate_credentials(test_support::credentials("kristofers", password), &pool,).await
         );
 
         let upgraded = sqlx::query_scalar!(
@@ -217,14 +212,12 @@ mod tests {
         .fetch_one(&pool)
         .await
         .expect("read the upgraded hash");
-        let parsed = assert_ok!(ArgonPasswordHash::new(&upgraded));
-        assert_current_policy(&parsed);
+        assert_ok_eq!(is_hash_obsolete(&upgraded), false);
     }
 
     #[test]
     fn the_dummy_hash_uses_the_current_policy() {
-        let hash = assert_ok!(ArgonPasswordHash::new(DUMMY_PASSWORD_HASH));
-        assert_current_policy(&hash);
+        assert_ok_eq!(is_hash_obsolete(DUMMY_PASSWORD_HASH), false);
     }
 
     #[test]

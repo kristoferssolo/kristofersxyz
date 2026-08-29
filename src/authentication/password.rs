@@ -1,8 +1,5 @@
 use super::credentials::AuthError;
-use argon2::{
-    Argon2, Params, PasswordHash as ArgonPasswordHash, PasswordHasher, PasswordVerifier, Version,
-    password_hash::SaltString,
-};
+use password_auth::{VerifyError, generate_hash, is_hash_obsolete, verify_password};
 use secrecy::{ExposeSecret, SecretString};
 
 /// The longest password accepted anywhere. A bound on the hasher's input, so a
@@ -87,41 +84,44 @@ pub enum PasswordError {
 }
 
 /// An encoded password hash suitable for persistent storage.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PasswordHash(SecretString);
 
 impl PasswordHash {
+    /// Parses a PHC-formatted password hash loaded from storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PasswordHashError`] if `value` is not a valid PHC string.
+    pub fn new(value: String) -> Result<Self, PasswordHashError> {
+        is_hash_obsolete(&value).map_err(PasswordHashError::InvalidFormat)?;
+        Ok(Self(SecretString::from(value)))
+    }
+
     pub(crate) fn expose_secret(&self) -> &str {
         self.0.expose_secret()
     }
 }
 
-impl From<String> for PasswordHash {
-    fn from(value: String) -> Self {
-        Self(SecretString::from(value))
+impl TryFrom<String> for PasswordHash {
+    type Error = PasswordHashError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
     }
 }
 
-/// The current Argon2id policy. `argon2`'s defaults are OWASP's minimum:
-/// 19 MiB of memory, two iterations, and one lane.
-fn password_hasher() -> Argon2<'static> {
-    Argon2::default()
+#[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
+pub enum PasswordHashError {
+    #[error("the stored password hash is invalid")]
+    InvalidFormat(#[source] password_auth::ParseError),
 }
 
-/// Hashes a password with the current Argon2id policy and a fresh random salt.
-///
-/// # Errors
-///
-/// Returns an [`AuthError`] if the hasher cannot be configured or the hash
-/// cannot be computed.
-#[tracing::instrument(name = "Compute owner password hash", skip_all, err)]
-pub fn compute_password_hash(password: &Password) -> Result<PasswordHash, AuthError> {
-    let salt = SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
-    let hash = password_hasher()
-        .hash_password(password.expose_secret().as_bytes(), &salt)
-        .map_err(AuthError::PasswordHash)?
-        .to_string();
-    Ok(PasswordHash::from(hash))
+/// Hashes a password using `password-auth`'s current policy and a fresh salt.
+#[must_use]
+#[tracing::instrument(name = "Compute owner password hash", skip_all)]
+pub fn compute_password_hash(password: &Password) -> PasswordHash {
+    PasswordHash(SecretString::from(generate_hash(password.expose_secret())))
 }
 
 /// Verifies a candidate and returns a replacement when the PHC parameters no
@@ -131,51 +131,25 @@ pub(super) fn verify_password_hash(
     expected: &PasswordHash,
     candidate: &Password,
 ) -> Result<Option<PasswordHash>, AuthError> {
-    let expected =
-        ArgonPasswordHash::new(expected.expose_secret()).map_err(AuthError::PasswordHash)?;
-    password_hasher()
-        .verify_password(candidate.expose_secret().as_bytes(), &expected)
-        .map_err(|error| match error {
-            argon2::password_hash::Error::Password => AuthError::InvalidCredentials,
-            other => AuthError::PasswordHash(other),
-        })?;
+    verify_password(candidate.expose_secret(), expected.expose_secret()).map_err(|error| {
+        match error {
+            VerifyError::PasswordInvalid => AuthError::InvalidCredentials,
+            VerifyError::Parse(error) => {
+                AuthError::PasswordHash(PasswordHashError::InvalidFormat(error))
+            }
+        }
+    })?;
 
-    needs_rehash(&expected)
-        .then(|| compute_password_hash(candidate))
-        .transpose()
-}
-
-fn needs_rehash(hash: &ArgonPasswordHash<'_>) -> bool {
-    let current_params = Params::try_from(hash).is_ok_and(|params| {
-        params.m_cost() == Params::DEFAULT_M_COST
-            && params.t_cost() == Params::DEFAULT_T_COST
-            && params.p_cost() == Params::DEFAULT_P_COST
-            && matches!(params.output_len(), None | Some(Params::DEFAULT_OUTPUT_LEN))
-    });
-    hash.algorithm.as_str() != "argon2id"
-        || hash.version != Some(u32::from(Version::V0x13))
-        || !current_params
-}
-
-#[cfg(test)]
-pub fn assert_current_policy(hash: &ArgonPasswordHash<'_>) {
-    assert_eq!(hash.algorithm.as_str(), "argon2id");
-    assert_eq!(hash.version, Some(u32::from(Version::V0x13)));
-    let params = claims::assert_ok!(Params::try_from(hash));
-    assert_eq!(params.m_cost(), Params::DEFAULT_M_COST);
-    assert_eq!(params.t_cost(), Params::DEFAULT_T_COST);
-    assert_eq!(params.p_cost(), Params::DEFAULT_P_COST);
-    assert!(matches!(
-        params.output_len(),
-        None | Some(Params::DEFAULT_OUTPUT_LEN)
-    ));
+    Ok(is_hash_obsolete(expected.expose_secret())
+        .map_err(PasswordHashError::InvalidFormat)?
+        .then(|| compute_password_hash(candidate)))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::authentication::test_support::old_password_hash;
-    use claims::{assert_err, assert_ok, assert_some};
+    use crate::authentication::test_support::obsolete_password_hash;
+    use claims::{assert_err, assert_ok, assert_ok_eq, assert_some};
 
     #[test]
     fn passwords_require_visible_content() {
@@ -206,21 +180,22 @@ mod tests {
         let password = assert_ok!(Password::try_from(
             "correct horse battery staple".to_owned()
         ));
-        let hash = assert_ok!(compute_password_hash(&password));
-        let parsed = assert_ok!(ArgonPasswordHash::new(hash.expose_secret()));
+        let hash = compute_password_hash(&password);
 
-        assert_current_policy(&parsed);
+        assert_ok_eq!(is_hash_obsolete(hash.expose_secret()), false);
+    }
+
+    #[test]
+    fn password_hashes_require_phc_format() {
+        assert_err!(PasswordHash::try_from("not a password hash".to_owned()));
     }
 
     #[test]
     fn a_valid_old_hash_is_replaced_after_verification() {
-        let password = assert_ok!(Password::try_from(
-            "correct horse battery staple".to_owned()
-        ));
-        let old_hash = old_password_hash(&password);
+        let password = assert_ok!(Password::try_from("password".to_owned()));
+        let old_hash = obsolete_password_hash();
 
         let replacement = assert_some!(assert_ok!(verify_password_hash(&old_hash, &password)));
-        let parsed = assert_ok!(ArgonPasswordHash::new(replacement.expose_secret()));
-        assert_current_policy(&parsed);
+        assert_ok_eq!(is_hash_obsolete(replacement.expose_secret()), false);
     }
 }

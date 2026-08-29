@@ -1012,8 +1012,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff2abc00be7fca6ebc474524697ae276ad847ad0a6b3faa4bcb027e9a4614ad0"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "wasi",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1478,7 +1480,6 @@ name = "kristofersxyz"
 version = "0.1.0"
 dependencies = [
  "arc-swap",
- "argon2",
  "async-trait",
  "axum",
  "axum-login",
@@ -1492,6 +1493,7 @@ dependencies = [
  "leptos_meta",
  "leptos_router",
  "lucide-leptos",
+ "password-auth",
  "pulldown-cmark",
  "rpassword",
  "rstest",
@@ -1995,6 +1997,18 @@ dependencies = [
  "redox_syscall",
  "smallvec",
  "windows-link",
+]
+
+[[package]]
+name = "password-auth"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a2a4764cc1f8d961d802af27193c6f4f0124bd0e76e8393cf818e18880f0524"
+dependencies = [
+ "argon2",
+ "getrandom 0.2.17",
+ "password-hash",
+ "rand_core 0.6.4",
 ]
 
 [[package]]

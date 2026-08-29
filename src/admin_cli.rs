@@ -3,7 +3,7 @@
 //! No arguments starts the server. A subcommand runs its task and exits.
 
 use crate::{
-    authentication::{AuthError, OwnerId, Password, PasswordError, compute_password_hash},
+    authentication::{OwnerId, Password, PasswordError, compute_password_hash},
     configuration::Settings,
     db,
     domain::{SessionVersion, Username, UsernameError},
@@ -28,8 +28,6 @@ pub enum AdminCliError {
     Database(#[from] sqlx::Error),
     #[error("failed to run migrations")]
     Migration(#[from] MigrateError),
-    #[error("failed to hash the password")]
-    Hash(#[from] AuthError),
 }
 
 /// Creates the user or replaces its password after running migrations.
@@ -37,7 +35,7 @@ pub enum AdminCliError {
 /// # Errors
 ///
 /// Returns an [`AdminCliError`] if the database is unreachable, a migration
-/// fails, or the password cannot be hashed.
+/// fails, or the password cannot be stored.
 #[tracing::instrument(
     name = "Set owner password",
     skip_all,
@@ -49,7 +47,7 @@ pub async fn set_password(
     username: &Username,
     password: &Password,
 ) -> Result<(), AdminCliError> {
-    let hash = compute_password_hash(password)?;
+    let hash = compute_password_hash(password);
     let session_version = SessionVersion::new().to_storage();
 
     let pool = db::connect(&settings.database.url).await?;
