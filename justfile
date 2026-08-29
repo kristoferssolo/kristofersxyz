@@ -30,7 +30,7 @@ features:
 # Run the development server
 [group("run")]
 run:
-    cargo leptos watch | bunyan
+    cargo leptos watch
 
 # Format code
 [group("dev")]

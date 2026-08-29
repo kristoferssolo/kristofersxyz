@@ -56,7 +56,6 @@ tracing-subscriber = { version = "0.3", features = [
   "registry",
   "env-filter",
 ], optional = true }
-tracing-bunyan-formatter = { version = "0.3", optional = true }
 tracing-log = { version = "0.2", optional = true }
 tower-sessions = { version = "0.14", optional = true }
 time = { version = "0.3", optional = true }
@@ -82,7 +81,6 @@ ssr = [
   "dep:time",
   "dep:tokio",
   "dep:tower-sessions",
-  "dep:tracing-bunyan-formatter",
   "dep:tracing-log",
   "dep:tracing-subscriber",
   "dep:uuid",

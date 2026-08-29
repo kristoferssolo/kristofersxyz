@@ -12,7 +12,7 @@ async fn main() -> Result<(), kristofersxyz::errors::ApplicationError> {
 
     dotenvy::dotenv().ok();
 
-    let subscriber = get_subscriber("kristofersxyz", "info", std::io::stdout);
+    let subscriber = get_subscriber("info", std::io::stdout);
     init_subscriber(subscriber);
 
     let settings = Settings::from_env()?;
