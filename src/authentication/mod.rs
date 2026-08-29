@@ -14,7 +14,9 @@ pub use crate::domain::OwnerId;
 pub use backend::{AuthBackend, AuthenticatedOwner, AxumAuthSession};
 pub use credentials::{AuthError, Credentials, validate_credentials};
 pub use password::{Password, PasswordError, PasswordHash, compute_password_hash};
-pub(crate) use session::{AuthSession, Authenticated, SessionState, Unverified};
+pub(crate) use session::{
+    Authenticated, OwnerSession, OwnerSessionError, SessionState, Unverified,
+};
 pub use throttle::{LoginThrottle, RetryAfter};
 
 #[cfg(test)]

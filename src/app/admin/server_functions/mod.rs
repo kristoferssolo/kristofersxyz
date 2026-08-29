@@ -17,7 +17,7 @@ use self::ssr::{
 #[cfg(feature = "ssr")]
 use crate::{
     authentication::{
-        AuthError, Credentials, Password, RetryAfter, SessionState, validate_credentials,
+        AuthError, Credentials, OwnerSessionError, Password, RetryAfter, SessionState,
     },
     db,
     startup::ApplicationState,
@@ -94,23 +94,23 @@ pub async fn login(username: String, password: String) -> Result<(), AdminError>
         password,
     };
 
-    let owner_id = match validate_credentials(credentials, &state.pool).await {
-        Ok(owner_id) => {
+    let owner = match session.authenticate(credentials).await {
+        Ok(Some(owner)) => {
             state.login_throttle.record_success(&username);
-            owner_id
+            owner
         }
-        Err(AuthError::InvalidCredentials) => {
+        Ok(None) | Err(OwnerSessionError::Backend(AuthError::InvalidCredentials)) => {
             state.login_throttle.record_failure(&username);
             return Err(invalid_credentials());
         }
-        Err(AuthError::PasswordTasksUnavailable) => {
+        Err(OwnerSessionError::Backend(AuthError::PasswordTasksUnavailable)) => {
             return Err(too_many_attempts(RetryAfter::password_verification_busy()));
         }
         Err(_) => return Err(AdminError::Internal),
     };
-    tracing::Span::current().record("owner_id", tracing::field::display(owner_id));
+    tracing::Span::current().record("owner_id", tracing::field::display(owner.id()));
     session
-        .sign_in(&state.pool, owner_id, username)
+        .sign_in(&state.pool, owner)
         .await
         .map_err(|_| AdminError::Internal)?;
     redirect("/admin");

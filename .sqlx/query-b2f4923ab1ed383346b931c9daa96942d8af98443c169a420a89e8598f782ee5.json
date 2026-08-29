@@ -1,26 +1,26 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT username FROM users WHERE user_id = ?1",
+  "query": "SELECT data FROM sessions",
   "describe": {
     "columns": [
       {
-        "name": "username",
+        "name": "data",
         "ordinal": 0,
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "users",
-            "name": "username"
+            "table": "sessions",
+            "name": "data"
           }
         }
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 0
     },
     "nullable": [
       false
     ]
   },
-  "hash": "e1d3743f48e877f3cccddf8d933b54514eb9790d792a1912b479b2b0b0b1c65e"
+  "hash": "b2f4923ab1ed383346b931c9daa96942d8af98443c169a420a89e8598f782ee5"
 }

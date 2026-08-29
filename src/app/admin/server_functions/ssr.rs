@@ -1,27 +1,28 @@
 use super::AdminError;
 use crate::{
     app::content::{PortfolioContent, store_server_content},
-    authentication::{AuthSession, Authenticated, RetryAfter, SessionState, Unverified},
+    authentication::{
+        Authenticated, AxumAuthSession, OwnerSession, RetryAfter, SessionState, Unverified,
+    },
     db,
     startup::ApplicationState,
 };
 use axum::http::{HeaderValue, StatusCode, header};
 use leptos::prelude::expect_context;
 use leptos_axum::{ResponseOptions, extract, redirect};
-use tower_sessions::Session;
 
 pub async fn session_state() -> Result<SessionState, AdminError> {
-    let session = extract::<Session>()
+    let session = extract::<AxumAuthSession>()
         .await
         .map_err(|_| AdminError::Internal)?;
     let state = expect_context::<ApplicationState>();
-    AuthSession::<Unverified>::new(session)
-        .resolve(&state.pool, state.session_policy)
+    OwnerSession::<Unverified>::new(session)
+        .resolve(state.session_policy)
         .await
         .map_err(|_| AdminError::Internal)
 }
 
-pub async fn authenticated_session() -> Result<AuthSession<Authenticated>, AdminError> {
+pub async fn authenticated_session() -> Result<OwnerSession<Authenticated>, AdminError> {
     match session_state().await? {
         SessionState::Authenticated(session) => Ok(session),
         SessionState::Anonymous(_) => {

@@ -85,6 +85,12 @@ impl AuthnBackend for AuthBackend {
         }
     }
 
+    #[tracing::instrument(
+        name = "Load authenticated Owner",
+        skip_all,
+        fields(owner_id = %owner_id),
+        err,
+    )]
     async fn get_user(&self, owner_id: &OwnerId) -> Result<Option<Self::User>, Self::Error> {
         let row = sqlx::query!(
             "SELECT username, session_version FROM users WHERE user_id = ?1",

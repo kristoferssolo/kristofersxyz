@@ -400,6 +400,72 @@ async fn deleting_the_owner_invalidates_an_existing_session() {
 }
 
 #[tokio::test]
+async fn rotating_the_session_version_invalidates_an_existing_session() {
+    let (router, database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+    let pool = db::connect(&settings_for(&database).database.url)
+        .await
+        .expect("connect to the database");
+    let session_version = uuid::Uuid::new_v4().to_string();
+    sqlx::query!("UPDATE users SET session_version = ?1", session_version)
+        .execute(&pool)
+        .await
+        .expect("rotate the session version");
+
+    let response = router
+        .oneshot(get_request("/admin", Some(&cookie)))
+        .await
+        .expect("send the old session");
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert_eq!(response.headers()[header::LOCATION], "/login");
+
+    let sessions = sqlx::query_scalar!("SELECT COUNT(*) FROM sessions")
+        .fetch_one(&pool)
+        .await
+        .expect("count sessions");
+    assert_eq!(sessions, 0);
+}
+
+#[tokio::test]
+async fn the_absolute_lifetime_invalidates_an_existing_session() {
+    let (router, database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+    let pool = db::connect(&settings_for(&database).database.url)
+        .await
+        .expect("connect to the database");
+    let data = sqlx::query_scalar!("SELECT data FROM sessions")
+        .fetch_one(&pool)
+        .await
+        .expect("load the session");
+    let mut record: tower_sessions::session::Record =
+        serde_json::from_str(&data).expect("stored session record is valid");
+    record
+        .data
+        .insert("owner-issued-at".to_owned(), serde_json::json!(0));
+    let data = serde_json::to_string(&record).expect("serialize the expired session");
+    sqlx::query!("UPDATE sessions SET data = ?1", data)
+        .execute(&pool)
+        .await
+        .expect("expire the session");
+
+    let response = router
+        .oneshot(get_request("/admin", Some(&cookie)))
+        .await
+        .expect("send the expired session");
+    let status = response.status();
+    let location = response.headers().get(header::LOCATION).cloned();
+    let body = body_text(response).await;
+    assert_eq!(status, StatusCode::FOUND, "{body}");
+    assert_eq!(location.expect("redirect location"), "/login");
+
+    let sessions = sqlx::query_scalar!("SELECT COUNT(*) FROM sessions")
+        .fetch_one(&pool)
+        .await
+        .expect("count sessions");
+    assert_eq!(sessions, 0);
+}
+
+#[tokio::test]
 async fn a_new_login_replaces_the_previous_session() {
     let (router, _database) = app_with_owner().await;
     let first_cookie = sign_in(&router).await;
