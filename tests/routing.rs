@@ -6,7 +6,7 @@
 use axum::{
     Router,
     body::Body,
-    http::{Request, StatusCode},
+    http::{Request, StatusCode, header},
 };
 use kristofersxyz::{
     configuration::{DeploymentMode, PublicOrigin, Settings},
@@ -61,4 +61,20 @@ async fn a_published_project_answers_200() {
     let response = get(&router, "/work/traxor").await;
 
     assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn a_trailing_slash_redirects_to_the_canonical_path() {
+    let (router, _database) = app().await;
+
+    let response = get(&router, "/work/traxor/").await;
+
+    assert_eq!(response.status(), StatusCode::PERMANENT_REDIRECT);
+    assert_eq!(
+        response
+            .headers()
+            .get(header::LOCATION)
+            .expect("the redirect sets a location"),
+        "/work/traxor"
+    );
 }
