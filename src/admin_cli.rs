@@ -5,15 +5,19 @@
 use crate::{
     authentication::{OwnerId, Password, PasswordError, compute_password_hash},
     configuration::Settings,
-    db,
+    db::{self, BackupError, RestoreReport},
     domain::{SessionVersion, Username, UsernameError},
     security_events::SecurityEvent,
 };
 use sqlx::migrate::MigrateError;
+use std::path::Path;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AdminCliError {
-    #[error("usage: kristofersxyz set-password <username>")]
+    #[error(
+        "usage: kristofersxyz [set-password <username> | backup <destination> | \
+         verify-restore <database>]"
+    )]
     Usage,
     #[error("unknown command '{0}'")]
     UnknownCommand(String),
@@ -29,6 +33,54 @@ pub enum AdminCliError {
     Database(#[from] sqlx::Error),
     #[error("failed to run migrations")]
     Migration(#[from] MigrateError),
+    #[error(transparent)]
+    Backup(#[from] BackupError),
+}
+
+/// Copies the configured database into `destination`, which must not exist.
+///
+/// # Errors
+///
+/// Returns an [`AdminCliError`] if the configured database is unreachable or
+/// the copy fails.
+#[tracing::instrument(
+    name = "Back up the configured database",
+    skip_all,
+    fields(destination = %destination.display()),
+    err,
+)]
+pub async fn back_up(settings: &Settings, destination: &Path) -> Result<(), AdminCliError> {
+    let pool = db::connect(&settings.database.url).await?;
+    db::back_up(&pool, destination).await?;
+    Ok(())
+}
+
+/// Checks a restored database at `path` and revokes every session it carries.
+///
+/// The path is always given explicitly so this never touches the configured
+/// database by default. Run it on the restored copy before it replaces the
+/// active database.
+///
+/// # Errors
+///
+/// Returns an [`AdminCliError`] if `path` cannot be opened, fails its integrity
+/// check, or its sessions cannot be deleted.
+#[tracing::instrument(
+    name = "Verify a restored database",
+    skip_all,
+    fields(database = %path.display()),
+    err,
+)]
+pub async fn verify_restore(path: &Path) -> Result<RestoreReport, AdminCliError> {
+    let pool = db::connect_file(path).await?;
+    let report = db::prepare_restored(&pool).await?;
+
+    SecurityEvent::DatabaseRestored {
+        revoked_sessions: report.revoked_sessions,
+    }
+    .record();
+
+    Ok(report)
 }
 
 /// Creates the user or replaces its password after running migrations.

@@ -113,3 +113,26 @@ seed:
     sqlx database create
     just migrate
     sqlite3 data/portfolio.db < seeds/portfolio.sql
+
+# Copy the running database to DESTINATION, which must not already exist
+[group("db")]
+db-backup DESTINATION:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    destination="{{ DESTINATION }}"
+    mkdir --parents "$(dirname -- "$destination")"
+    cargo run --quiet --no-default-features --features ssr -- backup "$destination"
+
+# Restore BACKUP into a throwaway copy and check that the copy is usable
+[group("db")]
+db-verify-restore BACKUP:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    backup="{{ BACKUP }}"
+    test -f "$backup" || { echo "no backup file at '$backup'" >&2; exit 1; }
+    workspace="$(mktemp --directory)"
+    trap 'rm --recursive --force "$workspace"' EXIT
+    # A backup is a static file, so this copy cannot tear a page the way a copy
+    # of the running database can.
+    cp -- "$backup" "$workspace/restored.db"
+    cargo run --quiet --no-default-features --features ssr -- verify-restore "$workspace/restored.db"

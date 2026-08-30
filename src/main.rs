@@ -9,6 +9,7 @@ async fn main() -> Result<(), kristofersxyz::errors::ApplicationError> {
         telemetry::{get_subscriber, init_subscriber},
     };
     use leptos::logging::log;
+    use std::path::Path;
 
     dotenvy::dotenv().ok();
 
@@ -26,6 +27,24 @@ async fn main() -> Result<(), kristofersxyz::errors::ApplicationError> {
                 let password = admin_cli::read_new_password()?;
                 admin_cli::set_password(&settings, &username, &password).await?;
                 log!("password set for '{username}'");
+                Ok(())
+            }
+            "backup" => {
+                let destination = arguments.next().ok_or(AdminCliError::Usage)?;
+                let destination = Path::new(&destination);
+                admin_cli::back_up(&settings, destination).await?;
+                log!("backup written to '{}'", destination.display());
+                Ok(())
+            }
+            "verify-restore" => {
+                let database = arguments.next().ok_or(AdminCliError::Usage)?;
+                let database = Path::new(&database);
+                let report = admin_cli::verify_restore(database).await?;
+                log!(
+                    "'{}' passed its integrity check, {} session(s) revoked",
+                    database.display(),
+                    report.revoked_sessions
+                );
                 Ok(())
             }
             other => Err(AdminCliError::UnknownCommand(other.to_owned()).into()),

@@ -1,8 +1,10 @@
+mod backup;
 mod connection;
 pub mod portfolio;
 mod seed;
 
-pub use connection::{DbPool, DbPoolOptions, connect, migrate};
+pub use backup::{BackupError, RestoreReport, back_up, prepare_restored};
+pub use connection::{DbPool, DbPoolOptions, connect, connect_file, migrate};
 pub use seed::seed_if_empty;
 
 #[cfg(test)]

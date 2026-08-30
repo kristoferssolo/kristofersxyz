@@ -29,3 +29,6 @@ public/og.png
 *.db
 *.db-shm
 *.db-wal
+
+# Database copies kept for recovery
+backups/

@@ -143,6 +143,9 @@ pub enum SecurityEvent<'a> {
         username: &'a Username,
         revoked_sessions: u64,
     },
+    DatabaseRestored {
+        revoked_sessions: u64,
+    },
     PortfolioChanged {
         owner_id: OwnerId,
         resource: PortfolioResource,
@@ -243,6 +246,9 @@ impl SecurityEvent<'_> {
                 username,
                 revoked_sessions,
             } => record_password_change(username, revoked_sessions),
+            Self::DatabaseRestored { revoked_sessions } => {
+                record_database_restore(revoked_sessions);
+            }
             Self::PortfolioChanged { owner_id, resource } => {
                 record_portfolio_change(owner_id, resource);
             }
@@ -258,6 +264,16 @@ fn record_password_change(username: &Username, revoked_sessions: u64) {
         username = %username,
         revoked_sessions,
         "Changed Owner password and revoked sessions"
+    );
+}
+
+fn record_database_restore(revoked_sessions: u64) {
+    tracing::warn!(
+        target: TARGET,
+        security_event = "database_restored",
+        outcome = "success",
+        revoked_sessions,
+        "Prepared a restored database and revoked its sessions"
     );
 }
 

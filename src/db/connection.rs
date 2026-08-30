@@ -1,4 +1,9 @@
-use sqlx::{SqlitePool, migrate::MigrateError, sqlite::SqlitePoolOptions};
+use sqlx::{
+    SqlitePool,
+    migrate::MigrateError,
+    sqlite::{SqliteConnectOptions, SqlitePoolOptions},
+};
+use std::path::Path;
 
 pub type DbPool = SqlitePool;
 pub type DbPoolOptions = SqlitePoolOptions;
@@ -10,6 +15,25 @@ pub type DbPoolOptions = SqlitePoolOptions;
 /// Returns [`sqlx::Error`] when the pool cannot connect to `database_url`.
 pub async fn connect(database_url: &str) -> Result<DbPool, sqlx::Error> {
     DbPoolOptions::new().connect(database_url).await
+}
+
+/// Opens a pool for one named database file.
+///
+/// Operational commands take the file to work on as an argument rather than
+/// inheriting the configured database, so a missing file is an error instead of
+/// a new empty database.
+///
+/// # Errors
+///
+/// Returns [`sqlx::Error`] when `path` does not exist or cannot be opened.
+pub async fn connect_file(path: &Path) -> Result<DbPool, sqlx::Error> {
+    DbPoolOptions::new()
+        .connect_with(
+            SqliteConnectOptions::new()
+                .filename(path)
+                .create_if_missing(false),
+        )
+        .await
 }
 
 /// Applies every pending migration, embedded from `migrations/` at compile
