@@ -1,0 +1,56 @@
+# Runs the cargo-deny policy in deny.toml: RustSec advisories, accepted
+# licenses, crate sources, and version bans.
+#
+# The weekly run is the point of the schedule. An advisory can be published
+# long after a dependency is merged, so a check that only runs on changed code
+# would never see it.
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Mondays, 06:00 UTC.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+# The policy only reads the dependency graph. Nothing here writes to the
+# repository, so no job needs more than read access.
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cargo-deny:
+    name: cargo-deny
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Only the registry index and downloaded .crate files, which cargo-deny
+      # needs to resolve the graph. The advisory database is deliberately not
+      # cached: a stale copy would defeat the weekly run, and a cache entry
+      # written by a pull request must never decide whether that pull request
+      # passes. No secret or database file is cached.
+      - name: Cache the Cargo registry
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+          key: cargo-registry-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-registry-${{ runner.os }}-
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@1ed6d7be6168f6c9046541087ff549b6bc581fdf # v2.87.2
+        with:
+          tool: cargo-deny
+
+      # The same command as `just security`.
+      - name: Check advisories, licenses, sources, and bans
+        run: cargo deny check
