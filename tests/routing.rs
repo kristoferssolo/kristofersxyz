@@ -16,6 +16,9 @@ use kristofersxyz::{
 use tempfile::NamedTempFile;
 use tower::ServiceExt;
 
+const TEST_ORIGIN: &str = "http://localhost:3000";
+const TEST_HOST: &str = "localhost:3000";
+
 /// A seeded application over a temporary database, so the published slugs are
 /// the ones in `seeds/portfolio.sql`.
 async fn app() -> (Router, NamedTempFile) {
@@ -23,7 +26,7 @@ async fn app() -> (Router, NamedTempFile) {
     let settings = Settings::new(
         format!("sqlite://{}", database.path().display()),
         DeploymentMode::Local,
-        "http://localhost:3000"
+        TEST_ORIGIN
             .parse::<PublicOrigin>()
             .expect("the test origin is valid"),
     );
@@ -36,6 +39,7 @@ async fn app() -> (Router, NamedTempFile) {
 async fn get(router: &Router, uri: &str) -> axum::response::Response {
     let request = Request::builder()
         .uri(uri)
+        .header(header::HOST, TEST_HOST)
         .body(Body::empty())
         .expect("build the request");
     router

@@ -1,5 +1,6 @@
 mod cache_policy;
 mod csrf;
+mod request_authority;
 mod request_limits;
 mod security_headers;
 mod trailing_slash;
@@ -46,6 +47,10 @@ pub fn route(state: ApplicationState) -> Router {
         .layer(middleware::from_fn_with_state(
             state.public_origin.clone(),
             csrf::verify_origin,
+        ))
+        .layer(middleware::from_fn_with_state(
+            state.public_origin.clone(),
+            request_authority::verify,
         ))
         .layer(middleware::from_fn_with_state(
             deployment,

@@ -1,4 +1,5 @@
-//! Authentication and admin editing through the Leptos route and server-function adapters.
+//! The router security boundary, authentication, and admin editing through the
+//! Leptos route and server-function adapters.
 
 #![cfg(feature = "ssr")]
 #![allow(clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
@@ -31,6 +32,9 @@ use tracing_subscriber::fmt::MakeWriter;
 
 const TEST_PEER: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 41_000);
 const TEST_ORIGIN: &str = "http://localhost:3000";
+const TEST_HOST: &str = "localhost:3000";
+const PRODUCTION_ORIGIN: &str = "https://kristofers.xyz";
+const PRODUCTION_HOST: &str = "kristofers.xyz";
 
 #[derive(Clone, Default)]
 struct CapturedLogs(Arc<Mutex<Vec<u8>>>);
@@ -109,6 +113,7 @@ fn settings_for_deployment(
 fn form_post(uri: &str, body: &str, cookie: Option<&str>) -> Request<Body> {
     let mut builder = Request::post(uri)
         .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .header(header::HOST, TEST_HOST)
         .header(header::ORIGIN, TEST_ORIGIN);
     if let Some(cookie) = cookie {
         builder = builder.header(header::COOKIE, cookie);
@@ -129,11 +134,33 @@ fn login_request(username: &str, password: &str) -> Request<Body> {
 }
 
 fn get_request(uri: &str, cookie: Option<&str>) -> Request<Body> {
-    let mut builder = Request::get(uri).header(header::ACCEPT, "text/html");
+    let mut builder = Request::get(uri)
+        .header(header::ACCEPT, "text/html")
+        .header(header::HOST, TEST_HOST);
     if let Some(cookie) = cookie {
         builder = builder.header(header::COOKIE, cookie);
     }
     builder.body(Body::empty()).expect("build the request")
+}
+
+/// Re-addresses a request built for the local test origin, for the routers
+/// whose `PUBLIC_ORIGIN` is the production one.
+fn addressed_to(mut request: Request<Body>, host: &str) -> Request<Body> {
+    request
+        .headers_mut()
+        .insert(header::HOST, host.parse().expect("build the host header"));
+    request
+}
+
+/// A public page request addressed to `host`, or one that names no authority at
+/// all.
+fn page_request(host: Option<&str>) -> Request<Body> {
+    let mut request = get_request("/", None);
+    if let Some(host) = host {
+        return addressed_to(request, host);
+    }
+    request.headers_mut().remove(header::HOST);
+    request
 }
 
 async fn sign_in(router: &Router) -> String {
@@ -244,13 +271,13 @@ async fn production_responses_enable_strict_transport_security() {
     let settings = settings_for_deployment(
         &database,
         DeploymentMode::ProductionBehindTrustedProxy,
-        "https://kristofers.xyz",
+        PRODUCTION_ORIGIN,
     );
     let app = ApplicationState::new(&settings)
         .await
         .expect("build the application");
     let response = route(app)
-        .oneshot(get_request("/", None))
+        .oneshot(addressed_to(get_request("/", None), PRODUCTION_HOST))
         .await
         .expect("send the production request");
 
@@ -420,6 +447,174 @@ async fn successful_authentication_logs_session_without_its_cookie() {
 }
 
 #[tokio::test]
+async fn the_configured_authority_reaches_a_public_page() {
+    let (router, _database) = app_with_owner().await;
+    let response = router
+        .oneshot(page_request(Some(TEST_HOST)))
+        .await
+        .expect("send the public request");
+
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn the_configured_authority_reaches_the_login_server_function() {
+    let (router, _database) = app_with_owner().await;
+    let response = router
+        .oneshot(login_request("owner", "s3cret"))
+        .await
+        .expect("send the login");
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.headers()[header::LOCATION], "/admin");
+}
+
+#[tokio::test]
+async fn requests_addressed_to_another_authority_are_misdirected() {
+    let (router, _database) = app_with_owner().await;
+    let hosts = [
+        None,
+        Some("attacker.example"),
+        Some("kristofers.xyz.attacker.example"),
+        Some("localhost.attacker.example:3000"),
+        Some("localhost:3001"),
+        Some("localhost"),
+        Some("localhost:3000/admin"),
+        Some(""),
+    ];
+
+    for host in hosts {
+        let response = router
+            .clone()
+            .oneshot(page_request(host))
+            .await
+            .expect("send the misdirected request");
+        assert_eq!(
+            response.status(),
+            StatusCode::MISDIRECTED_REQUEST,
+            "host: {host:?}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn a_request_target_that_disagrees_with_the_host_header_is_misdirected() {
+    let (router, _database) = app_with_owner().await;
+    let absolute = |target: &str, host: &str| {
+        Request::get(target)
+            .header(header::ACCEPT, "text/html")
+            .header(header::HOST, host)
+            .body(Body::empty())
+            .expect("build the absolute-form request")
+    };
+
+    let agreeing = router
+        .clone()
+        .oneshot(absolute("http://localhost:3000/", TEST_HOST))
+        .await
+        .expect("send the agreeing request");
+    assert_eq!(agreeing.status(), StatusCode::OK);
+
+    for request in [
+        absolute("http://localhost:3000/", "attacker.example"),
+        absolute("http://attacker.example/", TEST_HOST),
+    ] {
+        let response = router
+            .clone()
+            .oneshot(request)
+            .await
+            .expect("send the conflicting request");
+        assert_eq!(response.status(), StatusCode::MISDIRECTED_REQUEST);
+    }
+}
+
+#[tokio::test]
+async fn forwarding_headers_cannot_replace_the_request_authority() {
+    let (router, _database) = app_with_owner().await;
+    let mut spoofed = page_request(Some("attacker.example"));
+    spoofed.headers_mut().insert(
+        "x-forwarded-host",
+        TEST_HOST.parse().expect("build the forwarded host"),
+    );
+    spoofed.headers_mut().insert(
+        "forwarded",
+        format!("host={TEST_HOST}")
+            .parse()
+            .expect("build the forwarded header"),
+    );
+
+    let response = router
+        .clone()
+        .oneshot(spoofed)
+        .await
+        .expect("send the spoofed request");
+    assert_eq!(response.status(), StatusCode::MISDIRECTED_REQUEST);
+
+    let mut genuine = page_request(Some(TEST_HOST));
+    genuine.headers_mut().insert(
+        "x-forwarded-host",
+        "attacker.example"
+            .parse()
+            .expect("build the forwarded host"),
+    );
+    let response = router
+        .oneshot(genuine)
+        .await
+        .expect("send the genuine request");
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn a_misdirected_login_keeps_security_headers_and_starts_no_session() {
+    let (router, _database) = app_with_owner().await;
+    let response = router
+        .oneshot(addressed_to(
+            login_request("owner", "s3cret"),
+            "attacker.example",
+        ))
+        .await
+        .expect("send the misdirected login");
+
+    assert_eq!(response.status(), StatusCode::MISDIRECTED_REQUEST);
+    assert!(!response.headers().contains_key(header::SET_COOKIE));
+    assert_eq!(response.headers()[header::CACHE_CONTROL], "no-store");
+    assert_eq!(
+        response.headers()[header::X_CONTENT_TYPE_OPTIONS],
+        "nosniff"
+    );
+    assert_eq!(response.headers()[header::X_FRAME_OPTIONS], "DENY");
+    assert_eq!(
+        response.headers()[header::REFERRER_POLICY],
+        "strict-origin-when-cross-origin"
+    );
+    assert!(response.headers().contains_key("permissions-policy"));
+}
+
+#[tokio::test]
+async fn a_misdirected_request_logs_its_reason_without_the_host_it_carried() {
+    let (router, _database) = app_with_owner().await;
+    let host = "kristofers.xyz.attacker.example";
+    let logs = CapturedLogs::default();
+    let subscriber = tracing_subscriber::fmt()
+        .without_time()
+        .with_ansi(false)
+        .with_writer(logs.clone())
+        .finish();
+
+    let response = router
+        .oneshot(page_request(Some(host)))
+        .with_subscriber(subscriber)
+        .await
+        .expect("send the misdirected request");
+
+    assert_eq!(response.status(), StatusCode::MISDIRECTED_REQUEST);
+    let logs = logs.text();
+    assert!(logs.contains("security_event=\"host_rejected\""));
+    assert!(logs.contains("reason=\"unexpected\""));
+    assert!(!logs.contains(host));
+}
+
+#[tokio::test]
 async fn unsafe_requests_require_the_canonical_origin() {
     let (router, _database) = app_with_owner().await;
     let requests = [
@@ -544,8 +739,6 @@ async fn login_starts_a_session_that_reaches_the_dashboard() {
 
 #[tokio::test]
 async fn production_login_emits_a_host_only_secure_cookie() {
-    const PRODUCTION_ORIGIN: &str = "https://kristofers.xyz";
-
     let database = NamedTempFile::new().expect("create a temporary database");
     let settings = settings_for_deployment(
         &database,
@@ -559,7 +752,7 @@ async fn production_login_emits_a_host_only_secure_cookie() {
         .await
         .expect("build the application");
     let router = route(app);
-    let mut request = login_request("owner", "s3cret");
+    let mut request = addressed_to(login_request("owner", "s3cret"), PRODUCTION_HOST);
     request.headers_mut().insert(
         header::ORIGIN,
         PRODUCTION_ORIGIN.parse().expect("build the origin header"),

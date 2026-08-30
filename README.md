@@ -50,17 +50,25 @@ for example `http://localhost:3000` during local development.
 
 - `local`, paired with an HTTP origin
 - `production-behind-trusted-proxy`, paired with an HTTPS origin and a proxy
-  that terminates TLS, blocks direct access to the application, and rate-limits
-  login attempts by client address
+  that terminates TLS, blocks direct access to the application, preserves or
+  sets the canonical public `Host`, and rate-limits login attempts by client
+  address
 
 Production mode always uses a Secure, host-only
 `__Host-kristofersxyz-session` cookie. Startup rejects a deployment mode whose
 transport does not match `PUBLIC_ORIGIN`. Startup then applies migrations and
 loads the portfolio content before serving requests.
 
-The application ignores forwarded client-address headers. Its in-process
-source limit therefore sees the proxy as the peer; production needs the
-per-client limit at that trusted edge.
+Every request must also be addressed to the `PUBLIC_ORIGIN` authority. The
+router compares the request target and the `Host` header against it before CSRF
+validation, body buffering, and session lookup, and answers `421 Misdirected
+Request` when that authority is missing, malformed, in conflict, or unexpected.
+
+The application ignores forwarded host and client-address headers. The trusted
+proxy must therefore pass the canonical public `Host` through to the
+application rather than the address it dialed. Its in-process source limit
+likewise sees the proxy as the peer; production needs the per-client limit at
+that trusted edge.
 
 Authentication, session, request-rejection, password-change, and content-change
 events use the `kristofersxyz::security` tracing target. Informational events

@@ -2,7 +2,7 @@ use serde::Deserialize;
 use std::{env, str::FromStr};
 use time::Duration;
 
-use axum::http::Uri;
+use axum::http::{Uri, uri::Authority};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ConfigurationError {
@@ -121,17 +121,27 @@ impl SessionPolicy {
 
 /// The canonical scheme, host, and optional port accepted for browser writes.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PublicOrigin(String);
+pub struct PublicOrigin {
+    origin: String,
+    authority: Authority,
+}
 
 impl PublicOrigin {
     #[must_use]
     pub fn as_str(&self) -> &str {
-        &self.0
+        &self.origin
+    }
+
+    /// The host and optional port that browsers must address. Requests that
+    /// name any other authority were not meant for this application.
+    #[must_use]
+    pub const fn authority(&self) -> &Authority {
+        &self.authority
     }
 
     #[must_use]
     pub fn is_https(&self) -> bool {
-        self.0.starts_with("https://")
+        self.origin.starts_with("https://")
     }
 
     #[must_use]
@@ -139,7 +149,7 @@ impl PublicOrigin {
         Uri::from_str(referer).is_ok_and(|uri| {
             uri.scheme_str()
                 .zip(uri.authority())
-                .is_some_and(|(scheme, authority)| format!("{scheme}://{authority}") == self.0)
+                .is_some_and(|(scheme, authority)| format!("{scheme}://{authority}") == self.origin)
         })
     }
 }
@@ -164,7 +174,10 @@ impl FromStr for PublicOrigin {
             return Err(PublicOriginError::PathOrQuery);
         }
 
-        Ok(Self(format!("{scheme}://{authority}")))
+        Ok(Self {
+            origin: format!("{scheme}://{authority}"),
+            authority: authority.clone(),
+        })
     }
 }
 
@@ -275,18 +288,19 @@ impl DatabaseSettings {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use claims::{assert_err, assert_ok_eq};
+    use crate::test_support::parse;
+    use claims::assert_err;
 
     #[test]
     fn public_origins_are_canonical_and_have_no_path() {
-        assert_ok_eq!(
-            PublicOrigin::from_str("https://kristofers.xyz/"),
-            PublicOrigin("https://kristofers.xyz".to_owned())
-        );
-        assert_ok_eq!(
-            PublicOrigin::from_str("http://localhost:3000"),
-            PublicOrigin("http://localhost:3000".to_owned())
-        );
+        let site: PublicOrigin = parse("https://kristofers.xyz/");
+        assert_eq!(site.as_str(), "https://kristofers.xyz");
+        assert_eq!(*site.authority(), "kristofers.xyz");
+
+        let local: PublicOrigin = parse("http://localhost:3000");
+        assert_eq!(local.as_str(), "http://localhost:3000");
+        assert_eq!(*local.authority(), "localhost:3000");
+
         assert_err!(PublicOrigin::from_str("https://kristofers.xyz/admin"));
         assert_err!(PublicOrigin::from_str("ftp://kristofers.xyz"));
         assert_err!(PublicOrigin::from_str("kristofers.xyz"));
@@ -297,7 +311,7 @@ mod tests {
         let local = Settings::new(
             "sqlite::memory:",
             DeploymentMode::Local,
-            PublicOrigin("http://localhost:3000".to_owned()),
+            parse::<PublicOrigin>("http://localhost:3000"),
         );
         assert!(local.validate().is_ok());
         assert!(!local.deployment.session_policy().secure());
@@ -305,7 +319,7 @@ mod tests {
         let production = Settings::new(
             local.database.url,
             DeploymentMode::ProductionBehindTrustedProxy,
-            PublicOrigin("https://kristofers.xyz".to_owned()),
+            parse::<PublicOrigin>("https://kristofers.xyz"),
         );
         assert!(production.validate().is_ok());
         assert!(production.deployment.session_policy().secure());
@@ -331,7 +345,7 @@ mod tests {
         let settings = Settings::new(
             "sqlite::memory:",
             DeploymentMode::ProductionBehindTrustedProxy,
-            PublicOrigin("http://kristofers.xyz".to_owned()),
+            parse::<PublicOrigin>("http://kristofers.xyz"),
         );
         assert_err!(settings.validate());
     }

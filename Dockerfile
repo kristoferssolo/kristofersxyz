@@ -61,7 +61,10 @@ ENV LEPTOS_SITE_ROOT=/app/site
 ENV LEPTOS_SITE_ADDR=0.0.0.0:3000
 
 EXPOSE 3000
+# The application answers only requests addressed to PUBLIC_ORIGIN, so the probe
+# sends that authority as its Host instead of the loopback address it dials.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD ["curl", "--fail", "--silent", "--show-error", "--output", "/dev/null", "http://127.0.0.1:3000/"]
+    CMD curl --fail --silent --show-error --output /dev/null \
+        --header "Host: ${PUBLIC_ORIGIN#*://}" http://127.0.0.1:3000/
 USER 10001:10001
 CMD ["/app/kristofersxyz"]

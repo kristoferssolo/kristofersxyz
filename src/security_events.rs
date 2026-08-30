@@ -62,6 +62,26 @@ impl SessionRejection {
     }
 }
 
+/// Why a request was not addressed to the configured public authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HostRejection {
+    Missing,
+    Malformed,
+    Conflicting,
+    Unexpected,
+}
+
+impl HostRejection {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Missing => "missing",
+            Self::Malformed => "malformed",
+            Self::Conflicting => "conflicting",
+            Self::Unexpected => "unexpected",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RequestKind {
     Login,
@@ -114,6 +134,9 @@ pub enum SecurityEvent<'a> {
     },
     AuthorizationRejected,
     CsrfRejected,
+    HostRejected {
+        reason: HostRejection,
+    },
     RequestBodyRejected {
         kind: RequestKind,
         limit_bytes: usize,
@@ -183,6 +206,7 @@ impl SecurityEvent<'_> {
                 outcome = "denied",
                 "Rejected cross-origin request"
             ),
+            Self::HostRejected { reason } => record_host_rejection(reason),
             Self::RequestBodyRejected { kind, limit_bytes } => tracing::warn!(
                 target: TARGET,
                 security_event = "request_body_rejected",
@@ -254,6 +278,16 @@ impl SecurityEvent<'_> {
             }
         }
     }
+}
+
+fn record_host_rejection(reason: HostRejection) {
+    tracing::warn!(
+        target: TARGET,
+        security_event = "host_rejected",
+        outcome = "denied",
+        reason = reason.as_str(),
+        "Rejected request addressed to an unexpected host"
+    );
 }
 
 fn record_password_change(username: &Username, revoked_sessions: u64) {
