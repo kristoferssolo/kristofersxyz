@@ -1,8 +1,15 @@
 //! Project domain types.
 //!
 //! Constructors validate the route slug and require a non-empty description
-//! before persistence or rendering can use a Project.
+//! before persistence or rendering can use a Project. The ordered Technology
+//! and Project Link collections live in [`collections`].
 
+mod collections;
+
+pub use self::collections::{
+    ProjectLink, ProjectLinkLabel, ProjectLinkUrl, ProjectLinkUrlError, ProjectLinks,
+    ProjectTechnologies, RepeatedEntry, TechnologyName, VisibleNameError,
+};
 use crate::serde_helpers::impl_deserialize_from_str;
 use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
@@ -13,8 +20,8 @@ pub struct Project {
     pub title: String,
     pub summary: String,
     pub description: ProjectDescription,
-    pub technologies: Vec<String>,
-    pub links: Vec<ProjectLink>,
+    pub technologies: ProjectTechnologies,
+    pub links: ProjectLinks,
 }
 
 impl Project {
@@ -29,12 +36,6 @@ impl Project {
     pub fn path_for_slug(slug: &ProjectSlug) -> String {
         format!("/work/{slug}")
     }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ProjectLink {
-    pub label: String,
-    pub href: String,
 }
 
 /// Stable, URL-safe identity for a [`Project`].
@@ -154,8 +155,8 @@ mod tests {
             title: "guenther".to_owned(),
             summary: "Telegram media bot".to_owned(),
             description: crate::test_support::parse("# What it solves"),
-            technologies: vec!["Rust".to_owned()],
-            links: Vec::new(),
+            technologies: ProjectTechnologies::default(),
+            links: ProjectLinks::default(),
         };
 
         assert_eq!(project.path(), "/work/guenther");

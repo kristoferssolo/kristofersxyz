@@ -11,7 +11,10 @@ use self::rows::ProfileRow;
 use crate::{
     app::content::{Contact, FocusArea, PortfolioContent, Profile, Site, SocialLink},
     db::DbPool,
-    domain::{ProjectDescriptionError, ProjectSlug, ProjectSlugError},
+    domain::{
+        ProjectDescriptionError, ProjectLinkUrlError, ProjectSlug, ProjectSlugError,
+        VisibleNameError,
+    },
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -30,6 +33,30 @@ pub enum LoadError {
         #[source]
         source: ProjectDescriptionError,
     },
+    #[error("project '{slug}' has an invalid technology")]
+    InvalidTechnology {
+        slug: ProjectSlug,
+        #[source]
+        source: VisibleNameError,
+    },
+    #[error("project '{slug}' has an invalid link label")]
+    InvalidLinkLabel {
+        slug: ProjectSlug,
+        #[source]
+        source: VisibleNameError,
+    },
+    /// The URL itself stays out of the message, because a stored link is the
+    /// one place a secret could have reached the content tables.
+    #[error("project '{slug}' has an invalid link URL")]
+    InvalidLinkUrl {
+        slug: ProjectSlug,
+        #[source]
+        source: ProjectLinkUrlError,
+    },
+    #[error("project '{slug}' repeats a technology")]
+    RepeatedTechnology { slug: ProjectSlug },
+    #[error("project '{slug}' repeats a link label")]
+    RepeatedLinkLabel { slug: ProjectSlug },
 }
 
 /// Reads the whole portfolio in a handful of ordered queries and assembles it
@@ -275,7 +302,27 @@ WHERE
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::{seed_if_empty, test_support::migrated_pool};
+    use crate::{
+        db::{seed_if_empty, test_support::migrated_pool},
+        domain::{Project, TechnologyName},
+    };
+    use claims::assert_some;
+
+    fn technology_names(project: &Project) -> Vec<String> {
+        project
+            .technologies
+            .iter()
+            .map(TechnologyName::to_string)
+            .collect()
+    }
+
+    fn link_pairs(project: &Project) -> Vec<(String, String)> {
+        project
+            .links
+            .iter()
+            .map(|link| (link.label.to_string(), link.href.to_string()))
+            .collect()
+    }
 
     async fn seeded_pool() -> DbPool {
         let pool = migrated_pool().await;
@@ -316,16 +363,17 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(names, ["guenther", "traxor", "cipher-workshop"]);
 
-        let cipher = &content.projects[2];
+        let cipher = assert_some!(content.projects.get(2));
         assert_eq!(
-            cipher.technologies,
+            technology_names(cipher),
             ["Rust", "AES-128", "CLI", "WebAssembly"]
         );
-        assert_eq!(cipher.links.len(), 1);
-        assert_eq!(cipher.links[0].label, "GitHub");
         assert_eq!(
-            cipher.links[0].href,
-            "https://github.com/kristoferssolo/cipher-workshop"
+            link_pairs(cipher),
+            [(
+                "GitHub".to_owned(),
+                "https://github.com/kristoferssolo/cipher-workshop".to_owned()
+            )]
         );
     }
 
@@ -347,7 +395,7 @@ mod tests {
             assert_eq!(loaded.title, fixture.title);
             assert_eq!(loaded.summary, fixture.summary);
             assert_eq!(loaded.description.as_str(), fixture.description.as_str());
-            assert_eq!(loaded.technologies, fixture.technologies);
+            assert_eq!(technology_names(loaded), technology_names(fixture));
         }
     }
 }

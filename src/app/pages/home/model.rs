@@ -3,7 +3,7 @@ use crate::{
         content::{FocusArea, PortfolioContent, Profile, SocialLink},
         editor::{Buffer, EntryId, SectionId},
     },
-    domain::ProjectLink,
+    domain::{ProjectLinks, TechnologyName},
 };
 
 /// A link as it is rendered: visible label, destination, relationship.
@@ -18,7 +18,7 @@ pub struct Link {
 #[derive(Clone)]
 pub enum Links {
     Social(Vec<SocialLink>),
-    Project(Vec<ProjectLink>),
+    Project(ProjectLinks),
     Contact(Profile),
 }
 
@@ -35,8 +35,8 @@ impl Links {
             Self::Project(links) => links
                 .into_iter()
                 .map(|link| Link {
-                    label: link.label,
-                    href: link.href,
+                    label: link.label.to_string(),
+                    href: link.href.to_string(),
                     rel: "noopener noreferrer".to_owned(),
                 })
                 .collect(),
@@ -115,7 +115,11 @@ pub fn entries(content: &PortfolioContent) -> Vec<Entry> {
                         lead: None,
                         body: project.summary.clone(),
                         focus: Vec::new(),
-                        meta: project.technologies.clone(),
+                        meta: project
+                            .technologies
+                            .iter()
+                            .map(TechnologyName::to_string)
+                            .collect(),
                         links: Links::Project(project.links.clone()),
                     }),
                 EntryId::Contact => Some(Entry {

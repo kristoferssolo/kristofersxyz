@@ -46,7 +46,7 @@ fn ProjectReader(project: Project) -> impl IntoView {
     let active_id = EntryId::Project(project.slug.clone());
     let editor = EditorController::routes(&content, &active_id);
     let description = markdown::render(&project.description);
-    let repository = project.links.first().cloned();
+    let repository = project.links.as_slice().first().cloned();
     let filename = format!("work/{}.md", project.slug);
     let status = editor.status(filename, move || StatusLocation::Page {
         current: editor.position(),
@@ -67,23 +67,24 @@ fn ProjectReader(project: Project) -> impl IntoView {
                         <p class="mt-6 max-w-[62ch] font-sans text-[17px] leading-[1.65] text-[#b8bec5] sm:text-[19px]">
                             {project.summary.clone()}
                         </p>
-                        {repository.map(|link| {
-                            view! {
-                                <div class="mt-7 text-[13px]">
-                                    <a
-                                        href=link.href
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="text-white underline decoration-[#3c424a] underline-offset-[5px] hover:decoration-[#e2a340]"
-                                    >
-                                        {link.label}
-                                        <span aria-hidden="true" class="ml-[1ch] text-[#e2a340]">
-                                            "↗"
-                                        </span>
-                                    </a>
-                                </div>
-                            }
-                        })}
+                        {repository
+                            .map(|link| {
+                                view! {
+                                    <div class="mt-7 text-[13px]">
+                                        <a
+                                            href=link.href.to_string()
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="text-white underline decoration-[#3c424a] underline-offset-[5px] hover:decoration-[#e2a340]"
+                                        >
+                                            {link.label.to_string()}
+                                            <span aria-hidden="true" class="ml-[1ch] text-[#e2a340]">
+                                                "↗"
+                                            </span>
+                                        </a>
+                                    </div>
+                                }
+                            })}
 
                         <div
                             class="project-description mt-14"
@@ -101,7 +102,7 @@ fn ProjectReader(project: Project) -> impl IntoView {
                             {project
                                 .technologies
                                 .into_iter()
-                                .map(|technology| view! { <li>{technology}</li> })
+                                .map(|technology| view! { <li>{technology.to_string()}</li> })
                                 .collect_view()}
                         </ul>
 

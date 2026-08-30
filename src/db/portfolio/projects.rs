@@ -1,7 +1,10 @@
 use super::rows::{ProjectItemRow, ProjectLinkRow, ProjectRow};
 use crate::{
     db::DbPool,
-    domain::{Project, ProjectDescription, ProjectLink, ProjectSlug},
+    domain::{
+        Project, ProjectDescription, ProjectLink, ProjectLinkLabel, ProjectLinkUrl, ProjectLinks,
+        ProjectSlug, ProjectTechnologies, TechnologyName,
+    },
 };
 
 /// Replaces a project's editable fields by slug, returning whether a row
@@ -89,40 +92,73 @@ ORDER BY
     .await?;
 
     rows.into_iter()
-        .map(|project| {
-            let slug = project.slug.parse::<ProjectSlug>().map_err(|source| {
-                super::LoadError::InvalidProjectSlug {
-                    value: project.slug,
-                    source,
-                }
-            })?;
-            let description = project
-                .description_markdown
-                .parse::<ProjectDescription>()
-                .map_err(|source| super::LoadError::InvalidProjectDescription {
+        .map(|project| assemble(project, &technologies, &links))
+        .collect()
+}
+
+/// Turns one project row and the child rows that belong to it into a
+/// [`Project`], validating every stored value on the way in. A row the
+/// application itself wrote always passes; a row edited by hand may not.
+fn assemble(
+    project: ProjectRow,
+    technologies: &[ProjectItemRow],
+    links: &[ProjectLinkRow],
+) -> Result<Project, super::LoadError> {
+    let slug = project.slug.parse::<ProjectSlug>().map_err(|source| {
+        super::LoadError::InvalidProjectSlug {
+            value: project.slug,
+            source,
+        }
+    })?;
+    let description = project
+        .description_markdown
+        .parse::<ProjectDescription>()
+        .map_err(|source| super::LoadError::InvalidProjectDescription {
+            slug: slug.clone(),
+            source,
+        })?;
+
+    let names = technologies
+        .iter()
+        .filter(|row| row.project_id == project.id)
+        .map(|row| {
+            row.item.parse::<TechnologyName>().map_err(|source| {
+                super::LoadError::InvalidTechnology {
                     slug: slug.clone(),
                     source,
-                })?;
-
-            Ok(Project {
-                technologies: technologies
-                    .iter()
-                    .filter(|row| row.project_id == project.id)
-                    .map(|row| row.item.clone())
-                    .collect(),
-                links: links
-                    .iter()
-                    .filter(|row| row.project_id == project.id)
-                    .map(|row| ProjectLink {
-                        label: row.label.clone(),
-                        href: row.href.clone(),
-                    })
-                    .collect(),
-                slug,
-                title: project.title,
-                summary: project.summary,
-                description,
+                }
             })
         })
-        .collect()
+        .collect::<Result<Vec<_>, _>>()?;
+    let destinations = links
+        .iter()
+        .filter(|row| row.project_id == project.id)
+        .map(|row| {
+            Ok(ProjectLink {
+                label: row.label.parse::<ProjectLinkLabel>().map_err(|source| {
+                    super::LoadError::InvalidLinkLabel {
+                        slug: slug.clone(),
+                        source,
+                    }
+                })?,
+                href: row.href.parse::<ProjectLinkUrl>().map_err(|source| {
+                    super::LoadError::InvalidLinkUrl {
+                        slug: slug.clone(),
+                        source,
+                    }
+                })?,
+            })
+        })
+        .collect::<Result<Vec<_>, super::LoadError>>()?;
+
+    Ok(Project {
+        technologies: ProjectTechnologies::try_from(names)
+            .map_err(|_| super::LoadError::RepeatedTechnology { slug: slug.clone() })?,
+        links: ProjectLinks::try_from(destinations)
+            .map_err(|_| super::LoadError::RepeatedLinkLabel { slug: slug.clone() })?,
+        slug,
+        title: project.title,
+        summary: project.summary,
+        description,
+    })
 }

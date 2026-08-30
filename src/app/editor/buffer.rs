@@ -4,7 +4,7 @@
 
 use crate::{
     app::content::PortfolioContent,
-    domain::{Project, ProjectSlug},
+    domain::{Project, ProjectSlug, TechnologyName},
 };
 
 /// A section heading in the buffer list.
@@ -195,7 +195,7 @@ impl Buffer {
 
         entries.extend(content.projects.iter().map(|project| {
             let mut text = vec![project.summary.as_str()];
-            text.extend(project.technologies.iter().map(String::as_str));
+            text.extend(project.technologies.iter().map(TechnologyName::as_str));
             BufferEntry::new(
                 EntryId::Project(project.slug.clone()),
                 SectionId::Work,

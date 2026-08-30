@@ -1,4 +1,5 @@
 use super::{model::Links, view_model::HomeViewModel};
+use crate::domain::ProjectLinks;
 use leptos::prelude::*;
 
 #[component]
@@ -10,7 +11,7 @@ pub fn ExternalLinks() -> impl IntoView {
             {move || {
                 view_model
                     .current()
-                    .map_or(Links::Project(Vec::new()), |entry| entry.links)
+                    .map_or_else(|| Links::Project(ProjectLinks::default()), |entry| entry.links)
                     .resolve()
                     .into_iter()
                     .map(|link| {

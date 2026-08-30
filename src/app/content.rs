@@ -6,7 +6,9 @@
 
 use crate::domain::Project;
 #[cfg(test)]
-use crate::domain::{ProjectDescription, ProjectLink, ProjectSlug};
+use crate::domain::{
+    ProjectDescription, ProjectLink, ProjectLinks, ProjectSlug, ProjectTechnologies,
+};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -201,9 +203,18 @@ mod fixture {
 
     fn project_link(label: &str, href: &str) -> ProjectLink {
         ProjectLink {
-            label: label.to_owned(),
-            href: href.to_owned(),
+            label: crate::test_support::parse(label),
+            href: crate::test_support::parse(href),
         }
+    }
+
+    fn project_links(links: Vec<ProjectLink>) -> ProjectLinks {
+        claims::assert_ok!(ProjectLinks::try_from(links))
+    }
+
+    fn project_technologies(items: &[&str]) -> ProjectTechnologies {
+        let names = items.iter().map(|item| crate::test_support::parse(item));
+        claims::assert_ok!(ProjectTechnologies::try_from(names.collect::<Vec<_>>()))
     }
 
     fn focus(label: &str, detail: &str) -> FocusArea {
@@ -249,17 +260,17 @@ mod fixture {
                      with no host port. An optional proxy applies only to Cobalt traffic, so it \
                      never receives the Telegram bot token.",
                 ),
-                technologies: technologies(&[
+                technologies: project_technologies(&[
                     "Rust",
                     "teloxide",
                     "Cobalt",
                     "SQLx and SQLite",
                     "Docker Compose",
                 ]),
-                links: vec![project_link(
+                links: project_links(vec![project_link(
                     "GitHub",
                     "https://github.com/kristoferssolo/guenther",
-                )],
+                )]),
             },
             Project {
                 slug: project_slug("traxor"),
@@ -273,11 +284,11 @@ mod fixture {
                      Traxor presents Transmission RPC state through a keyboard-driven terminal \
                      interface.",
                 ),
-                technologies: technologies(&["Rust", "ratatui", "Transmission RPC"]),
-                links: vec![project_link(
+                technologies: project_technologies(&["Rust", "ratatui", "Transmission RPC"]),
+                links: project_links(vec![project_link(
                     "Codeberg",
                     "https://codeberg.org/kristoferssolo/traxor",
-                )],
+                )]),
             },
             Project {
                 slug: project_slug("cipher-workshop"),
@@ -290,11 +301,11 @@ mod fixture {
                     "## What it explores\n\nCipher implementations share one Rust workspace and \
                      support command-line and browser interfaces.",
                 ),
-                technologies: technologies(&["Rust", "AES-128", "CLI", "WebAssembly"]),
-                links: vec![project_link(
+                technologies: project_technologies(&["Rust", "AES-128", "CLI", "WebAssembly"]),
+                links: project_links(vec![project_link(
                     "GitHub",
                     "https://github.com/kristoferssolo/cipher-workshop",
-                )],
+                )]),
             },
         ]
     }
