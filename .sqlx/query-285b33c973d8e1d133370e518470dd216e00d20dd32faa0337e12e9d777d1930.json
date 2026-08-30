@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\nUPDATE\n    site\nSET\n    url = ?1,\n    title = ?2,\n    description = ?3,\n    og_image = ?4\nWHERE\n    id = 1\n    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "285b33c973d8e1d133370e518470dd216e00d20dd32faa0337e12e9d777d1930"
+}

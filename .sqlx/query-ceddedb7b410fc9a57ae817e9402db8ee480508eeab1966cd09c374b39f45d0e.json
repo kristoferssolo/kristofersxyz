@@ -1,0 +1,21 @@
+{
+  "db_name": "SQLite",
+  "query": "\nSELECT\n    COUNT(*)\nFROM\n    project\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "COUNT(*)",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ceddedb7b410fc9a57ae817e9402db8ee480508eeab1966cd09c374b39f45d0e"
+}

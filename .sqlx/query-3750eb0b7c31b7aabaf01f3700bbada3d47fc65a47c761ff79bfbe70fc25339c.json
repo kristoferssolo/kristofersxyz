@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\nINSERT INTO\n    users (\n        user_id,\n        username,\n        password_hash,\n        session_version\n    )\nVALUES\n    (?1, ?2, ?3, ?4) ON CONFLICT(username) DO\nUPDATE\nSET\n    password_hash = excluded.password_hash,\n    session_version = excluded.session_version\n    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "3750eb0b7c31b7aabaf01f3700bbada3d47fc65a47c761ff79bfbe70fc25339c"
+}

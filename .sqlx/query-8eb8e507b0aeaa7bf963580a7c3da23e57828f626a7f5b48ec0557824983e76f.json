@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\nSELECT\n    item\nFROM\n    profile_technology\nORDER BY\n    sort_order\n    ",
+  "describe": {
+    "columns": [
+      {
+        "name": "item",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "profile_technology",
+            "name": "item"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8eb8e507b0aeaa7bf963580a7c3da23e57828f626a7f5b48ec0557824983e76f"
+}
