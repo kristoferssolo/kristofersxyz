@@ -58,6 +58,12 @@ test:
     cargo nextest run --no-default-features --features ssr
     RUST_TEST_THREADS=1 cargo leptos test
 
+# Check dependency advisories, licenses, sources, and bans against deny.toml.
+# Kept out of `just check` because it fetches the RustSec advisory database.
+[group("dev")]
+security:
+    cargo deny check
+
 # Measure the current Argon2 policy on production-equivalent hardware
 [group("dev")]
 benchmark-auth:
@@ -70,7 +76,7 @@ clean:
 
 [group("dev")]
 setup:
-    cargo install cargo-nextest sccache
+    cargo install cargo-nextest sccache cargo-deny
 
 # Serve the release build
 serve: build

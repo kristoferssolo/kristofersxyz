@@ -33,9 +33,10 @@ and applies the resulting effects.
 ## Development
 
 ```sh
-just setup    # cargo-nextest and sccache
+just setup    # cargo-nextest, sccache, and cargo-deny
 just run      # cargo leptos watch
 just check    # fmt, clippy, sqruff, docs, test
+just security # cargo-deny: advisories, licenses, sources, bans
 just end2end  # Playwright
 just benchmark-auth  # serial and two-at-once Argon2 measurements
 just db-backup data/backups/portfolio.db        # consistent copy of the database
@@ -68,6 +69,13 @@ errors describe session lifecycle failures. The application writes them to
 standard output without credentials, hashes, cookies, session identifiers,
 request bodies, or raw authentication errors. Production log collection should
 route warning and error events from this target to the Owner's alert channel.
+
+`just security` runs `cargo deny check` against [deny.toml](deny.toml): RustSec
+advisories, the accepted license list, crate sources, and version bans. It stays
+out of `just check` because it fetches the advisory database over the network.
+CI runs the same policy on pull requests, on pushes to `main`, and weekly, so an
+advisory published after a merge still surfaces. When it reports a finding,
+upgrade the dependency rather than adding an exception.
 
 [docs/backup-recovery.md](docs/backup-recovery.md) is the operations runbook:
 taking a consistent backup, checking that it restores, replacing the active

@@ -1,0 +1,81 @@
+# Dependency advisory, license, and source policy for `kristofersxyz`.
+#
+# Run `just security` locally. CI runs the same policy on pull requests, on
+# pushes to `main`, and weekly, so an advisory published after a merge still
+# surfaces.
+#
+# The accepted license list and every exception below describe the dependency
+# graph as it exists today. When a new dependency fails a check, decide whether
+# the project accepts that license or advisory. Do not widen the policy just to
+# make the check pass.
+
+[graph]
+# `ssr` and `hydrate` are optional feature sets that pull in disjoint parts of
+# the graph, so the policy has to see all of them.
+all-features = true
+
+[advisories]
+db-urls = ["https://github.com/rustsec/advisory-db"]
+# Fail on a crate the RustSec database reports as unmaintained anywhere in the
+# graph, not only in the workspace's direct dependencies.
+unmaintained = "all"
+yanked = "deny"
+# Each entry is one crate that this project cannot currently move off, with the
+# reason it is tolerated. Fix a finding by upgrading first. Never add a blanket
+# rule here, and re-check these two whenever Leptos is upgraded.
+ignore = [
+  # `paste` is archived by its author with no successor release. It reaches this
+  # crate only through `either_of`, a Leptos 0.8 crate, and only as a
+  # compile-time macro. RustSec reports no safe upgrade, and no Leptos 0.8
+  # release has dropped it.
+  { id = "RUSTSEC-2024-0436", reason = "build-time only, via leptos 0.8 -> either_of; no compatible upgrade exists" },
+  # `proc-macro-error2` is unmaintained as of its author's 2026 announcement. It
+  # reaches this crate only through `leptos_macro`, runs at compile time, and
+  # has no safe upgrade. Migrating off it is upstream work in Leptos.
+  { id = "RUSTSEC-2026-0173", reason = "build-time only, via leptos_macro 0.8; no compatible upgrade exists" },
+]
+
+[licenses]
+# Every license the current graph actually resolves to. Multi-license crates are
+# satisfied by MIT or Apache-2.0 unless listed here, so this stays short.
+allow = [
+  # The bulk of the graph, including this crate.
+  "MIT",
+  # Only reachable license for ciborium, rpassword, rtoolbox, and sync_wrapper.
+  "Apache-2.0",
+  # subtle is BSD-3-Clause only; encoding_rs and matchit require it in addition
+  # to a permissive primary license.
+  "BSD-3-Clause",
+  # xxhash-rust is BSL-1.0 only.
+  "BSL-1.0",
+  # base16 is CC0-1.0 only.
+  "CC0-1.0",
+  # The ICU crates carry the Unicode license, and unicode-ident requires it in
+  # addition to MIT or Apache-2.0.
+  "Unicode-3.0",
+  # const_format, foldhash, konst, and slotmap are Zlib only.
+  "Zlib",
+]
+# Refuse to guess when a crate ships license text instead of an SPDX expression.
+confidence-threshold = 1.0
+# No crate is currently exempt from the list above.
+exceptions = []
+
+[bans]
+# Duplicate versions are review information, not a build failure. The current
+# duplicates are transitive generational splits (digest, rand, sha2, hashbrown,
+# thiserror) that this crate cannot collapse on its own.
+multiple-versions = "warn"
+# A wildcard version pins nothing and makes an advisory check meaningless.
+wildcards = "deny"
+deny = []
+skip = []
+skip-tree = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# The graph has no Git dependencies. Adding one means adding it here and saying
+# why a published release is not enough.
+allow-git = []
