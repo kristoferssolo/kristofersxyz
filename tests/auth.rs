@@ -3,7 +3,11 @@
 #![cfg(feature = "ssr")]
 #![allow(clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::{
+    io::{self, Write},
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::{Arc, Mutex},
+};
 
 use axum::{
     Router,
@@ -22,9 +26,45 @@ use kristofersxyz::{
 };
 use tempfile::NamedTempFile;
 use tower::ServiceExt;
+use tracing::instrument::WithSubscriber;
+use tracing_subscriber::fmt::MakeWriter;
 
 const TEST_PEER: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 41_000);
 const TEST_ORIGIN: &str = "http://localhost:3000";
+
+#[derive(Clone, Default)]
+struct CapturedLogs(Arc<Mutex<Vec<u8>>>);
+
+impl CapturedLogs {
+    fn text(&self) -> String {
+        let bytes = self.0.lock().expect("lock captured logs").clone();
+        String::from_utf8(bytes).expect("captured logs are UTF-8")
+    }
+}
+
+struct CapturedLogWriter(Arc<Mutex<Vec<u8>>>);
+
+impl Write for CapturedLogWriter {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        self.0
+            .lock()
+            .map_err(|_| io::Error::other("captured log lock poisoned"))?
+            .extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+impl<'writer> MakeWriter<'writer> for CapturedLogs {
+    type Writer = CapturedLogWriter;
+
+    fn make_writer(&'writer self) -> Self::Writer {
+        CapturedLogWriter(Arc::clone(&self.0))
+    }
+}
 
 fn username(value: &str) -> Username {
     Username::new(value.to_owned())
@@ -322,6 +362,61 @@ async fn wrong_credentials_are_rejected() {
         .expect("send the login");
 
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn failed_authentication_logs_safe_structured_fields() {
+    let (router, _database) = app_with_owner().await;
+    let password = "submitted-secret-value";
+    let logs = CapturedLogs::default();
+    let subscriber = tracing_subscriber::fmt()
+        .without_time()
+        .with_ansi(false)
+        .with_writer(logs.clone())
+        .finish();
+
+    let response = router
+        .oneshot(login_request("owner", password))
+        .with_subscriber(subscriber)
+        .await
+        .expect("send the failed login");
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    let logs = logs.text();
+    assert!(logs.contains("kristofersxyz::security"));
+    assert!(logs.contains("security_event=\"authentication_failed\""));
+    assert!(logs.contains("reason=\"invalid_credentials\""));
+    assert!(logs.contains("username=owner"));
+    assert!(!logs.contains(password));
+}
+
+#[tokio::test]
+async fn successful_authentication_logs_session_without_its_cookie() {
+    let (router, _database) = app_with_owner().await;
+    let logs = CapturedLogs::default();
+    let subscriber = tracing_subscriber::fmt()
+        .without_time()
+        .with_ansi(false)
+        .with_writer(logs.clone())
+        .finish();
+
+    let response = router
+        .oneshot(login_request("owner", "s3cret"))
+        .with_subscriber(subscriber)
+        .await
+        .expect("send the successful login");
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let cookie = response.headers()[header::SET_COOKIE]
+        .to_str()
+        .expect("session cookie is text");
+    let logs = logs.text();
+    assert!(logs.contains("security_event=\"authentication_succeeded\""));
+    assert!(logs.contains("security_event=\"session_started\""));
+    assert!(logs.contains("session_rotated=true"));
+    assert!(logs.contains("username=owner"));
+    assert!(!logs.contains(cookie));
+    assert!(!logs.contains("session_id"));
 }
 
 #[tokio::test]

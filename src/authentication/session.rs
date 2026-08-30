@@ -1,7 +1,12 @@
 //! Owner-session policy layered over `axum-login`.
 
 use super::{AuthBackend, AuthError, AuthenticatedOwner, AxumAuthSession, Credentials};
-use crate::{configuration::SessionPolicy, db::DbPool, domain::Username};
+use crate::{
+    configuration::SessionPolicy,
+    db::DbPool,
+    domain::{OwnerId, Username},
+    security_events::{SecurityEvent, SessionRejection},
+};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use time::{Duration, OffsetDateTime};
 use tokio::sync::Mutex;
@@ -112,15 +117,15 @@ impl OwnerSession<Unverified> {
             if self.inner.session.is_empty().await {
                 return Ok(self.anonymous());
             }
-            return self.reject("session_unrecognized").await;
+            return self.reject(SessionRejection::Unrecognized).await;
         };
         let issued_at = match self.claim::<SessionIssuedAt>(ISSUED_AT_KEY).await? {
             StoredClaim::Value(issued_at) => issued_at,
-            StoredClaim::Missing => return self.reject("session_partial_identity").await,
-            StoredClaim::Corrupt => return self.reject("session_corrupt").await,
+            StoredClaim::Missing => return self.reject(SessionRejection::PartialIdentity).await,
+            StoredClaim::Corrupt => return self.reject(SessionRejection::Corrupt).await,
         };
         if issued_at.is_expired_at(policy.absolute_timeout(), now) {
-            return self.reject("session_absolute_expired").await;
+            return self.reject(SessionRejection::AbsoluteExpired).await;
         }
 
         self.inner.session.insert(ISSUED_AT_KEY, issued_at).await?;
@@ -146,9 +151,12 @@ impl OwnerSession<Unverified> {
         Ok(serde_json::from_value(value).map_or(StoredClaim::Corrupt, StoredClaim::Value))
     }
 
-    async fn reject(mut self, event: &'static str) -> Result<SessionState, OwnerSessionError> {
-        tracing::warn!(event, "Rejected invalid Owner session");
-        self.inner.logout().await?;
+    async fn reject(mut self, reason: SessionRejection) -> Result<SessionState, OwnerSessionError> {
+        SecurityEvent::SessionRejected { reason }.record();
+        if let Err(error) = self.inner.logout().await {
+            SecurityEvent::SessionCleanupFailed.record();
+            return Err(error.into());
+        }
         Ok(self.anonymous())
     }
 
@@ -202,6 +210,7 @@ impl OwnerSession<Anonymous> {
         let _guard = SIGN_INS.lock().await;
         let mut inner = self.inner;
         if let Err(error) = inner.login(&owner).await {
+            record_session_start_failure(&owner);
             fail_closed(&mut inner).await;
             return Err(error.into());
         }
@@ -210,18 +219,21 @@ impl OwnerSession<Anonymous> {
             .insert(ISSUED_AT_KEY, SessionIssuedAt::now())
             .await
         {
+            record_session_start_failure(&owner);
             fail_closed(&mut inner).await;
             return Err(error.into());
         }
         if let Err(error) = inner.session.save().await {
+            record_session_start_failure(&owner);
             fail_closed(&mut inner).await;
             return Err(error.into());
         }
-        let session_id = inner
-            .session
-            .id()
-            .ok_or(OwnerSessionError::MissingSessionId)?;
-        if let Err(error) = sqlx::query!(
+        let Some(session_id) = inner.session.id() else {
+            record_session_start_failure(&owner);
+            fail_closed(&mut inner).await;
+            return Err(OwnerSessionError::MissingSessionId);
+        };
+        let revoked_sessions = match sqlx::query!(
             r#"
 DELETE FROM
     sessions
@@ -233,16 +245,25 @@ WHERE
         .execute(pool)
         .await
         {
-            fail_closed(&mut inner).await;
-            return Err(error.into());
-        }
+            Ok(result) => result.rows_affected(),
+            Err(error) => {
+                record_session_start_failure(&owner);
+                fail_closed(&mut inner).await;
+                return Err(error.into());
+            }
+        };
 
-        tracing::info!(
-            event = "session_started",
-            owner_id = %owner.id(),
-            username = %owner.username(),
-            "Started Owner session"
-        );
+        SecurityEvent::SessionStarted {
+            owner_id: owner.id(),
+            username: owner.username(),
+            revoked_sessions,
+        }
+        .record();
+        SecurityEvent::AuthenticationSucceeded {
+            owner_id: owner.id(),
+            username: owner.username(),
+        }
+        .record();
         Ok(OwnerSession {
             inner,
             state: Authenticated { owner },
@@ -251,6 +272,11 @@ WHERE
 }
 
 impl OwnerSession<Authenticated> {
+    #[must_use]
+    pub const fn owner_id(&self) -> OwnerId {
+        self.state.owner.id()
+    }
+
     #[must_use]
     pub const fn username(&self) -> &Username {
         self.state.owner.username()
@@ -272,13 +298,19 @@ impl OwnerSession<Authenticated> {
     )]
     pub async fn sign_out(mut self) -> Result<OwnerSession<Anonymous>, OwnerSessionError> {
         let owner = self.state.owner;
-        self.inner.logout().await?;
-        tracing::info!(
-            event = "session_ended",
-            owner_id = %owner.id(),
-            username = %owner.username(),
-            "Ended Owner session"
-        );
+        if let Err(error) = self.inner.logout().await {
+            SecurityEvent::SessionEndFailed {
+                owner_id: owner.id(),
+                username: owner.username(),
+            }
+            .record();
+            return Err(error.into());
+        }
+        SecurityEvent::SessionEnded {
+            owner_id: owner.id(),
+            username: owner.username(),
+        }
+        .record();
         Ok(OwnerSession {
             inner: self.inner,
             state: Anonymous,
@@ -286,9 +318,17 @@ impl OwnerSession<Authenticated> {
     }
 }
 
+fn record_session_start_failure(owner: &AuthenticatedOwner) {
+    SecurityEvent::SessionStartFailed {
+        owner_id: owner.id(),
+        username: owner.username(),
+    }
+    .record();
+}
+
 async fn fail_closed(session: &mut AxumAuthSession) {
-    if let Err(error) = session.logout().await {
-        tracing::error!(%error, "Failed to clear an incomplete Owner sign-in");
+    if session.logout().await.is_err() {
+        SecurityEvent::SessionCleanupFailed.record();
     }
 }
 

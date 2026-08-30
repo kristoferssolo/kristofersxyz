@@ -1,3 +1,4 @@
+use crate::security_events::{RequestKind, SecurityEvent};
 use axum::{
     body::{Body, to_bytes},
     extract::Request,
@@ -14,7 +15,7 @@ const CONTENT_BODY_LIMIT: usize = 256 * 1_024;
 /// Buffers bounded server-function requests before session lookup or form
 /// extraction. Login gets a tighter bound because its valid form is tiny.
 pub async fn enforce(request: Request, next: Next) -> Response {
-    let Some(limit) = limit_for(request.uri().path()) else {
+    let Some((limit, kind)) = limit_for(request.uri().path()) else {
         return next.run(request).await;
     };
     let (parts, body) = request.into_parts();
@@ -29,17 +30,22 @@ pub async fn enforce(request: Request, next: Next) -> Response {
                 .source()
                 .is_some_and(<dyn Error>::is::<LengthLimitError>) =>
         {
+            SecurityEvent::RequestBodyRejected {
+                kind,
+                limit_bytes: limit,
+            }
+            .record();
             StatusCode::PAYLOAD_TOO_LARGE.into_response()
         }
         Err(_) => StatusCode::BAD_REQUEST.into_response(),
     }
 }
 
-fn limit_for(path: &str) -> Option<usize> {
+fn limit_for(path: &str) -> Option<(usize, RequestKind)> {
     if path == "/api/login" {
-        Some(LOGIN_BODY_LIMIT)
+        Some((LOGIN_BODY_LIMIT, RequestKind::Login))
     } else if path == "/api" || path.starts_with("/api/") {
-        Some(CONTENT_BODY_LIMIT)
+        Some((CONTENT_BODY_LIMIT, RequestKind::ServerFunction))
     } else {
         None
     }
@@ -51,9 +57,18 @@ mod tests {
 
     #[test]
     fn limits_only_complete_server_function_route_segments() {
-        assert_eq!(limit_for("/api/login"), Some(LOGIN_BODY_LIMIT));
-        assert_eq!(limit_for("/api/save_project"), Some(CONTENT_BODY_LIMIT));
-        assert_eq!(limit_for("/api"), Some(CONTENT_BODY_LIMIT));
+        assert_eq!(
+            limit_for("/api/login"),
+            Some((LOGIN_BODY_LIMIT, RequestKind::Login))
+        );
+        assert_eq!(
+            limit_for("/api/save_project"),
+            Some((CONTENT_BODY_LIMIT, RequestKind::ServerFunction))
+        );
+        assert_eq!(
+            limit_for("/api"),
+            Some((CONTENT_BODY_LIMIT, RequestKind::ServerFunction))
+        );
         assert_eq!(limit_for("/apiary"), None);
         assert_eq!(limit_for("/login"), None);
     }

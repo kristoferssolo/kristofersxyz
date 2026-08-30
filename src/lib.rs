@@ -13,6 +13,8 @@ pub mod domain;
 pub mod errors;
 #[cfg(feature = "ssr")]
 pub mod router;
+#[cfg(feature = "ssr")]
+mod security_events;
 mod serde_helpers;
 
 #[cfg(test)]

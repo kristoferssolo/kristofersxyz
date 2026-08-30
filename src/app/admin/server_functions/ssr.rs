@@ -5,6 +5,7 @@ use crate::{
         Authenticated, AxumAuthSession, OwnerSession, RetryAfter, SessionState, Unverified,
     },
     db,
+    security_events::SecurityEvent,
     startup::ApplicationState,
 };
 use axum::http::{HeaderValue, StatusCode, header};
@@ -26,6 +27,7 @@ pub async fn authenticated_session() -> Result<OwnerSession<Authenticated>, Admi
     match session_state().await? {
         SessionState::Authenticated(session) => Ok(session),
         SessionState::Anonymous(_) => {
+            SecurityEvent::AuthorizationRejected.record();
             redirect("/login");
             Err(with_status(
                 StatusCode::UNAUTHORIZED,

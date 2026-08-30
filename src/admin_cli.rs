@@ -7,6 +7,7 @@ use crate::{
     configuration::Settings,
     db,
     domain::{SessionVersion, Username, UsernameError},
+    security_events::SecurityEvent,
 };
 use sqlx::migrate::MigrateError;
 
@@ -77,7 +78,7 @@ SET
     )
     .execute(&mut *transaction)
     .await?;
-    sqlx::query!(
+    let revoked_sessions = sqlx::query!(
         r#"
 DELETE FROM
     sessions
@@ -86,6 +87,12 @@ DELETE FROM
     .execute(&mut *transaction)
     .await?;
     transaction.commit().await?;
+
+    SecurityEvent::PasswordChanged {
+        username,
+        revoked_sessions: revoked_sessions.rows_affected(),
+    }
+    .record();
 
     Ok(())
 }

@@ -4,7 +4,10 @@
 //! application's sqlx 0.9 pool and migrations. Logout deletes the server-side
 //! row, which invalidates the cookie.
 
-use crate::db::DbPool;
+use crate::{
+    db::DbPool,
+    security_events::{SecurityEvent, SessionRejection},
+};
 use async_trait::async_trait;
 use time::OffsetDateTime;
 use tower_sessions::{
@@ -118,25 +121,43 @@ impl SessionStore for SqliteSessionStore {
         let row = sqlx::query!(
             r#"
 SELECT
-    data
+    data,
+    expiry_date
 FROM
     sessions
 WHERE
     id = ?1
-    AND expiry_date > ?2
         "#,
-            session_id.to_string(),
-            now
+            session_id.to_string()
         )
         .fetch_optional(&self.pool)
         .await
         .map_err(|error| backend(&error))?;
 
-        row.map(|row| {
-            serde_json::from_str::<Record>(&row.data)
-                .map_err(|error| session_store::Error::Decode(error.to_string()))
-        })
-        .transpose()
+        let Some(row) = row else {
+            SecurityEvent::SessionRejected {
+                reason: SessionRejection::Unrecognized,
+            }
+            .record();
+            return Ok(None);
+        };
+        if row.expiry_date <= now {
+            SecurityEvent::SessionRejected {
+                reason: SessionRejection::IdleExpired,
+            }
+            .record();
+            return Ok(None);
+        }
+
+        serde_json::from_str::<Record>(&row.data)
+            .map(Some)
+            .map_err(|error| {
+                SecurityEvent::SessionRejected {
+                    reason: SessionRejection::Corrupt,
+                }
+                .record();
+                session_store::Error::Decode(error.to_string())
+            })
     }
 
     async fn delete(&self, session_id: &Id) -> session_store::Result<()> {

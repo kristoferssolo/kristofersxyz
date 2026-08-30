@@ -20,6 +20,9 @@ use crate::{
         AuthError, Credentials, OwnerSessionError, Password, RetryAfter, SessionState,
     },
     db,
+    security_events::{
+        AuthenticationFailure, LoginThrottleScope, PortfolioResource, SecurityEvent,
+    },
     startup::ApplicationState,
 };
 #[cfg(feature = "ssr")]
@@ -74,19 +77,48 @@ pub async fn login(username: String, password: String) -> Result<(), AdminError>
     let state = expect_context::<ApplicationState>();
     let ConnectInfo(peer) = leptos_axum::extract::<ConnectInfo<SocketAddr>>()
         .await
-        .map_err(|_| AdminError::Internal)?;
-    state
-        .login_throttle
-        .check_source(peer.ip())
-        .map_err(too_many_attempts)?;
-    let username = Username::new(username).map_err(|_| invalid_credentials())?;
+        .map_err(|_| {
+            SecurityEvent::AuthenticationFailed {
+                username: None,
+                reason: AuthenticationFailure::Internal,
+            }
+            .record();
+            AdminError::Internal
+        })?;
+    if let Err(retry_after) = state.login_throttle.check_source(peer.ip()) {
+        SecurityEvent::LoginThrottled {
+            username: None,
+            scope: LoginThrottleScope::Source,
+            retry_after,
+        }
+        .record();
+        return Err(too_many_attempts(retry_after));
+    }
+    let username = Username::new(username).map_err(|_| {
+        SecurityEvent::AuthenticationFailed {
+            username: None,
+            reason: AuthenticationFailure::InvalidInput,
+        }
+        .record();
+        invalid_credentials()
+    })?;
     tracing::Span::current().record("username", tracing::field::display(&username));
-    state
-        .login_throttle
-        .check_account(&username)
-        .map_err(too_many_attempts)?;
+    if let Err(retry_after) = state.login_throttle.check_account(&username) {
+        SecurityEvent::LoginThrottled {
+            username: Some(&username),
+            scope: LoginThrottleScope::Account,
+            retry_after,
+        }
+        .record();
+        return Err(too_many_attempts(retry_after));
+    }
     let password = Password::try_from(password).map_err(|_| {
         state.login_throttle.record_failure(&username);
+        SecurityEvent::AuthenticationFailed {
+            username: Some(&username),
+            reason: AuthenticationFailure::InvalidInput,
+        }
+        .record();
         invalid_credentials()
     })?;
     let credentials = Credentials {
@@ -101,12 +133,31 @@ pub async fn login(username: String, password: String) -> Result<(), AdminError>
         }
         Ok(None) | Err(OwnerSessionError::Backend(AuthError::InvalidCredentials)) => {
             state.login_throttle.record_failure(&username);
+            SecurityEvent::AuthenticationFailed {
+                username: Some(&username),
+                reason: AuthenticationFailure::InvalidCredentials,
+            }
+            .record();
             return Err(invalid_credentials());
         }
         Err(OwnerSessionError::Backend(AuthError::PasswordTasksUnavailable)) => {
-            return Err(too_many_attempts(RetryAfter::password_verification_busy()));
+            let retry_after = RetryAfter::password_verification_busy();
+            SecurityEvent::LoginThrottled {
+                username: Some(&username),
+                scope: LoginThrottleScope::PasswordCapacity,
+                retry_after,
+            }
+            .record();
+            return Err(too_many_attempts(retry_after));
         }
-        Err(_) => return Err(AdminError::Internal),
+        Err(_) => {
+            SecurityEvent::AuthenticationFailed {
+                username: Some(&username),
+                reason: AuthenticationFailure::Internal,
+            }
+            .record();
+            return Err(AdminError::Internal);
+        }
     };
     tracing::Span::current().record("owner_id", tracing::field::display(owner.id()));
     session
@@ -142,7 +193,7 @@ pub async fn save_project(
     summary: String,
     markdown: String,
 ) -> Result<PortfolioContent, AdminError> {
-    let _session = authenticated_session().await?;
+    let session = authenticated_session().await?;
     require_fields(&[&title, &summary, &markdown])?;
     let state = expect_context::<ApplicationState>();
     let saved = db::portfolio::set_project(&state.pool, &slug, &title, &summary, &markdown)
@@ -154,18 +205,28 @@ pub async fn save_project(
             AdminError::ProjectNotFound,
         ));
     }
+    SecurityEvent::PortfolioChanged {
+        owner_id: session.owner_id(),
+        resource: PortfolioResource::Project,
+    }
+    .record();
     reload(&state).await
 }
 
 #[cfg(feature = "ssr")]
 macro_rules! save_singleton {
-    ($setter:path; $($field:ident),+ $(,)?) => {{
-        let _session = authenticated_session().await?;
+    ($resource:expr, $setter:path; $($field:ident),+ $(,)?) => {{
+        let session = authenticated_session().await?;
         require_fields(&[$(&$field),+])?;
         let state = expect_context::<ApplicationState>();
         ($setter)(&state.pool, $(&$field),+)
             .await
             .map_err(|_| AdminError::Save)?;
+        SecurityEvent::PortfolioChanged {
+            owner_id: session.owner_id(),
+            resource: $resource,
+        }
+        .record();
         reload(&state).await
     }};
 }
@@ -180,14 +241,14 @@ pub async fn save_profile(
     about: String,
     email: String,
 ) -> Result<PortfolioContent, AdminError> {
-    save_singleton!(db::portfolio::set_profile; name, title, summary, about, email)
+    save_singleton!(PortfolioResource::Profile, db::portfolio::set_profile; name, title, summary, about, email)
 }
 
 /// Saves the editable contact fields and returns the refreshed portfolio.
 #[server(endpoint = "save_contact")]
 #[tracing::instrument(name = "Save portfolio contact", skip_all, err)]
 pub async fn save_contact(name: String, body: String) -> Result<PortfolioContent, AdminError> {
-    save_singleton!(db::portfolio::set_contact; name, body)
+    save_singleton!(PortfolioResource::Contact, db::portfolio::set_contact; name, body)
 }
 
 /// Saves the editable site metadata and returns the refreshed portfolio.
@@ -199,5 +260,5 @@ pub async fn save_site(
     description: String,
     og_image: String,
 ) -> Result<PortfolioContent, AdminError> {
-    save_singleton!(db::portfolio::set_site; url, title, description, og_image)
+    save_singleton!(PortfolioResource::SiteMetadata, db::portfolio::set_site; url, title, description, og_image)
 }

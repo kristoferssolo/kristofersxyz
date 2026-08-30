@@ -1,4 +1,4 @@
-use crate::configuration::PublicOrigin;
+use crate::{configuration::PublicOrigin, security_events::SecurityEvent};
 use axum::{
     extract::{Request, State},
     http::{HeaderMap, Method, header},
@@ -16,7 +16,7 @@ pub async fn verify_origin(
     if is_safe(request.method()) || is_same_origin(request.headers(), &public_origin) {
         next.run(request).await
     } else {
-        tracing::warn!(event = "csrf_rejected", "Rejected cross-origin request");
+        SecurityEvent::CsrfRejected.record();
         axum::http::StatusCode::FORBIDDEN.into_response()
     }
 }
