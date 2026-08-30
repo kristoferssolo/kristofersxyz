@@ -7,7 +7,9 @@ use super::super::{
     error::AdminError,
     server_functions::{SaveContact, SaveProfile, SaveProject, SaveSite},
 };
-use crate::app::{content::Portfolio, content::PortfolioContent, layout::CommandShell};
+use crate::app::{
+    content::Portfolio, content::PortfolioContent, layout::CommandShell, pages::set_not_found,
+};
 use leptos::{form::ActionForm, prelude::*};
 use leptos_meta::Title;
 use leptos_router::{NavigateOptions, components::A, hooks::use_navigate, hooks::use_params_map};
@@ -161,11 +163,3 @@ fn MissingProject() -> impl IntoView {
         </CommandShell>
     }
 }
-
-#[cfg(feature = "ssr")]
-fn set_not_found() {
-    expect_context::<leptos_axum::ResponseOptions>().set_status(axum::http::StatusCode::NOT_FOUND);
-}
-
-#[cfg(not(feature = "ssr"))]
-fn set_not_found() {}

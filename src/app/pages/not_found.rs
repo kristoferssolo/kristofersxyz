@@ -8,6 +8,16 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
 
+/// Sets the rendering response's status to 404. A no-op in the browser, where
+/// the status has already been decided.
+#[cfg(feature = "ssr")]
+pub fn set_not_found() {
+    expect_context::<leptos_axum::ResponseOptions>().set_status(axum::http::StatusCode::NOT_FOUND);
+}
+
+#[cfg(not(feature = "ssr"))]
+pub fn set_not_found() {}
+
 /// Unknown paths, reported the way the editor would report a missing file.
 #[component]
 pub fn NotFoundPage() -> impl IntoView {
@@ -21,12 +31,16 @@ pub fn NotFoundPage() -> impl IntoView {
 }
 
 /// A missing public resource, presented using the portfolio editor shell.
+///
+/// Rendering this page is what makes a response a 404, so crawlers and
+/// monitoring see the same answer the reader does.
 #[component]
 pub fn MissingPage(
     title: &'static str,
     heading: &'static str,
     description: &'static str,
 ) -> impl IntoView {
+    set_not_found();
     let content = expect_context::<Portfolio>().snapshot();
     let editor = EditorController::routes(&content, &EntryId::Profile);
     let status = editor.status("[No Name]", || StatusLocation::Cursor {
