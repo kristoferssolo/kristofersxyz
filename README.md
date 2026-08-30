@@ -59,6 +59,14 @@ The application ignores forwarded client-address headers. Its in-process
 source limit therefore sees the proxy as the peer; production needs the
 per-client limit at that trusted edge.
 
+Authentication, session, request-rejection, password-change, and content-change
+events use the `kristofersxyz::security` tracing target. Informational events
+form the audit trail. Warnings describe denied or sensitive operations, and
+errors describe session lifecycle failures. The application writes them to
+standard output without credentials, hashes, cookies, session identifiers,
+request bodies, or raw authentication errors. Production log collection should
+route warning and error events from this target to the Owner's alert channel.
+
 Run `just benchmark-auth` on the smallest production host before changing the
 Argon2 policy. Record both benchmark results with the host class in deployment
 notes. The two-at-once case matches the application's maximum hashing
