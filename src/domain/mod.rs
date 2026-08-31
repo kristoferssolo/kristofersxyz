@@ -8,6 +8,6 @@ pub(crate) use owner::SessionVersion;
 pub use owner::{Username, UsernameError};
 pub use project::{
     Project, ProjectDescription, ProjectDescriptionError, ProjectLink, ProjectLinkLabel,
-    ProjectLinkUrl, ProjectLinkUrlError, ProjectLinks, ProjectSlug, ProjectSlugError,
-    ProjectTechnologies, RepeatedEntry, TechnologyName, VisibleNameError,
+    ProjectLinkUrl, ProjectLinkUrlError, ProjectLinks, ProjectMove, ProjectMoveError, ProjectSlug,
+    ProjectSlugError, ProjectTechnologies, RepeatedEntry, TechnologyName, VisibleNameError,
 };

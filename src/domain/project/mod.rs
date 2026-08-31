@@ -5,11 +5,13 @@
 //! and Project Link collections live in [`collections`].
 
 mod collections;
+mod movement;
 
 pub use self::collections::{
     ProjectLink, ProjectLinkLabel, ProjectLinkUrl, ProjectLinkUrlError, ProjectLinks,
     ProjectTechnologies, RepeatedEntry, TechnologyName, VisibleNameError,
 };
+pub use self::movement::{ProjectMove, ProjectMoveError};
 use crate::serde_helpers::impl_deserialize_from_str;
 use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
