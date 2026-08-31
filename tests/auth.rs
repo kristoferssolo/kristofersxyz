@@ -1241,6 +1241,9 @@ async fn the_project_editor_renders_the_stored_technologies_and_links() {
     assert!(body.contains("https://github.com/kristoferssolo/guenther"));
     assert!(body.contains("Move technology 1 down"));
     assert!(body.contains("Remove link 1"));
+    // The ends of a collection are already disabled before the page hydrates.
+    assert!(body.contains(r#"disabled aria-label="Move technology 1 up""#));
+    assert!(!body.contains(r#"disabled aria-label="Move technology 1 down""#));
 }
 
 #[tokio::test]

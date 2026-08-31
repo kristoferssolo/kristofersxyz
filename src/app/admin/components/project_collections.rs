@@ -463,7 +463,7 @@ where
         <button
             type="button"
             class="inline-flex h-6 w-6 items-center justify-center border border-transparent bg-transparent p-0 text-[#767d87] enabled:cursor-pointer enabled:hover:border-[#2b3037] enabled:hover:text-white disabled:cursor-not-allowed disabled:text-[#2f343a]"
-            prop:disabled=move || disabled.get()
+            disabled=move || disabled.get()
             aria-label=move || label.get()
             on:click=move |_| on_press()
         >
