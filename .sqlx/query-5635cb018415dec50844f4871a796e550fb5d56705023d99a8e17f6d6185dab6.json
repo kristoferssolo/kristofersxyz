@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\nUPDATE\n    project\nSET\n    title = ?1,\n    summary = ?2,\n    description_markdown = ?3\nWHERE\n    slug = ?4\nRETURNING\n    id AS \"id!\"\n    ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "project",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5635cb018415dec50844f4871a796e550fb5d56705023d99a8e17f6d6185dab6"
+}
