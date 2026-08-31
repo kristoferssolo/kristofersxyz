@@ -15,6 +15,14 @@ pub enum AdminError {
     MissingField,
     #[error("No such project.")]
     ProjectNotFound,
+    #[error("Use lowercase letters, digits, and dashes, starting and ending with one.")]
+    InvalidSlug,
+    #[error("A project already uses that slug. Pick another.")]
+    SlugTaken,
+    #[error("That slug is reserved. Pick another.")]
+    ReservedSlug,
+    #[error("That project cannot move that way.")]
+    InvalidMovement,
     /// The line rejections carry the one-based position the Owner sees rather
     /// than the text that failed, so a mistyped URL never reaches an error.
     #[error("Needs visible text, with no space at the start or end.")]
