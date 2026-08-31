@@ -10,8 +10,16 @@ use crate::app::{
 };
 use leptos::{form::ActionForm, prelude::*};
 use leptos_router::components::A;
-use lucide_leptos::{Box as BoxIcon, ChevronRight, Globe, Mail, User};
+use lucide_leptos::{Box as BoxIcon, ChevronRight, Globe, Mail, Plus, User};
 use std::time::Duration;
+
+/// The shared shape of one editor navigation entry.
+pub const NAVIGATION_LINK: &str = "group flex items-center gap-[1.1ch] py-[.45rem] text-[13px] \
+    text-[#8b939d] no-underline hover:text-[#e2a340] aria-[current=page]:text-white";
+
+/// The route that creates a Project. It is a page rather than a Project slug,
+/// which is why no Project may hold the slug `new`.
+pub const NEW_PROJECT_PATH: &str = "/admin/project/new";
 
 #[component]
 pub fn Eyebrow(children: Children) -> impl IntoView {
@@ -331,6 +339,28 @@ fn NavigationLink(active: String, href: String, label: String, icon: EntryIcon) 
                 <span>{label}</span>
             </A>
         </li>
+    }
+}
+
+/// The one entry point that opens the creation page.
+#[component]
+pub fn NewProjectLink(#[prop(optional)] full_width: bool) -> impl IntoView {
+    let shape = "items-center gap-[1.1ch] border border-dashed border-[#2b3037] px-[.8rem] \
+        py-[.45rem] text-[13px] text-[#8b939d] no-underline hover:border-[#e2a340] \
+        hover:text-[#e2a340]";
+    let class = if full_width {
+        format!("flex w-full {shape}")
+    } else {
+        format!("inline-flex {shape}")
+    };
+
+    view! {
+        <A href=NEW_PROJECT_PATH attr:class=class>
+            <span aria-hidden="true">
+                <Plus size=14 />
+            </span>
+            <span>"New project"</span>
+        </A>
     }
 }
 

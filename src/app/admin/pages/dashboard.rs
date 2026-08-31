@@ -1,7 +1,8 @@
 use super::super::{
     admin_path_for_slug,
     components::{
-        Affordance, EntryIcon, Eyebrow, Icon, InfoList, InfoRow, LogoutForm, PageHeading,
+        Affordance, EntryIcon, Eyebrow, Icon, InfoList, InfoRow, LogoutForm, NewProjectLink,
+        PageHeading,
     },
     server_functions::SessionUser,
 };
@@ -70,7 +71,10 @@ pub fn DashboardPage() -> impl IntoView {
                 </div>
             </aside>
             <main class="relative flex flex-col overflow-x-hidden overflow-y-auto px-[3.25rem] py-12">
-                <Eyebrow>"Projects"</Eyebrow>
+                <div class="flex max-w-[720px] flex-wrap items-baseline justify-between gap-[2ch]">
+                    <Eyebrow>"Projects"</Eyebrow>
+                    <NewProjectLink />
+                </div>
                 <ul class="mt-[1.4rem] max-w-[720px] list-none p-0 [&>li]:border-b [&>li]:border-[#1e2126]">{projects}</ul>
                 <Eyebrow>"Site"</Eyebrow>
                 <ul class="mt-[1.4rem] max-w-[720px] list-none p-0 [&>li]:border-b [&>li]:border-[#1e2126]">

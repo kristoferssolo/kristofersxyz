@@ -8,8 +8,8 @@ mod pages;
 mod server_functions;
 
 pub use pages::{
-    AuthenticatedAdmin, ContactEditorPage, DashboardPage, LoginPage, ProfileEditorPage,
-    ProjectEditorPage, SiteEditorPage,
+    AuthenticatedAdmin, ContactEditorPage, DashboardPage, LoginPage, NewProjectPage,
+    ProfileEditorPage, ProjectEditorPage, SiteEditorPage,
 };
 
 fn admin_path_for_slug(slug: &ProjectSlug) -> String {

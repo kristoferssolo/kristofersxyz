@@ -5,8 +5,8 @@ use crate::app::content::Portfolio;
 use crate::app::content::PortfolioContent;
 use crate::app::{
     admin::{
-        AuthenticatedAdmin, ContactEditorPage, DashboardPage, LoginPage, ProfileEditorPage,
-        ProjectEditorPage, SiteEditorPage,
+        AuthenticatedAdmin, ContactEditorPage, DashboardPage, LoginPage, NewProjectPage,
+        ProfileEditorPage, ProjectEditorPage, SiteEditorPage,
     },
     layout::SidebarPreference,
     pages::{HomePage, NotFoundPage, ProjectPage},
@@ -66,6 +66,9 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/login") view=LoginPage />
                 <ParentRoute path=path!("/admin") view=AuthenticatedAdmin ssr=SsrMode::Async>
                     <Route path=path!("") view=DashboardPage />
+                    // The static creation route is declared before the slug
+                    // route so `new` addresses the page, never a Project.
+                    <Route path=path!("project/new") view=NewProjectPage />
                     <Route path=path!("project/:slug") view=ProjectEditorPage />
                     <Route path=path!("profile") view=ProfileEditorPage />
                     <Route path=path!("contact") view=ContactEditorPage />
