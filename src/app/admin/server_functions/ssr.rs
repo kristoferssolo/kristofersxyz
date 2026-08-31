@@ -1,4 +1,4 @@
-use super::ProjectLinkField;
+use super::projects::ProjectLinkField;
 use crate::{
     app::admin::error::AdminError,
     app::content::{PortfolioContent, store_server_content},

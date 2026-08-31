@@ -11,6 +11,6 @@ mod singletons;
 #[cfg(feature = "ssr")]
 mod ssr;
 
-pub use projects::{CreateProject, MoveProject, ProjectLinkField, SaveProject};
+pub use projects::{CreateProject, MoveProject, SaveProject};
 pub use session::{Login, Logout, SessionUser, current_user};
 pub use singletons::{SaveContact, SaveProfile, SaveSite};
