@@ -374,19 +374,20 @@ impl Buffer {
         }
 
         let start = self.index_of(from)?;
-        let len = self.entries.len();
 
-        (1..=len).find_map(|offset| {
-            let index = start
-                .wrapping_add(offset)
-                .checked_rem(len)
-                .unwrap_or_default();
-            let entry = self.entries.get(index)?;
-            entry.matches(&needle).then(|| SearchHit {
-                selection: entry.selection(),
-                wrapped: index <= start,
+        let (before, current_and_after) = self.entries.split_at(start);
+        let (current, after) = current_and_after.split_first()?;
+        after
+            .iter()
+            .map(|entry| (entry, false))
+            .chain(before.iter().map(|entry| (entry, true)))
+            .chain(std::iter::once((current, true)))
+            .find_map(|(entry, wrapped)| {
+                entry.matches(&needle).then(|| SearchHit {
+                    selection: entry.selection(),
+                    wrapped,
+                })
             })
-        })
     }
 
     fn index_of(&self, id: &EntryId) -> Option<usize> {
