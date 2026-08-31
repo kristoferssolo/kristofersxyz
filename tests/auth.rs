@@ -1401,3 +1401,476 @@ async fn authenticated_owner_can_save_singleton_content() {
     assert!(body.contains("New Name"));
     assert!(body.contains("New Title"));
 }
+
+/// A project creation carrying both ordered collections, encoded the way a
+/// browser encodes the creation form.
+fn project_creation(
+    slug: &str,
+    title: &str,
+    summary: &str,
+    markdown: &str,
+    technologies: &[&str],
+    links: &[(&str, &str)],
+    cookie: Option<&str>,
+) -> Request<Body> {
+    let mut body = format!(
+        "slug={}&title={}&summary={}&markdown={}",
+        form_encode(slug),
+        form_encode(title),
+        form_encode(summary),
+        form_encode(markdown)
+    );
+    for (index, technology) in technologies.iter().enumerate() {
+        let _ = write!(
+            body,
+            "&technologies%5B{index}%5D={}",
+            form_encode(technology)
+        );
+    }
+    for (index, (label, href)) in links.iter().enumerate() {
+        let _ = write!(
+            body,
+            "&links%5B{index}%5D%5Blabel%5D={}&links%5B{index}%5D%5Bhref%5D={}",
+            form_encode(label),
+            form_encode(href)
+        );
+    }
+
+    form_post("/api/create_project", &body, cookie)
+}
+
+/// One move through the public order, encoded the way the editor's move
+/// buttons submit it.
+fn project_move(slug: &str, movement: &str, cookie: Option<&str>) -> Request<Body> {
+    form_post(
+        "/api/move_project",
+        &format!(
+            "slug={}&movement={}",
+            form_encode(slug),
+            form_encode(movement)
+        ),
+        cookie,
+    )
+}
+
+/// Whether the control carrying `needle` renders the disabled attribute. The
+/// class list mentions `disabled:` variants, which is why this looks for the
+/// attribute itself.
+fn is_disabled(html: &str, needle: &str) -> bool {
+    element_with(html, needle).contains(" disabled ")
+}
+
+/// The project sequence at the foot of a Project Detail, which is where the
+/// previous and next links live.
+fn project_sequence(html: &str) -> &str {
+    let start = html
+        .find(r#"aria-label="Project sequence""#)
+        .expect("the detail page carries its sequence");
+    html.get(start..).unwrap_or_default()
+}
+
+/// The whole element carrying `needle`, so a test can assert on two attributes
+/// of the same control rather than on their presence somewhere in the page.
+fn element_with<'a>(html: &'a str, needle: &str) -> &'a str {
+    let found = html
+        .find(needle)
+        .unwrap_or_else(|| panic!("{needle} is in the page"));
+    let (before, rest) = html.split_at(found);
+    let start = before.rfind('<').expect("the match sits inside an element");
+    let end = rest.find('>').expect("the element is closed");
+    let stop = found.saturating_add(end).saturating_add(1);
+    html.get(start..stop)
+        .expect("the element sits inside the page")
+}
+
+/// The project slugs in the order a refreshed portfolio carries them.
+fn portfolio_order(json: &str) -> Vec<&str> {
+    json.match_indices(r#""slug":""#)
+        .filter_map(|(index, needle)| {
+            json.get(index.saturating_add(needle.len())..)?
+                .split('"')
+                .next()
+        })
+        .collect()
+}
+
+/// The published project slugs in the order the page presents them.
+fn published_order(html: &str) -> Vec<&str> {
+    let mut seen = Vec::new();
+    for (index, _) in html.match_indices("/work/") {
+        let rest = html
+            .get(index.saturating_add("/work/".len())..)
+            .unwrap_or_default();
+        let slug = rest
+            .split(|character: char| !character.is_ascii_lowercase() && character != '-')
+            .next()
+            .unwrap_or_default();
+        if !slug.is_empty() && !seen.contains(&slug) {
+            seen.push(slug);
+        }
+    }
+    seen
+}
+
+#[tokio::test]
+async fn the_creation_route_renders_its_own_page() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let response = router
+        .oneshot(get_request("/admin/project/new", Some(&cookie)))
+        .await
+        .expect("send the creation page request");
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = body_text(response).await;
+    assert!(body.contains("action=\"/api/create_project\""));
+    assert!(body.contains("New project"));
+    assert!(!body.contains("No such project"));
+    // The creation form reuses the markdown editor and its live preview.
+    assert!(body.contains("id=\"md\""));
+    assert!(body.contains("id=\"pv\""));
+}
+
+#[tokio::test]
+async fn the_creation_form_and_move_controls_have_accessible_names() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let creation = body_text(
+        router
+            .clone()
+            .oneshot(get_request("/admin/project/new", Some(&cookie)))
+            .await
+            .expect("send the creation page request"),
+    )
+    .await;
+    for field in ["Slug", "Title", "Summary"] {
+        assert!(creation.contains(field), "{field} names its input");
+    }
+    assert!(creation.contains("name=\"slug\""));
+    assert!(creation.contains("add technology"));
+
+    let editor = body_text(
+        router
+            .oneshot(get_request("/admin/project/traxor", Some(&cookie)))
+            .await
+            .expect("send the editor request"),
+    )
+    .await;
+    for label in [
+        "Move guenther down",
+        "Move traxor up",
+        "Move cipher-workshop up",
+    ] {
+        assert!(
+            editor.contains(&format!("aria-label=\"{label}\"")),
+            "{label} names its control"
+        );
+    }
+}
+
+#[tokio::test]
+async fn the_server_renders_impossible_moves_as_disabled() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let body = body_text(
+        router
+            .oneshot(get_request("/admin/project/guenther", Some(&cookie)))
+            .await
+            .expect("send the editor request"),
+    )
+    .await;
+
+    // The first project cannot move up and the last cannot move down, before
+    // the page has hydrated as well as after.
+    assert!(is_disabled(&body, "aria-label=\"Move guenther up\""));
+    assert!(is_disabled(
+        &body,
+        "aria-label=\"Move cipher-workshop down\""
+    ));
+    assert!(!is_disabled(&body, "aria-label=\"Move guenther down\""));
+    assert!(!is_disabled(&body, "aria-label=\"Move traxor up\""));
+}
+
+#[tokio::test]
+async fn a_created_project_is_published_at_the_end_of_the_order() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let created = router
+        .clone()
+        .oneshot(project_creation(
+            "kristofersxyz",
+            "kristofers.xyz",
+            "The portfolio itself",
+            "## What it solves\n\nCREATEMARKER42",
+            &["Rust", "Leptos"],
+            &[("GitHub", "https://github.com/kristoferssolo/kristofersxyz")],
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the creation");
+    assert_eq!(created.status(), StatusCode::OK);
+
+    // The refreshed portfolio the creation answers with carries the new
+    // project, its description, and both collections.
+    let portfolio = body_text(created).await;
+    assert_eq!(
+        portfolio_order(&portfolio),
+        ["guenther", "traxor", "cipher-workshop", "kristofersxyz"]
+    );
+    assert!(portfolio.contains("CREATEMARKER42"));
+    assert!(portfolio.contains("Leptos"));
+    assert!(portfolio.contains("github.com/kristoferssolo/kristofersxyz"));
+
+    let home = body_text(
+        router
+            .clone()
+            .oneshot(get_request("/", None))
+            .await
+            .expect("send the homepage request"),
+    )
+    .await;
+    assert_eq!(
+        published_order(&home),
+        ["guenther", "traxor", "cipher-workshop", "kristofersxyz"]
+    );
+
+    let detail = router
+        .oneshot(get_request("/work/kristofersxyz", None))
+        .await
+        .expect("send the new project request");
+    assert_eq!(detail.status(), StatusCode::OK);
+    let detail = body_text(detail).await;
+    assert!(detail.contains("CREATEMARKER42"));
+    assert_eq!(
+        published_order(project_sequence(&detail)),
+        ["cipher-workshop"]
+    );
+}
+
+#[tokio::test]
+async fn creation_requires_an_authenticated_session() {
+    let (router, _database) = app_with_owner().await;
+
+    let response = router
+        .clone()
+        .oneshot(project_creation(
+            "kristofersxyz",
+            "kristofers.xyz",
+            "The portfolio itself",
+            "CREATEMARKER42",
+            &["Rust"],
+            &[],
+            None,
+        ))
+        .await
+        .expect("send the signed out creation");
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(response.headers()[header::LOCATION], "/login");
+    let home = body_text(
+        router
+            .oneshot(get_request("/", None))
+            .await
+            .expect("send the homepage request"),
+    )
+    .await;
+    assert_eq!(
+        published_order(&home),
+        ["guenther", "traxor", "cipher-workshop"]
+    );
+}
+
+#[tokio::test]
+async fn a_rejected_slug_creates_nothing() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+    let attempts = [
+        ("traxor", StatusCode::CONFLICT),
+        ("Not A Slug", StatusCode::UNPROCESSABLE_ENTITY),
+        ("new", StatusCode::UNPROCESSABLE_ENTITY),
+    ];
+
+    for (slug, expected) in attempts {
+        let response = router
+            .clone()
+            .oneshot(project_creation(
+                slug,
+                "kristofers.xyz",
+                "The portfolio itself",
+                "CREATEMARKER42",
+                &["Rust"],
+                &[("GitHub", "https://github.com/kristoferssolo/kristofersxyz")],
+                Some(&cookie),
+            ))
+            .await
+            .expect("send the creation");
+        assert_eq!(response.status(), expected, "slug '{slug}'");
+    }
+
+    let home = body_text(
+        router
+            .clone()
+            .oneshot(get_request("/", None))
+            .await
+            .expect("send the homepage request"),
+    )
+    .await;
+    assert_eq!(
+        published_order(&home),
+        ["guenther", "traxor", "cipher-workshop"]
+    );
+    assert!(!home.contains("CREATEMARKER42"));
+
+    let traxor = body_text(
+        router
+            .oneshot(get_request("/work/traxor", None))
+            .await
+            .expect("send the project request"),
+    )
+    .await;
+    assert!(traxor.contains("Transmission RPC"));
+    assert!(!traxor.contains("CREATEMARKER42"));
+}
+
+#[tokio::test]
+async fn a_move_reorders_every_public_consumer() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let moved = router
+        .clone()
+        .oneshot(project_move("cipher-workshop", "up", Some(&cookie)))
+        .await
+        .expect("send the move");
+    assert_eq!(moved.status(), StatusCode::OK);
+    assert_eq!(
+        portfolio_order(&body_text(moved).await),
+        ["guenther", "cipher-workshop", "traxor"]
+    );
+
+    // The sidebar, the homepage order, and the number keys all read the same
+    // portfolio.
+    let home = body_text(
+        router
+            .clone()
+            .oneshot(get_request("/", None))
+            .await
+            .expect("send the homepage request"),
+    )
+    .await;
+    assert_eq!(
+        published_order(&home),
+        ["guenther", "cipher-workshop", "traxor"]
+    );
+
+    // The project sequence follows it too.
+    let detail = body_text(
+        router
+            .clone()
+            .oneshot(get_request("/work/traxor", None))
+            .await
+            .expect("send the project request"),
+    )
+    .await;
+    assert_eq!(
+        published_order(project_sequence(&detail)),
+        ["cipher-workshop"]
+    );
+
+    let admin = body_text(
+        router
+            .oneshot(get_request("/admin", Some(&cookie)))
+            .await
+            .expect("send the dashboard request"),
+    )
+    .await;
+    assert_eq!(
+        published_order(&admin),
+        ["guenther", "cipher-workshop", "traxor"]
+    );
+}
+
+#[tokio::test]
+async fn a_drag_takes_the_place_of_the_project_it_names() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let moved = router
+        .clone()
+        .oneshot(project_move(
+            "cipher-workshop",
+            "place-of:guenther",
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the move");
+
+    assert_eq!(moved.status(), StatusCode::OK);
+    assert_eq!(
+        portfolio_order(&body_text(moved).await),
+        ["cipher-workshop", "guenther", "traxor"]
+    );
+}
+
+#[tokio::test]
+async fn an_impossible_or_unknown_move_changes_nothing() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+    let rejected = [
+        ("guenther", "up", StatusCode::UNPROCESSABLE_ENTITY),
+        ("cipher-workshop", "down", StatusCode::UNPROCESSABLE_ENTITY),
+        ("ghost", "down", StatusCode::NOT_FOUND),
+        ("traxor", "place-of:ghost", StatusCode::NOT_FOUND),
+        ("traxor", "sideways", StatusCode::UNPROCESSABLE_ENTITY),
+    ];
+
+    for (slug, movement, expected) in rejected {
+        let response = router
+            .clone()
+            .oneshot(project_move(slug, movement, Some(&cookie)))
+            .await
+            .expect("send the move");
+        assert_eq!(response.status(), expected, "{slug} '{movement}'");
+    }
+
+    let home = body_text(
+        router
+            .oneshot(get_request("/", None))
+            .await
+            .expect("send the homepage request"),
+    )
+    .await;
+    assert_eq!(
+        published_order(&home),
+        ["guenther", "traxor", "cipher-workshop"]
+    );
+}
+
+#[tokio::test]
+async fn movement_requires_an_authenticated_session() {
+    let (router, _database) = app_with_owner().await;
+
+    let response = router
+        .clone()
+        .oneshot(project_move("traxor", "up", None))
+        .await
+        .expect("send the signed out move");
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(response.headers()[header::LOCATION], "/login");
+    let home = body_text(
+        router
+            .oneshot(get_request("/", None))
+            .await
+            .expect("send the homepage request"),
+    )
+    .await;
+    assert_eq!(
+        published_order(&home),
+        ["guenther", "traxor", "cipher-workshop"]
+    );
+}
