@@ -15,6 +15,18 @@ pub enum AdminError {
     MissingField,
     #[error("No such project.")]
     ProjectNotFound,
+    /// The line rejections carry the one-based position the Owner sees rather
+    /// than the text that failed, so a mistyped URL never reaches an error.
+    #[error("Needs visible text, with no space at the start or end.")]
+    InvalidTechnology { position: usize },
+    #[error("Repeats an earlier technology. Each one can appear once.")]
+    RepeatedTechnology { position: usize },
+    #[error("A link label needs visible text, with no space at the start or end.")]
+    InvalidLinkLabel { position: usize },
+    #[error("Use an absolute http or https URL.")]
+    InvalidLinkUrl { position: usize },
+    #[error("Repeats an earlier label. Each link needs its own.")]
+    RepeatedLinkLabel { position: usize },
     #[error("Could not save the edit.")]
     Save,
     #[error("Saved, but the portfolio could not be reloaded.")]

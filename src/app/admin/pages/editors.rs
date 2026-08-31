@@ -1,8 +1,8 @@
 use super::super::{
     admin_path_for_slug,
     components::{
-        EditorLayout, Eyebrow, MarkdownEditor, PageHeading, SaveButton, TextArea, TextInput,
-        action_error,
+        EditorLayout, Eyebrow, FormMessage, MarkdownEditor, PageHeading, ProjectCollections,
+        SaveButton, SaveRejection, TextArea, TextInput, action_error,
     },
     error::AdminError,
     server_functions::{SaveContact, SaveProfile, SaveProject, SaveSite},
@@ -50,16 +50,35 @@ pub fn ProjectEditorPage() -> impl IntoView {
                     follow_save(action, portfolio);
                     let active = admin_path_for_slug(&project.slug);
                     let breadcrumb = format!("Admin / {}", project.slug);
+                    let error = Signal::derive(move || action.value().get().and_then(Result::err));
+                    let rejection = SaveRejection::new(error);
                     view! {
                         <Title text="Edit project" />
                         <EditorLayout active heading="Edit project" breadcrumb wide=true>
-                            {editor_form!(
-                                action,
+                            <ActionForm action attr:class="mt-[2.2rem]">
                                 <input type="hidden" name="slug" value=project.slug.to_string() />
-                                <TextInput label="Title" name="title" value=project.title />
-                                <TextInput label="Summary" name="summary" value=project.summary />
-                                <MarkdownEditor value=project.description.as_str().to_owned() />
-                            )}
+                                <div class="grid grid-cols-1 items-start gap-10 min-[961px]:grid-cols-[minmax(0,1fr)_360px]">
+                                    <div class="min-w-0">
+                                        <TextInput label="Title" name="title" value=project.title />
+                                        <TextInput
+                                            label="Summary"
+                                            name="summary"
+                                            value=project.summary
+                                        />
+                                        <MarkdownEditor value=project
+                                            .description
+                                            .as_str()
+                                            .to_owned() />
+                                    </div>
+                                    <ProjectCollections
+                                        technologies=project.technologies
+                                        links=project.links
+                                        rejection
+                                    />
+                                </div>
+                                {move || save_message(error, rejection)}
+                                <SaveButton />
+                            </ActionForm>
                         </EditorLayout>
                     }
                     .into_any()
@@ -128,6 +147,20 @@ pub fn SiteEditorPage() -> impl IntoView {
             )}
         </EditorLayout>
     }
+}
+
+/// What the project editor says at the foot of the form. A rejected line
+/// states its own reason beside the field, so the form only has to say that
+/// nothing was written.
+fn save_message(error: Signal<Option<AdminError>>, rejection: SaveRejection) -> impl IntoView {
+    error.get().map(|error| {
+        let message = if rejection.marks_a_line() {
+            "Nothing was saved. Fix the marked line and save again.".to_owned()
+        } else {
+            error.to_string()
+        };
+        view! { <FormMessage>{message}</FormMessage> }
+    })
 }
 
 fn follow_save<ServerFn>(action: ServerAction<ServerFn>, portfolio: Portfolio)

@@ -1,3 +1,7 @@
+mod project_collections;
+
+pub use project_collections::{ProjectCollections, SaveRejection};
+
 use crate::app::{
     admin::{admin_path_for_slug, error::AdminError, server_functions::Logout},
     content::Portfolio,
@@ -178,8 +182,14 @@ fn ActionError(error: AdminError) -> impl IntoView {
     move || {
         message
             .get()
-            .map(|message| view! { <p class="mt-[1.2rem] text-xs text-[#e2a340]">{message}</p> })
+            .map(|message| view! { <FormMessage>{message}</FormMessage> })
     }
+}
+
+/// The one place a form states why a save did not go through.
+#[component]
+pub fn FormMessage(children: Children) -> impl IntoView {
+    view! { <p class="mt-[1.2rem] text-xs text-[#e2a340]">{children()}</p> }
 }
 
 fn rate_limit_message(seconds: u64) -> String {

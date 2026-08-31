@@ -1,10 +1,14 @@
-use super::AdminError;
+use super::{AdminError, ProjectLinkField};
 use crate::{
     app::content::{PortfolioContent, store_server_content},
     authentication::{
         Authenticated, AxumAuthSession, OwnerSession, RetryAfter, SessionState, Unverified,
     },
     db,
+    domain::{
+        ProjectLink, ProjectLinkLabel, ProjectLinkUrl, ProjectLinks, ProjectTechnologies,
+        TechnologyName,
+    },
     security_events::SecurityEvent,
     startup::ApplicationState,
 };
@@ -46,6 +50,68 @@ pub fn require_fields(fields: &[&str]) -> Result<(), AdminError> {
             AdminError::MissingField,
         ))
     }
+}
+
+/// Turns the raw Technology fields a form submits into the validated
+/// collection, naming the first line that failed. One rejection stops the
+/// save, so nothing reaches the database.
+pub fn validated_technologies(values: &[String]) -> Result<ProjectTechnologies, AdminError> {
+    let names = values
+        .iter()
+        .enumerate()
+        .map(|(index, value)| {
+            value.parse::<TechnologyName>().map_err(|_| {
+                rejected(AdminError::InvalidTechnology {
+                    position: line(index),
+                })
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    ProjectTechnologies::try_from(names).map_err(|repeat| {
+        rejected(AdminError::RepeatedTechnology {
+            position: line(repeat.index),
+        })
+    })
+}
+
+/// Turns the raw label and URL pairs a form submits into the validated
+/// collection, naming the first line and field that failed.
+pub fn validated_links(values: &[ProjectLinkField]) -> Result<ProjectLinks, AdminError> {
+    let links = values
+        .iter()
+        .enumerate()
+        .map(|(index, value)| {
+            Ok(ProjectLink {
+                label: value.label.parse::<ProjectLinkLabel>().map_err(|_| {
+                    rejected(AdminError::InvalidLinkLabel {
+                        position: line(index),
+                    })
+                })?,
+                href: value.href.parse::<ProjectLinkUrl>().map_err(|_| {
+                    rejected(AdminError::InvalidLinkUrl {
+                        position: line(index),
+                    })
+                })?,
+            })
+        })
+        .collect::<Result<Vec<_>, AdminError>>()?;
+
+    ProjectLinks::try_from(links).map_err(|repeat| {
+        rejected(AdminError::RepeatedLinkLabel {
+            position: line(repeat.index),
+        })
+    })
+}
+
+/// The one-based line the Owner sees for a zero-based collection index.
+const fn line(index: usize) -> usize {
+    index.saturating_add(1)
+}
+
+/// Answers a rejected edit without applying any part of it.
+fn rejected(error: AdminError) -> AdminError {
+    with_status(StatusCode::UNPROCESSABLE_ENTITY, error)
 }
 
 pub async fn reload(state: &ApplicationState) -> Result<PortfolioContent, AdminError> {

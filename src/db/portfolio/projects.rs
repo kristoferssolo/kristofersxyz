@@ -9,14 +9,25 @@ use crate::{
 
 /// Replaces a project's editable fields by slug, returning whether a row
 /// matched. The slug is the route identity and stays fixed.
+///
+/// The project row and both ordered child collections change in one
+/// transaction. The child rows are removed and rewritten from position one, so
+/// a failure anywhere leaves the stored project exactly as it was rather than
+/// half replaced.
 pub async fn set(
     pool: &DbPool,
-    slug: &str,
+    slug: &ProjectSlug,
     title: &str,
     summary: &str,
-    description: &str,
+    description: &ProjectDescription,
+    technologies: &ProjectTechnologies,
+    links: &ProjectLinks,
 ) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query!(
+    let slug = slug.as_str();
+    let description = description.as_str();
+    let mut transaction = pool.begin().await?;
+
+    let project_id = sqlx::query_scalar!(
         r#"
 UPDATE
     project
@@ -26,15 +37,84 @@ SET
     description_markdown = ?3
 WHERE
     slug = ?4
+RETURNING
+    id AS "id!"
     "#,
         title,
         summary,
         description,
         slug
     )
-    .execute(pool)
+    .fetch_optional(&mut *transaction)
     .await?;
-    Ok(result.rows_affected() > 0)
+    let Some(project_id) = project_id else {
+        return Ok(false);
+    };
+
+    sqlx::query!(
+        r#"
+DELETE FROM project_technology
+WHERE
+    project_id = ?1
+    "#,
+        project_id
+    )
+    .execute(&mut *transaction)
+    .await?;
+
+    let mut sort_order: i64 = 0;
+    for name in technologies {
+        sort_order = sort_order.saturating_add(1);
+        let item = name.as_str();
+        sqlx::query!(
+            r#"
+INSERT INTO
+    project_technology (project_id, item, sort_order)
+VALUES
+    (?1, ?2, ?3)
+    "#,
+            project_id,
+            item,
+            sort_order
+        )
+        .execute(&mut *transaction)
+        .await?;
+    }
+
+    sqlx::query!(
+        r#"
+DELETE FROM project_link
+WHERE
+    project_id = ?1
+    "#,
+        project_id
+    )
+    .execute(&mut *transaction)
+    .await?;
+
+    let mut sort_order: i64 = 0;
+    for link in links {
+        sort_order = sort_order.saturating_add(1);
+        let label = link.label.as_str();
+        let href = link.href.as_str();
+        sqlx::query!(
+            r#"
+INSERT INTO
+    project_link (project_id, label, href, sort_order)
+VALUES
+    (?1, ?2, ?3, ?4)
+    "#,
+            project_id,
+            label,
+            href,
+            sort_order
+        )
+        .execute(&mut *transaction)
+        .await?;
+    }
+
+    transaction.commit().await?;
+    Ok(true)
 }
 
 /// Loads projects with Technologies and links grouped in memory, avoiding

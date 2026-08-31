@@ -12,8 +12,8 @@ use crate::{
     app::content::{Contact, FocusArea, PortfolioContent, Profile, Site, SocialLink},
     db::DbPool,
     domain::{
-        ProjectDescriptionError, ProjectLinkUrlError, ProjectSlug, ProjectSlugError,
-        VisibleNameError,
+        ProjectDescription, ProjectDescriptionError, ProjectLinkUrlError, ProjectLinks,
+        ProjectSlug, ProjectSlugError, ProjectTechnologies, VisibleNameError,
     },
 };
 
@@ -184,21 +184,24 @@ ORDER BY
     })
 }
 
-/// Replaces a project's editable fields by slug, returning whether the project
-/// exists. The caller reloads and re-caches the portfolio so the edit takes
-/// effect.
+/// Replaces a project's editable fields, Technologies, and links by slug in
+/// one transaction, returning whether the project exists. The caller reloads
+/// and re-caches the portfolio so the edit takes effect.
 ///
 /// # Errors
 ///
-/// Returns [`sqlx::Error`] if the update fails.
+/// Returns [`sqlx::Error`] if the transaction fails, in which case the stored
+/// project is unchanged.
 pub async fn set_project(
     pool: &DbPool,
-    slug: &str,
+    slug: &ProjectSlug,
     title: &str,
     summary: &str,
-    description: &str,
+    description: &ProjectDescription,
+    technologies: &ProjectTechnologies,
+    links: &ProjectLinks,
 ) -> Result<bool, sqlx::Error> {
-    projects::set(pool, slug, title, summary, description).await
+    projects::set(pool, slug, title, summary, description, technologies, links).await
 }
 
 /// Replaces the profile singleton's scalar fields. The caller reloads and

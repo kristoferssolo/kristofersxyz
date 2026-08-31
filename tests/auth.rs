@@ -5,6 +5,7 @@
 #![allow(clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
 use std::{
+    fmt::Write as _,
     io::{self, Write},
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
@@ -180,18 +181,56 @@ async fn sign_in(router: &Router) -> String {
         .to_owned()
 }
 
+/// A project save carrying both ordered collections, encoded the way a browser
+/// encodes the editor's indexed field names.
 fn project_edit(
     slug: &str,
     title: &str,
     summary: &str,
     markdown: &str,
+    technologies: &[&str],
+    links: &[(&str, &str)],
     cookie: Option<&str>,
 ) -> Request<Body> {
-    form_post(
-        "/api/save_project",
-        &format!("slug={slug}&title={title}&summary={summary}&markdown={markdown}"),
-        cookie,
-    )
+    let mut body = format!("slug={slug}&title={title}&summary={summary}&markdown={markdown}");
+    for (index, technology) in technologies.iter().enumerate() {
+        let _ = write!(
+            body,
+            "&technologies%5B{index}%5D={}",
+            form_encode(technology)
+        );
+    }
+    for (index, (label, href)) in links.iter().enumerate() {
+        let _ = write!(
+            body,
+            "&links%5B{index}%5D%5Blabel%5D={}&links%5B{index}%5D%5Bhref%5D={}",
+            form_encode(label),
+            form_encode(href)
+        );
+    }
+
+    form_post("/api/save_project", &body, cookie)
+}
+
+fn form_encode(value: &str) -> String {
+    value
+        .bytes()
+        .map(|byte| match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => {
+                char::from(byte).to_string()
+            }
+            _ => format!("%{byte:02X}"),
+        })
+        .collect()
+}
+
+/// The order two values appear in, so a test can assert on stored order rather
+/// than mere presence.
+fn appears_before(haystack: &str, first: &str, second: &str) -> bool {
+    match (haystack.find(first), haystack.find(second)) {
+        (Some(first), Some(second)) => first < second,
+        _ => false,
+    }
 }
 
 async fn body_text(response: axum::response::Response) -> String {
@@ -360,6 +399,8 @@ async fn oversized_content_edits_are_rejected_before_form_extraction() {
             "Traxor",
             "Summary",
             &oversized_markdown,
+            &[],
+            &[],
             Some(&cookie),
         ))
         .await
@@ -620,7 +661,7 @@ async fn unsafe_requests_require_the_canonical_origin() {
     let requests = [
         login_request("owner", "wrong"),
         form_post("/api/logout", "", None),
-        project_edit("traxor", "Title", "Summary", "Body", None),
+        project_edit("traxor", "Title", "Summary", "Body", &[], &[], None),
         form_post(
             "/api/save_profile",
             "name=Name&title=Title&summary=Summary&about=About&email=me%40example.com",
@@ -1022,6 +1063,8 @@ async fn authenticated_owner_can_save_a_project() {
             "Traxor Reborn",
             "A fresh summary",
             "EDITMARKER42",
+            &["Rust", "ratatui"],
+            &[("Codeberg", "https://codeberg.org/kristoferssolo/traxor")],
             Some(&cookie),
         ))
         .await
@@ -1041,7 +1084,15 @@ async fn authenticated_owner_can_save_a_project() {
 async fn project_save_requires_an_authenticated_session() {
     let (router, _database) = app_with_owner().await;
     let response = router
-        .oneshot(project_edit("traxor", "Title", "Summary", "Body", None))
+        .oneshot(project_edit(
+            "traxor",
+            "Title",
+            "Summary",
+            "Body",
+            &["Rust"],
+            &[],
+            None,
+        ))
         .await
         .expect("send the edit");
 
@@ -1056,7 +1107,15 @@ async fn project_save_validates_required_fields_and_slug() {
 
     let empty = router
         .clone()
-        .oneshot(project_edit("traxor", "", "Summary", "Body", Some(&cookie)))
+        .oneshot(project_edit(
+            "traxor",
+            "",
+            "Summary",
+            "Body",
+            &[],
+            &[],
+            Some(&cookie),
+        ))
         .await
         .expect("send the empty edit");
     assert_eq!(empty.status(), StatusCode::UNPROCESSABLE_ENTITY);
@@ -1067,11 +1126,241 @@ async fn project_save_validates_required_fields_and_slug() {
             "Title",
             "Summary",
             "Body",
+            &[],
+            &[],
             Some(&cookie),
         ))
         .await
         .expect("send the unknown edit");
     assert_eq!(missing.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn saving_a_project_replaces_its_technologies_and_links_in_order() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let save = router
+        .clone()
+        .oneshot(project_edit(
+            "guenther",
+            "guenther",
+            "A summary",
+            "A description",
+            &["Docker Compose", "Rust", "teloxide"],
+            &[
+                ("Cobalt", "https://github.com/imputnet/cobalt"),
+                ("GitHub", "https://github.com/kristoferssolo/guenther"),
+            ],
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the edit");
+    assert_eq!(save.status(), StatusCode::OK);
+
+    // The save answers with the refreshed portfolio, which is what the editor
+    // puts back into the page.
+    let portfolio = body_text(save).await;
+    assert!(appears_before(&portfolio, "Docker Compose", "teloxide"));
+    assert!(appears_before(
+        &portfolio,
+        "github.com/imputnet/cobalt",
+        "github.com/kristoferssolo/guenther"
+    ));
+    assert!(
+        !portfolio.contains("SQLx and SQLite"),
+        "the replaced technologies are gone"
+    );
+    assert!(portfolio.contains("https://github.com/imputnet/cobalt"));
+}
+
+#[tokio::test]
+async fn the_project_detail_renders_every_link_in_stored_order() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+    router
+        .clone()
+        .oneshot(project_edit(
+            "guenther",
+            "guenther",
+            "A summary",
+            "A description",
+            &["Rust"],
+            &[
+                (
+                    "Codeberg mirror",
+                    "https://codeberg.org/kristoferssolo/guenther",
+                ),
+                ("GitHub", "https://github.com/kristoferssolo/guenther"),
+                ("Cobalt", "https://github.com/imputnet/cobalt"),
+            ],
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the edit");
+
+    let page = router
+        .oneshot(get_request("/work/guenther", None))
+        .await
+        .expect("send the public page request");
+    let body = body_text(page).await;
+
+    assert!(appears_before(
+        &body,
+        "codeberg.org/kristoferssolo/guenther",
+        "github.com/kristoferssolo/guenther"
+    ));
+    assert!(appears_before(
+        &body,
+        "github.com/kristoferssolo/guenther",
+        "github.com/imputnet/cobalt"
+    ));
+    assert!(body.contains("Codeberg mirror"));
+    assert!(body.contains("https://github.com/imputnet/cobalt"));
+    assert!(body.contains(r#"rel="noopener noreferrer""#));
+}
+
+#[tokio::test]
+async fn the_project_editor_renders_the_stored_technologies_and_links() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let response = router
+        .oneshot(get_request("/admin/project/guenther", Some(&cookie)))
+        .await
+        .expect("send the editor request");
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = body_text(response).await;
+    assert!(body.contains(r#"name="technologies[0]""#));
+    assert!(body.contains(r#"value="SQLx and SQLite""#));
+    assert!(body.contains(r#"name="links[0][label]""#));
+    assert!(body.contains(r#"name="links[0][href]""#));
+    assert!(body.contains("https://github.com/kristoferssolo/guenther"));
+    assert!(body.contains("Move technology 1 down"));
+    assert!(body.contains("Remove link 1"));
+}
+
+#[tokio::test]
+async fn an_invalid_technology_or_link_url_rejects_the_whole_save() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let padded = router
+        .clone()
+        .oneshot(project_edit(
+            "guenther",
+            "Renamed",
+            "A summary",
+            "A description",
+            &["Rust", "teloxide "],
+            &[],
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the padded technology");
+    assert_eq!(padded.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    let relative = router
+        .clone()
+        .oneshot(project_edit(
+            "guenther",
+            "Renamed",
+            "A summary",
+            "A description",
+            &["Rust"],
+            &[("Cobalt", "github.com/imputnet/cobalt")],
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the relative URL");
+    assert_eq!(relative.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    // Neither rejection wrote any part of its edit.
+    let page = router
+        .oneshot(get_request("/work/guenther", None))
+        .await
+        .expect("send the public page request");
+    let body = body_text(page).await;
+    assert!(!body.contains("Renamed"));
+    assert!(body.contains("SQLx and SQLite"));
+    assert!(body.contains("https://github.com/kristoferssolo/guenther"));
+}
+
+#[tokio::test]
+async fn repeated_technologies_and_link_labels_are_rejected() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let technologies = router
+        .clone()
+        .oneshot(project_edit(
+            "guenther",
+            "Renamed",
+            "A summary",
+            "A description",
+            &["Rust", "teloxide", "Rust"],
+            &[],
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the repeated technology");
+    assert_eq!(technologies.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    let labels = router
+        .clone()
+        .oneshot(project_edit(
+            "guenther",
+            "Renamed",
+            "A summary",
+            "A description",
+            &["Rust"],
+            &[
+                ("GitHub", "https://github.com/kristoferssolo/guenther"),
+                ("GitHub", "https://codeberg.org/kristoferssolo/guenther"),
+            ],
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the repeated label");
+    assert_eq!(labels.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    let page = router
+        .oneshot(get_request("/work/guenther", None))
+        .await
+        .expect("send the public page request");
+    assert!(!body_text(page).await.contains("Renamed"));
+}
+
+#[tokio::test]
+async fn an_unauthenticated_request_cannot_change_either_collection() {
+    let (router, _database) = app_with_owner().await;
+
+    let response = router
+        .clone()
+        .oneshot(project_edit(
+            "guenther",
+            "guenther",
+            "A summary",
+            "A description",
+            &["Borrowed"],
+            &[("Elsewhere", "https://example.com")],
+            None,
+        ))
+        .await
+        .expect("send the signed out edit");
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(response.headers()[header::LOCATION], "/login");
+
+    let page = router
+        .oneshot(get_request("/work/guenther", None))
+        .await
+        .expect("send the public page request");
+    let body = body_text(page).await;
+    assert!(!body.contains("Borrowed"));
+    assert!(!body.contains("Elsewhere"));
+    assert!(body.contains("SQLx and SQLite"));
 }
 
 #[tokio::test]
