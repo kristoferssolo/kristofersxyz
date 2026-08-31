@@ -79,6 +79,19 @@ pub fn focus_row(entry: &EntryId) {
     }
 }
 
+/// Focuses the editor control with this identity, unless it is disabled.
+/// Returns whether focus moved, so a caller can fall back to the control that
+/// is still available after a move.
+pub fn focus_control(id: &str) -> bool {
+    let Some(element) = document().get_element_by_id(id) else {
+        return false;
+    };
+    let Ok(button) = element.dyn_into::<web_sys::HtmlButtonElement>() else {
+        return false;
+    };
+    !button.disabled() && button.focus().is_ok()
+}
+
 /// On the stacked phone layout, selected homepage content sits below the
 /// sidebar and must be brought into view.
 pub fn reveal_content() {

@@ -2,7 +2,7 @@ use super::super::{
     admin_path_for_slug,
     components::{
         EditorLayout, Eyebrow, FormMessage, MarkdownEditor, PageHeading, ProjectCollections,
-        SaveButton, SaveRejection, TextArea, TextInput, action_error,
+        ProjectPositionStepper, SaveButton, SaveRejection, TextArea, TextInput, action_error,
     },
     error::AdminError,
     server_functions::{SaveContact, SaveProfile, SaveProject, SaveSite},
@@ -33,10 +33,12 @@ pub fn ProjectEditorPage() -> impl IntoView {
     let portfolio = expect_context::<Portfolio>();
     let params = use_params_map();
 
+    // The editor reads a snapshot, so reordering the Projects around this one
+    // leaves the open form and everything typed into it alone.
     move || {
         let slug = params.read().get("slug").unwrap_or_default();
         portfolio
-            .current()
+            .snapshot()
             .projects
             .into_iter()
             .find(|project| project.slug.as_str() == slug)
@@ -50,11 +52,18 @@ pub fn ProjectEditorPage() -> impl IntoView {
                     follow_save(action, portfolio);
                     let active = admin_path_for_slug(&project.slug);
                     let breadcrumb = format!("Admin / {}", project.slug);
+                    let stepper = view! { <ProjectPositionStepper slug=project.slug.clone() /> };
                     let error = Signal::derive(move || action.value().get().and_then(Result::err));
                     let rejection = SaveRejection::new(error);
                     view! {
                         <Title text="Edit project" />
-                        <EditorLayout active heading="Edit project" breadcrumb wide=true>
+                        <EditorLayout
+                            active
+                            heading="Edit project"
+                            breadcrumb
+                            wide=true
+                            aside=stepper.into_any()
+                        >
                             <ActionForm action attr:class="mt-[2.2rem]">
                                 <input type="hidden" name="slug" value=project.slug.to_string() />
                                 <div class="grid grid-cols-1 items-start gap-10 min-[961px]:grid-cols-[minmax(0,1fr)_360px]">

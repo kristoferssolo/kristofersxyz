@@ -1,10 +1,12 @@
 mod project_collections;
+mod project_order;
 
 pub use project_collections::{ProjectCollections, SaveRejection};
+pub use project_order::{ProjectPositionStepper, provide_project_order};
 
+use self::project_order::ProjectRail;
 use crate::app::{
-    admin::{admin_path_for_slug, error::AdminError, server_functions::Logout},
-    content::Portfolio,
+    admin::{error::AdminError, server_functions::Logout},
     layout::{CollapsibleSidebar, CommandShell, SidebarPreference},
     markdown,
 };
@@ -211,6 +213,10 @@ pub fn EditorLayout(
     heading: &'static str,
     breadcrumb: String,
     wide: bool,
+    /// Rendered beside the heading, where the project editor shows the
+    /// Project's place in the public order.
+    #[prop(optional)]
+    aside: Option<AnyView>,
     children: Children,
 ) -> impl IntoView {
     let sidebar = use_context::<SidebarPreference>().unwrap_or_default();
@@ -236,8 +242,13 @@ pub fn EditorLayout(
                 >
                     <main class="relative flex h-full flex-col overflow-x-hidden overflow-y-auto px-[3.25rem] py-12">
                         <div class=wrap>
-                            <Eyebrow>{breadcrumb}</Eyebrow>
-                            <PageHeading>{heading}</PageHeading>
+                            <div class="flex flex-wrap items-end justify-between gap-[2ch]">
+                                <div>
+                                    <Eyebrow>{breadcrumb}</Eyebrow>
+                                    <PageHeading>{heading}</PageHeading>
+                                </div>
+                                {aside}
+                            </div>
                             {children()}
                         </div>
                     </main>
@@ -266,22 +277,6 @@ fn AdminSidebarShortcut(sidebar: SidebarPreference) -> impl IntoView {
 
 #[component]
 fn EditorNavigation(active: String) -> impl IntoView {
-    let content = expect_context::<Portfolio>().snapshot();
-    let projects = content
-        .projects
-        .into_iter()
-        .map(|project| {
-            view! {
-                <NavigationLink
-                    active=active.clone()
-                    href=admin_path_for_slug(&project.slug)
-                    label=project.title
-                    icon=EntryIcon::Project
-                />
-            }
-        })
-        .collect_view();
-
     view! {
         <aside class="flex min-h-0 flex-col border-b border-[#1e2126] px-9 py-12 md:h-full md:border-r md:border-b-0">
             <Eyebrow>
@@ -293,7 +288,7 @@ fn EditorNavigation(active: String) -> impl IntoView {
             <p class="mt-8 mb-[.8rem] text-[10px] tracking-[.2em] text-[#767d87] uppercase">
                 "Projects"
             </p>
-            <ul class="m-0 list-none p-0">{projects}</ul>
+            <ProjectRail active=active.clone() />
             <p class="mt-8 mb-[.8rem] text-[10px] tracking-[.2em] text-[#767d87] uppercase">
                 "Site"
             </p>
