@@ -7,13 +7,14 @@
 mod projects;
 mod rows;
 
+pub use self::projects::{CreateError, MoveError};
 use self::rows::ProfileRow;
 use crate::{
     app::content::{Contact, FocusArea, PortfolioContent, Profile, Site, SocialLink},
     db::DbPool,
     domain::{
         ProjectDescription, ProjectDescriptionError, ProjectLinkUrlError, ProjectLinks,
-        ProjectSlug, ProjectSlugError, ProjectTechnologies, VisibleNameError,
+        ProjectMove, ProjectSlug, ProjectSlugError, ProjectTechnologies, VisibleNameError,
     },
 };
 
@@ -202,6 +203,41 @@ pub async fn set_project(
     links: &ProjectLinks,
 ) -> Result<bool, sqlx::Error> {
     projects::set(pool, slug, title, summary, description, technologies, links).await
+}
+
+/// Stores a new Project after the current final Project and publishes it. The
+/// caller reloads and re-caches the portfolio so the Project appears in every
+/// ordered consumer.
+///
+/// # Errors
+///
+/// Returns [`CreateError::DuplicateSlug`] when a Project already uses the
+/// slug, in which case nothing is stored.
+pub async fn create_project(
+    pool: &DbPool,
+    slug: &ProjectSlug,
+    title: &str,
+    summary: &str,
+    description: &ProjectDescription,
+    technologies: &ProjectTechnologies,
+    links: &ProjectLinks,
+) -> Result<(), CreateError> {
+    projects::create(pool, slug, title, summary, description, technologies, links).await
+}
+
+/// Moves one Project through the public order. The caller reloads and
+/// re-caches the portfolio so every ordered consumer follows the new order.
+///
+/// # Errors
+///
+/// Returns [`MoveError`] for an unknown Project, an impossible move, or a
+/// failed transaction, leaving the stored order unchanged.
+pub async fn move_project(
+    pool: &DbPool,
+    slug: &ProjectSlug,
+    movement: &ProjectMove,
+) -> Result<(), MoveError> {
+    projects::move_to(pool, slug, movement).await
 }
 
 /// Replaces the profile singleton's scalar fields. The caller reloads and
