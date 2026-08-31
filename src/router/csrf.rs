@@ -82,6 +82,15 @@ mod tests {
             "https://attacker.example/".parse().expect("header"),
         );
         assert!(!is_same_origin(&headers, &origin()));
+
+        headers.insert(
+            header::REFERER,
+            "http://kristofers.xyz/admin/profile"
+                .parse()
+                .expect("header"),
+        );
+        assert!(!is_same_origin(&headers, &origin()));
+
         headers.remove(header::REFERER);
         assert!(!is_same_origin(&headers, &origin()));
     }

@@ -147,9 +147,11 @@ impl PublicOrigin {
     #[must_use]
     pub fn matches_referer(&self, referer: &str) -> bool {
         Uri::from_str(referer).is_ok_and(|uri| {
-            uri.scheme_str()
-                .zip(uri.authority())
-                .is_some_and(|(scheme, authority)| format!("{scheme}://{authority}") == self.origin)
+            let expected_scheme = if self.is_https() { "https" } else { "http" };
+            uri.scheme_str() == Some(expected_scheme)
+                && uri
+                    .authority()
+                    .is_some_and(|authority| authority.as_str() == self.authority.as_str())
         })
     }
 }
