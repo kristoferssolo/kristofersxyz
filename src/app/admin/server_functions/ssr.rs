@@ -1,5 +1,6 @@
-use super::{AdminError, ProjectLinkField};
+use super::ProjectLinkField;
 use crate::{
+    app::admin::error::AdminError,
     app::content::{PortfolioContent, store_server_content},
     authentication::{
         Authenticated, AxumAuthSession, OwnerSession, RetryAfter, SessionState, Unverified,
