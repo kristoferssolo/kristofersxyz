@@ -201,7 +201,8 @@ impl TryFrom<Vec<TechnologyName>> for ProjectTechnologies {
     type Error = RepeatedEntry;
 
     fn try_from(names: Vec<TechnologyName>) -> Result<Self, Self::Error> {
-        first_repeat(&names).map_or(Ok(Self(names)), |index| Err(RepeatedEntry { index }))
+        first_repeat(&names, |earlier, current| earlier == current)
+            .map_or(Ok(Self(names)), |index| Err(RepeatedEntry { index }))
     }
 }
 
@@ -266,8 +267,8 @@ impl TryFrom<Vec<ProjectLink>> for ProjectLinks {
     type Error = RepeatedEntry;
 
     fn try_from(links: Vec<ProjectLink>) -> Result<Self, Self::Error> {
-        let labels = links.iter().map(|link| &link.label).collect::<Vec<_>>();
-        first_repeat(&labels).map_or(Ok(Self(links)), |index| Err(RepeatedEntry { index }))
+        first_repeat(&links, |earlier, current| earlier.label == current.label)
+            .map_or(Ok(Self(links)), |index| Err(RepeatedEntry { index }))
     }
 }
 
@@ -312,11 +313,16 @@ pub struct RepeatedEntry {
 /// The position of the first entry that an earlier position already used.
 /// Both collections stay short, so the pairwise scan avoids the ordering and
 /// hashing bounds a set would demand of the entry types.
-fn first_repeat<T: PartialEq>(items: &[T]) -> Option<usize> {
+fn first_repeat<T>(items: &[T], equal: impl Fn(&T, &T) -> bool) -> Option<usize> {
     items
         .iter()
         .enumerate()
-        .find(|(index, item)| items.iter().take(*index).any(|earlier| earlier == *item))
+        .find(|(index, item)| {
+            items
+                .iter()
+                .take(*index)
+                .any(|earlier| equal(earlier, item))
+        })
         .map(|(index, _)| index)
 }
 
