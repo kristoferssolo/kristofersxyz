@@ -65,20 +65,23 @@ impl FromStr for ProjectSlug {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let first = value.chars().next().ok_or(ProjectSlugError::Empty)?;
         let last = value.chars().next_back().ok_or(ProjectSlugError::Empty)?;
-        if !first.is_ascii_lowercase() && !first.is_ascii_digit()
-            || !last.is_ascii_lowercase() && !last.is_ascii_digit()
-        {
+        if !is_slug_edge(first) || !is_slug_edge(last) {
             return Err(ProjectSlugError::InvalidEdge);
         }
 
-        if let Some(character) = value.chars().find(|character| {
-            !character.is_ascii_lowercase() && !character.is_ascii_digit() && *character != '-'
-        }) {
+        if let Some(character) = value
+            .chars()
+            .find(|character| !is_slug_edge(*character) && *character != '-')
+        {
             return Err(ProjectSlugError::InvalidCharacter { character });
         }
 
         Ok(Self(value.to_owned()))
     }
+}
+
+const fn is_slug_edge(character: char) -> bool {
+    character.is_ascii_lowercase() || character.is_ascii_digit()
 }
 
 impl_deserialize_from_str!(ProjectSlug);
