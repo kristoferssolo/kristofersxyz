@@ -118,6 +118,8 @@ pub struct BufferEntry {
     pub destination: Option<Destination>,
     /// Lowercased searchable text, computed once when the buffer is built.
     haystack: String,
+    name_key: String,
+    fragment: String,
 }
 
 impl BufferEntry {
@@ -128,6 +130,8 @@ impl BufferEntry {
         destination: Option<Destination>,
         text: &[&str],
     ) -> Self {
+        let name_key = name.to_lowercase();
+        let fragment = id.fragment();
         let haystack = [name, section.label()]
             .into_iter()
             .chain(text.iter().copied())
@@ -141,6 +145,8 @@ impl BufferEntry {
             name: name.to_owned(),
             destination,
             haystack,
+            name_key,
+            fragment,
         }
     }
 
@@ -158,8 +164,8 @@ impl BufferEntry {
 
     /// The lowercase names that address this entry: its own name, and the
     /// fragment a URL uses for it.
-    fn names(&self) -> [String; 2] {
-        [self.name.to_lowercase(), self.id.fragment()]
+    fn names(&self) -> [&str; 2] {
+        [&self.name_key, &self.fragment]
     }
 }
 
@@ -334,11 +340,14 @@ impl Buffer {
 
         self.entries
             .iter()
-            .find(|entry| entry.names().contains(&needle))
+            .find(|entry| entry.names().contains(&needle.as_str()))
             .or_else(|| {
-                self.entries
-                    .iter()
-                    .find(|entry| entry.names().iter().any(|name| name.contains(&needle)))
+                self.entries.iter().find(|entry| {
+                    entry
+                        .names()
+                        .iter()
+                        .any(|name| name.contains(needle.as_str()))
+                })
             })
             .map(BufferEntry::selection)
     }
@@ -350,7 +359,7 @@ impl Buffer {
         let fragment = fragment.trim_start_matches('#');
         self.entries
             .iter()
-            .find(|entry| entry.id.fragment() == fragment)
+            .find(|entry| entry.fragment == fragment)
             .map(BufferEntry::selection)
     }
 
