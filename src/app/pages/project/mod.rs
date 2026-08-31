@@ -6,10 +6,11 @@ use crate::{
         layout::{BlankPage, StatusLocation},
         markdown,
     },
-    domain::{Project, ProjectSlug},
+    domain::{Project, ProjectLinks, ProjectSlug, ProjectTechnologies},
 };
 use leptos::prelude::*;
 use leptos_router::{components::A, hooks::use_params_map};
+use lucide_leptos::ExternalLink;
 
 #[component]
 pub fn ProjectPage() -> impl IntoView {
@@ -46,7 +47,6 @@ fn ProjectReader(project: Project) -> impl IntoView {
     let active_id = EntryId::Project(project.slug.clone());
     let editor = EditorController::routes(&content, &active_id);
     let description = markdown::render(&project.description);
-    let repository = project.links.as_slice().first().cloned();
     let filename = format!("work/{}.md", project.slug);
     let status = editor.status(filename, move || StatusLocation::Page {
         current: editor.position(),
@@ -67,24 +67,6 @@ fn ProjectReader(project: Project) -> impl IntoView {
                         <p class="mt-6 max-w-[62ch] font-sans text-[17px] leading-[1.65] text-[#b8bec5] sm:text-[19px]">
                             {project.summary.clone()}
                         </p>
-                        {repository
-                            .map(|link| {
-                                view! {
-                                    <div class="mt-7 text-[13px]">
-                                        <a
-                                            href=link.href.to_string()
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="text-white underline decoration-[#3c424a] underline-offset-[5px] hover:decoration-[#e2a340]"
-                                        >
-                                            {link.label.to_string()}
-                                            <span aria-hidden="true" class="ml-[1ch] text-[#e2a340]">
-                                                "↗"
-                                            </span>
-                                        </a>
-                                    </div>
-                                }
-                            })}
 
                         <div
                             class="project-description mt-14"
@@ -95,16 +77,8 @@ fn ProjectReader(project: Project) -> impl IntoView {
                     </div>
 
                     <aside class="border-t border-[#1e2126] pt-6 xl:border-t-0 xl:pt-1">
-                        <p class="text-[10px] tracking-[0.2em] text-[#59616a] uppercase">
-                            "Technologies"
-                        </p>
-                        <ul class="mt-3 space-y-1 text-[12px] text-[#aab2bb]">
-                            {project
-                                .technologies
-                                .into_iter()
-                                .map(|technology| view! { <li>{technology.to_string()}</li> })
-                                .collect_view()}
-                        </ul>
+                        <TechnologyList technologies=project.technologies />
+                        <ProjectLinkList links=project.links />
 
                         <div class="mt-9 border-t border-[#1e2126] pt-5">
                             <p class="text-[10px] tracking-[0.2em] text-[#59616a] uppercase">
@@ -119,6 +93,77 @@ fn ProjectReader(project: Project) -> impl IntoView {
             </article>
         </BlankPage>
     }
+}
+
+/// The Technologies an aside lists, numbered in their stored order. A Project
+/// without any renders nothing rather than an empty heading.
+#[component]
+fn TechnologyList(technologies: ProjectTechnologies) -> impl IntoView {
+    (!technologies.is_empty()).then(|| {
+        view! {
+            <p class="text-[10px] tracking-[0.2em] text-[#59616a] uppercase">"Technologies"</p>
+            <ul class="mt-3 space-y-1 text-[12px] text-[#aab2bb]">
+                {technologies
+                    .into_iter()
+                    .enumerate()
+                    .map(|(index, technology)| {
+                        view! {
+                            <li class="flex items-baseline gap-[1ch]">
+                                <span class="text-[11px] text-[#3f454d]">{position(index)}</span>
+                                <span>{technology.to_string()}</span>
+                            </li>
+                        }
+                    })
+                    .collect_view()}
+            </ul>
+        }
+    })
+}
+
+/// Every Project Link, numbered in its stored order and keeping the label the
+/// Owner gave it. No position is treated as the repository, and a Project
+/// without links renders nothing.
+#[component]
+fn ProjectLinkList(links: ProjectLinks) -> impl IntoView {
+    (!links.is_empty()).then(|| {
+        view! {
+            <div class="mt-9 border-t border-[#1e2126] pt-5">
+                <p class="text-[10px] tracking-[0.2em] text-[#59616a] uppercase">"Links"</p>
+                <ul class="mt-3 space-y-[.35rem] text-[12px]">
+                    {links
+                        .into_iter()
+                        .enumerate()
+                        .map(|(index, link)| {
+                            view! {
+                                <li class="flex items-baseline gap-[1ch]">
+                                    <span class="text-[11px] text-[#3f454d]">{position(index)}</span>
+                                    <a
+                                        href=link.href.to_string()
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="border-b border-[#3c424a] pb-px text-white no-underline hover:border-[#e2a340]"
+                                    >
+                                        {link.label.to_string()}
+                                        <span
+                                            class="ml-[.7ch] inline-block align-[-2px] text-[#e2a340]"
+                                            aria-hidden="true"
+                                        >
+                                            <ExternalLink size=14 />
+                                        </span>
+                                    </a>
+                                </li>
+                            }
+                        })
+                        .collect_view()}
+                </ul>
+            </div>
+        }
+    })
+}
+
+/// The one-based line number an aside shows beside an entry.
+fn position(index: usize) -> String {
+    format!("{:02}", index.saturating_add(1))
 }
 
 #[component]

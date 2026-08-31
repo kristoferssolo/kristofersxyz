@@ -1205,19 +1205,21 @@ async fn the_project_detail_renders_every_link_in_stored_order() {
         .expect("send the public page request");
     let body = body_text(page).await;
 
+    // Anchors, not the portfolio JSON the page also carries for hydration.
+    let anchor = |href: &str| format!(r#"href="{href}""#);
     assert!(appears_before(
         &body,
-        "codeberg.org/kristoferssolo/guenther",
-        "github.com/kristoferssolo/guenther"
+        &anchor("https://codeberg.org/kristoferssolo/guenther"),
+        &anchor("https://github.com/kristoferssolo/guenther")
     ));
     assert!(appears_before(
         &body,
-        "github.com/kristoferssolo/guenther",
-        "github.com/imputnet/cobalt"
+        &anchor("https://github.com/kristoferssolo/guenther"),
+        &anchor("https://github.com/imputnet/cobalt")
     ));
     assert!(body.contains("Codeberg mirror"));
-    assert!(body.contains("https://github.com/imputnet/cobalt"));
     assert!(body.contains(r#"rel="noopener noreferrer""#));
+    assert!(body.contains(r#"target="_blank""#));
 }
 
 #[tokio::test]
