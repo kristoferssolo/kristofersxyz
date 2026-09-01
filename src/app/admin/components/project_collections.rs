@@ -216,7 +216,7 @@ pub fn ProjectCollections(
     );
 
     view! {
-        <div class="mt-7 border-t border-[#1e2126] pt-6 min-[961px]:sticky min-[961px]:top-12 min-[961px]:mt-0 min-[961px]:border-t-0 min-[961px]:border-l min-[961px]:pt-0 min-[961px]:pl-7">
+        <div class="mt-7 border-t border-[#1e2126] pt-6 min-[961px]:sticky min-[961px]:top-12 min-[961px]:mt-0 min-[961px]:border-t-0 min-[961px]:pt-0">
             <section class="border border-[#1e2126]">
                 <BufferHeading name="technologies" count=Signal::derive(move || technology_rows.len()) />
                 <Show

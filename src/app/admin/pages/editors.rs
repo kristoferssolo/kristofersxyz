@@ -70,29 +70,30 @@ pub fn ProjectEditorPage() -> impl IntoView {
                             wide=true
                             aside=stepper.into_any()
                         >
-                            <ActionForm action attr:class="mt-[2.2rem]">
+                            <ActionForm
+                                action
+                                attr:class="mt-[2.2rem] grid grid-cols-1 items-start gap-10 min-[961px]:grid-cols-[minmax(0,1fr)_320px]"
+                            >
                                 <input type="hidden" name="slug" value=project.slug.to_string() />
-                                <div class="grid grid-cols-1 items-start gap-10 min-[961px]:grid-cols-[minmax(0,1fr)_360px]">
-                                    <div class="min-w-0">
-                                        <TextInput label="Title" name="title" value=project.title />
-                                        <TextInput
-                                            label="Summary"
-                                            name="summary"
-                                            value=project.summary
-                                        />
-                                        <MarkdownEditor value=project
-                                            .description
-                                            .as_str()
-                                            .to_owned() />
-                                    </div>
-                                    <ProjectCollections
-                                        technologies=project.technologies
-                                        links=project.links
-                                        rejection
+                                <div class="mx-auto w-full min-w-0 min-[961px]:max-w-[1040px]">
+                                    <TextInput label="Title" name="title" value=project.title />
+                                    <TextInput
+                                        label="Summary"
+                                        name="summary"
+                                        value=project.summary
                                     />
+                                    <MarkdownEditor value=project
+                                        .description
+                                        .as_str()
+                                        .to_owned() />
+                                    {move || save_message(error, rejection)}
+                                    <SaveButton />
                                 </div>
-                                {move || save_message(error, rejection)}
-                                <SaveButton />
+                                <ProjectCollections
+                                    technologies=project.technologies
+                                    links=project.links
+                                    rejection
+                                />
                             </ActionForm>
                             {screenshots}
                         </EditorLayout>

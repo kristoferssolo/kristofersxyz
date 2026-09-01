@@ -226,8 +226,11 @@ pub fn EditorLayout(
     let sidebar = use_context::<SidebarPreference>().unwrap_or_default();
     let open = Signal::derive(move || sidebar.open());
     let filename = active.trim_start_matches('/').to_owned();
+    // The project editor spans the full width so its collections rail can sit
+    // against the right edge, mirroring the left navigation. It centres its own
+    // editing column inside that space. The singleton editors stay capped.
     let wrap = if wide {
-        "mx-auto w-full max-w-[1200px]"
+        "w-full"
     } else {
         "mx-auto w-full max-w-[760px]"
     };
