@@ -8,8 +8,7 @@
 //! Every move is a submit button inside its own form, which keeps ordering
 //! working with a pointer, with a keyboard, and before the page hydrates. A
 //! Project that cannot move that way renders its button disabled, server-side
-//! included. Dragging a row is an addition on top of that, available once the
-//! page has hydrated and the Owner has turned arranging on.
+//! included. Dragging a row is also available after the page has hydrated.
 
 use super::{EntryIcon, Icon, NAVIGATION_LINK, NewProjectLink};
 use crate::{
@@ -103,21 +102,10 @@ pub fn provide_project_order(portfolio: Portfolio) {
 #[component]
 pub fn ProjectRail(active: String) -> impl IntoView {
     let portfolio = expect_context::<Portfolio>();
-    let arranging = RwSignal::new(false);
     let dragged = RwSignal::new(None::<ProjectSlug>);
 
     view! {
-        <div class="mt-8 mb-[.8rem] flex items-baseline justify-between gap-[1ch]">
-            <p class="text-[10px] tracking-[.2em] text-[#767d87] uppercase">"Projects"</p>
-            <button
-                type="button"
-                class="cursor-pointer border-0 bg-transparent p-0 font-[inherit] text-[10px] tracking-[.12em] text-[#767d87] uppercase hover:text-[#e2a340] aria-pressed:text-[#e2a340]"
-                aria-pressed=move || arranging.get().then_some("true")
-                on:click=move |_| arranging.update(|on| *on = !*on)
-            >
-                "arrange"
-            </button>
-        </div>
+        <p class="mt-8 mb-[.8rem] text-[10px] tracking-[.2em] text-[#767d87] uppercase">"Projects"</p>
         <NewProjectLink full_width=true />
         <ul class="mt-2 mb-2 list-none p-0">
             {move || {
@@ -131,7 +119,6 @@ pub fn ProjectRail(active: String) -> impl IntoView {
                                 active=active.clone()
                                 slug=project.slug
                                 title=project.title
-                                arranging
                                 dragged
                             />
                         }
@@ -140,13 +127,7 @@ pub fn ProjectRail(active: String) -> impl IntoView {
             }}
         </ul>
         <p class="mb-2 text-[11px] leading-[1.5] text-[#767d87]">
-            {move || {
-                if arranging.get() {
-                    "Drag a project onto the place you want it, or use the move buttons."
-                } else {
-                    "Use the move buttons to change the order readers see."
-                }
-            }}
+            "Drag a project onto the place you want it, or use the move buttons."
         </p>
     }
 }
@@ -157,25 +138,28 @@ fn ProjectRailRow(
     active: String,
     slug: ProjectSlug,
     title: String,
-    arranging: RwSignal<bool>,
     dragged: RwSignal<Option<ProjectSlug>>,
 ) -> impl IntoView {
     let order = ProjectOrder::expect();
     let href = admin_path_for_slug(&slug);
     let current = active == href;
     let row_slug = slug.clone();
+    let dragging_slug = slug.clone();
     let start_slug = slug.clone();
     let drop_slug = slug.clone();
 
     view! {
         <li
-            class="flex items-center justify-between gap-[1ch]"
-            class=("cursor-grab", move || arranging.get())
+            class="flex cursor-grab items-center justify-between gap-[1ch]"
+            class=(
+                "cursor-grabbing",
+                move || dragged.get().is_some_and(|held| held == dragging_slug),
+            )
             class=(
                 "bg-[#0b0e11]",
                 move || dragged.get().is_some_and(|held| held == row_slug),
             )
-            draggable=move || arranging.get().then_some("true")
+            draggable="true"
             on:dragstart=move |event: DragEvent| {
                 if let Some(transfer) = event.data_transfer() {
                     transfer.set_effect_allowed("move");
@@ -184,9 +168,7 @@ fn ProjectRailRow(
                 dragged.set(Some(start_slug.clone()));
             }
             on:dragover=move |event: DragEvent| {
-                if arranging.get_untracked() {
-                    event.prevent_default();
-                }
+                event.prevent_default();
             }
             on:drop=move |event: DragEvent| {
                 event.prevent_default();
@@ -199,11 +181,9 @@ fn ProjectRailRow(
             }
             on:dragend=move |_: DragEvent| dragged.set(None)
         >
-            <Show when=move || arranging.get()>
-                <span class="inline-flex text-[#4c525a]" aria-hidden="true">
-                    <GripVertical size=14 />
-                </span>
-            </Show>
+            <span class="inline-flex text-[#4c525a]" aria-hidden="true">
+                <GripVertical size=14 />
+            </span>
             <A
                 href=href
                 attr:class=format!("{NAVIGATION_LINK} min-w-0 flex-1")
