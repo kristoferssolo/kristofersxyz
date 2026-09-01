@@ -1,5 +1,6 @@
 mod cache_policy;
 mod csrf;
+mod media;
 mod request_authority;
 mod request_limits;
 mod security_headers;
@@ -13,7 +14,7 @@ use crate::{
     sessions::SqliteSessionStore,
     startup::ApplicationState,
 };
-use axum::{Router, middleware};
+use axum::{Router, middleware, routing::get};
 use axum_login::AuthManagerLayerBuilder;
 use leptos_axum::{LeptosRoutes, file_and_error_handler_with_context, generate_route_list};
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::SameSite};
@@ -37,6 +38,7 @@ pub fn route(state: ApplicationState) -> Router {
                 move || shell(leptos_options.clone(), server_content().as_ref())
             },
         )
+        .route(media::SCREENSHOT_ROUTE, get(media::screenshot))
         .fallback(file_and_error_handler_with_context::<ApplicationState, _>(
             move || security_headers::provide_content_security_policy(deployment),
             |options| shell(options, server_content().as_ref()),
