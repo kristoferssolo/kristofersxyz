@@ -23,6 +23,11 @@ pub const SCREENSHOT_MEDIA_PREFIX: &str = "/media/project";
 /// reader more than the detail it adds, and bounds what a decoder allocates.
 pub const MAX_SCREENSHOT_EDGE: u32 = 4096;
 
+/// The largest screenshot an upload may carry. The upload route bounds the
+/// request body just above this, so an image over the limit is answered with
+/// the Owner-facing reason rather than a bare rejection.
+pub const MAX_SCREENSHOT_BYTES: usize = 5 * 1_024 * 1_024;
+
 /// The identity of one Project Screenshot: a v4 UUID in its canonical
 /// lowercase, hyphenated form.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize)]
@@ -343,9 +348,11 @@ impl<'a> IntoIterator for &'a ProjectScreenshots {
     }
 }
 
-/// A requested move through one Project's screenshot order. Screenshots are
-/// arranged by button rather than by dragging, so the two steps are the whole
-/// vocabulary, and the field survives a form round trip before hydration.
+/// A requested move through one Project's screenshot order.
+///
+/// Screenshots are arranged by button rather than by dragging, so the two
+/// steps are the whole vocabulary, and the field survives a form round trip
+/// before the page hydrates.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ScreenshotMove {
     Up,

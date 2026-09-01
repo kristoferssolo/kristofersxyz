@@ -9,7 +9,7 @@ license = "MIT"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-leptos = { version = "0.8", features = ["nightly"] }
+leptos = { version = "0.8", features = ["multipart", "nightly"] }
 leptos_router = { version = "0.8", features = ["nightly"] }
 lucide-leptos = { version = "3.34", features = [
   "account",
@@ -23,6 +23,11 @@ lucide-leptos = { version = "3.34", features = [
 axum = { version = "0.8", optional = true }
 axum-login = { version = "0.18", default-features = false, optional = true }
 http-body-util = { version = "0.1", optional = true }
+image = { version = "0.25", default-features = false, features = [
+  "jpeg",
+  "png",
+  "webp",
+], optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
 leptos_axum = { version = "0.8", optional = true }
 leptos_meta = { version = "0.8" }
@@ -33,7 +38,11 @@ tokio = { version = "1", features = [
   "time",
 ], optional = true }
 wasm-bindgen = { version = "0.2.106", optional = true }
-web-sys = { version = "0.3", features = ["DataTransfer"] }
+web-sys = { version = "0.3", features = [
+  "DataTransfer",
+  "FormData",
+  "HtmlFormElement",
+] }
 sqlx = { version = "0.9", features = [
   "runtime-tokio",
   "macros",
@@ -73,6 +82,7 @@ ssr = [
   "dep:axum",
   "dep:axum-login",
   "dep:http-body-util",
+  "dep:image",
   "dep:leptos_axum",
   "dep:async-trait",
   "dep:config",
@@ -92,6 +102,11 @@ ssr = [
 
 [dev-dependencies]
 claims = "0.8"
+image = { version = "0.25", default-features = false, features = [
+  "jpeg",
+  "png",
+  "webp",
+] }
 rstest = "0.26"
 tempfile = "3"
 tower = { version = "0.5", features = ["util"] }

@@ -3,7 +3,7 @@ use leptos::server_fn::codec::JsonEncoding;
 use serde::{Deserialize, Serialize};
 
 /// Errors safe to show on the owner-facing forms.
-#[derive(Clone, Debug, Deserialize, Serialize, thiserror::Error)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, thiserror::Error)]
 pub enum AdminError {
     #[error("Invalid username or password.")]
     InvalidCredentials,
@@ -35,6 +35,24 @@ pub enum AdminError {
     InvalidLinkUrl { position: usize },
     #[error("Repeats an earlier label. Each link needs its own.")]
     RepeatedLinkLabel { position: usize },
+    #[error("No such screenshot.")]
+    ScreenshotNotFound,
+    #[error("Choose an image to upload.")]
+    NoScreenshotChosen,
+    #[error("That file is too large. Screenshots can be up to 5 MB.")]
+    ScreenshotTooLarge,
+    #[error("That file is not a PNG, JPEG, or WebP.")]
+    UnsupportedScreenshotFormat,
+    #[error("That file could not be read as an image.")]
+    UnreadableScreenshot,
+    #[error("That image is too large. Screenshots can be up to 4096 by 4096 pixels.")]
+    ScreenshotTooManyPixels,
+    #[error("Alternative text needs visible text, with no space at the start or end.")]
+    InvalidAltText,
+    #[error("A caption needs visible text, with no space at the start or end.")]
+    InvalidCaption,
+    #[error("That screenshot cannot move that way.")]
+    InvalidScreenshotMovement,
     #[error("Could not save the edit.")]
     Save,
     #[error("Saved, but the portfolio could not be reloaded.")]

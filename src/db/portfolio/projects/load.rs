@@ -252,5 +252,5 @@ fn screenshot(
 /// wide enough to carry a value the application never wrote, so anything
 /// outside `u32` is pushed to an end the domain already rejects.
 fn dimension(value: i64) -> u32 {
-    u32::try_from(value).unwrap_or(if value.is_negative() { 0 } else { u32::MAX })
+    u32::try_from(value).unwrap_or_else(|_| if value.is_negative() { 0 } else { u32::MAX })
 }

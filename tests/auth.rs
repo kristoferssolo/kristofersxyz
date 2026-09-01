@@ -17,12 +17,16 @@ use axum::{
     extract::ConnectInfo,
     http::{Request, StatusCode, header},
 };
+use image::{DynamicImage, ImageFormat, RgbImage};
 use kristofersxyz::{
     admin_cli::set_password,
     authentication::Password,
     configuration::{DeploymentMode, PublicOrigin, Settings},
-    db,
-    domain::Username,
+    db::{self, portfolio},
+    domain::{
+        MAX_SCREENSHOT_BYTES, ProjectScreenshot, ScreenshotAltText, ScreenshotMediaType,
+        ScreenshotSize, Username,
+    },
     router::route,
     startup::ApplicationState,
 };
@@ -1885,4 +1889,365 @@ async fn movement_requires_an_authenticated_session() {
         published_order(&home),
         ["guenther", "traxor", "cipher-workshop"]
     );
+}
+
+/// The multipart boundary the upload fixtures use.
+const BOUNDARY: &str = "kristofersxyzscreenshotboundary";
+
+/// A real, tiny image in `format`, the way a browser would send one.
+fn image_bytes(format: ImageFormat) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    DynamicImage::ImageRgb8(RgbImage::from_pixel(4, 3, image::Rgb([18, 22, 27])))
+        .write_to(&mut io::Cursor::new(&mut bytes), format)
+        .expect("encode the test image");
+    bytes
+}
+
+/// A PNG whose header declares 5000 by 5000 pixels. The decoder limits refuse
+/// it on the header, so no allocation is ever made for those pixels.
+const OVERSIZED_PNG: &[u8] = &[
+    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+    0x00, 0x00, 0x13, 0x88, 0x00, 0x00, 0x13, 0x88, 0x08, 0x02, 0x00, 0x00, 0x00, 0xE4, 0x4C, 0x1B,
+    0x4B, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+];
+
+/// The smallest valid GIF. It decodes as an image, so only the format check
+/// stands between it and the database.
+const GIF: &[u8] = &[
+    0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0xFF, 0xFF, 0xFF, 0x21, 0xF9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x2C, 0x00, 0x00, 0x00, 0x00,
+    0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3B,
+];
+
+/// One screenshot upload, encoded as the editor's form encodes it.
+///
+/// The filename and the declared content type are deliberately wrong, because
+/// the upload ignores both and reads the format out of the bytes.
+fn screenshot_upload(slug: &str, alt: &str, image: &[u8], cookie: Option<&str>) -> Request<Body> {
+    let mut body = Vec::new();
+    for (name, value) in [("slug", slug), ("alt", alt)] {
+        body.extend_from_slice(
+            format!(
+                "--{BOUNDARY}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n"
+            )
+            .as_bytes(),
+        );
+    }
+    body.extend_from_slice(
+        format!(
+            "--{BOUNDARY}\r\nContent-Disposition: form-data; name=\"image\"; \
+             filename=\"../../etc/passwd.svg\"\r\nContent-Type: image/svg+xml\r\n\r\n"
+        )
+        .as_bytes(),
+    );
+    body.extend_from_slice(image);
+    body.extend_from_slice(format!("\r\n--{BOUNDARY}--\r\n").as_bytes());
+
+    let mut builder = Request::post("/api/upload_project_screenshot")
+        .header(
+            header::CONTENT_TYPE,
+            format!("multipart/form-data; boundary={BOUNDARY}"),
+        )
+        .header(header::HOST, TEST_HOST)
+        .header(header::ORIGIN, TEST_ORIGIN);
+    if let Some(cookie) = cookie {
+        builder = builder.header(header::COOKIE, cookie);
+    }
+    builder
+        .body(Body::from(body))
+        .expect("build the screenshot upload")
+}
+
+/// The screenshots one Project holds, read straight from the database.
+async fn stored_screenshots(database: &NamedTempFile, slug: &str) -> Vec<ProjectScreenshot> {
+    let pool = db::connect(&format!("sqlite://{}", database.path().display()))
+        .await
+        .expect("connect to the test database");
+    portfolio::load(&pool)
+        .await
+        .expect("load the portfolio")
+        .projects
+        .into_iter()
+        .find(|project| project.slug.as_str() == slug)
+        .map(|project| project.screenshots.as_slice().to_vec())
+        .unwrap_or_default()
+}
+
+/// Stores a screenshot without going through the editor, for the tests that
+/// need one to already exist.
+async fn given_screenshot(database: &NamedTempFile, slug: &str, alt: &str) {
+    let pool = db::connect(&format!("sqlite://{}", database.path().display()))
+        .await
+        .expect("connect to the test database");
+    portfolio::append_project_screenshot(
+        &pool,
+        &slug.parse().expect("the test slug is valid"),
+        ScreenshotMediaType::Png,
+        &image_bytes(ImageFormat::Png),
+        ScreenshotSize::try_from((1600, 1000)).expect("the test size is valid"),
+        &alt.parse::<ScreenshotAltText>()
+            .expect("the test alternative text is valid"),
+        None,
+    )
+    .await
+    .expect("store the screenshot");
+}
+
+#[tokio::test]
+async fn every_supported_image_format_is_stored_with_the_size_it_carries() {
+    for (format, expected) in [
+        (ImageFormat::Png, ScreenshotMediaType::Png),
+        (ImageFormat::Jpeg, ScreenshotMediaType::Jpeg),
+        (ImageFormat::WebP, ScreenshotMediaType::Webp),
+    ] {
+        let (router, database) = app_with_owner().await;
+        let cookie = sign_in(&router).await;
+
+        let response = router
+            .oneshot(screenshot_upload(
+                "traxor",
+                "traxor listing four transfers in a terminal.",
+                &image_bytes(format),
+                Some(&cookie),
+            ))
+            .await
+            .expect("send the upload");
+
+        assert_eq!(response.status(), StatusCode::OK, "{format:?} was refused");
+        let stored = stored_screenshots(&database, "traxor").await;
+        assert_eq!(stored.len(), 1, "{format:?} stored no screenshot");
+        assert_eq!(stored[0].media_type, expected);
+        assert_eq!((stored[0].size.width(), stored[0].size.height()), (4, 3));
+        assert_eq!(
+            stored[0].alt.to_string(),
+            "traxor listing four transfers in a terminal."
+        );
+    }
+}
+
+/// A rejected upload has to leave the Project exactly as it was. A stored row
+/// pointing at bytes that are not an image would break the media route.
+#[tokio::test]
+async fn a_file_that_is_not_a_supported_image_stores_nothing() {
+    let truncated = image_bytes(ImageFormat::Png)[..20].to_vec();
+
+    for (name, bytes) in [
+        ("plain text", b"this is not an image".to_vec()),
+        (
+            "an SVG",
+            b"<svg xmlns='http://www.w3.org/2000/svg'/>".to_vec(),
+        ),
+        ("a GIF", GIF.to_vec()),
+        ("a truncated PNG", truncated),
+        ("an empty file", Vec::new()),
+    ] {
+        let (router, database) = app_with_owner().await;
+        let cookie = sign_in(&router).await;
+
+        let response = router
+            .oneshot(screenshot_upload(
+                "traxor",
+                "A screenshot.",
+                &bytes,
+                Some(&cookie),
+            ))
+            .await
+            .expect("send the upload");
+
+        assert_eq!(
+            response.status(),
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "{name} was accepted"
+        );
+        assert!(
+            stored_screenshots(&database, "traxor").await.is_empty(),
+            "{name} left a row behind"
+        );
+    }
+}
+
+#[tokio::test]
+async fn an_image_beyond_the_pixel_limit_is_refused() {
+    let (router, database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let response = router
+        .oneshot(screenshot_upload(
+            "traxor",
+            "A very large screenshot.",
+            OVERSIZED_PNG,
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the upload");
+
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(stored_screenshots(&database, "traxor").await.is_empty());
+}
+
+/// The body is bounded before the session is looked up, so an oversized
+/// upload never reaches the decoder or the database.
+#[tokio::test]
+async fn an_upload_beyond_the_size_limit_is_refused_before_it_is_read() {
+    let (router, database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let response = router
+        .oneshot(screenshot_upload(
+            "traxor",
+            "An enormous screenshot.",
+            &vec![0x41; MAX_SCREENSHOT_BYTES + 512 * 1_024],
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the upload");
+
+    assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    assert!(stored_screenshots(&database, "traxor").await.is_empty());
+}
+
+/// Alternative text is what a reader who cannot see the image is given, so a
+/// screenshot without it is not evidence and is not stored.
+#[tokio::test]
+async fn an_upload_without_alternative_text_is_refused() {
+    let (router, database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let response = router
+        .oneshot(screenshot_upload(
+            "traxor",
+            "   ",
+            &image_bytes(ImageFormat::Png),
+            Some(&cookie),
+        ))
+        .await
+        .expect("send the upload");
+
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(stored_screenshots(&database, "traxor").await.is_empty());
+}
+
+#[tokio::test]
+async fn screenshot_changes_require_an_owner_session() {
+    let (router, database) = app_with_owner().await;
+    given_screenshot(&database, "traxor", "Queue").await;
+    let id = stored_screenshots(&database, "traxor").await[0]
+        .id
+        .to_string();
+
+    let upload = router
+        .clone()
+        .oneshot(screenshot_upload(
+            "traxor",
+            "Someone else's screenshot.",
+            &image_bytes(ImageFormat::Png),
+            None,
+        ))
+        .await
+        .expect("send the anonymous upload");
+    assert_eq!(upload.status(), StatusCode::UNAUTHORIZED);
+
+    for (endpoint, body) in [
+        (
+            "/api/save_screenshot_details",
+            format!("id={id}&alt=Replaced&caption="),
+        ),
+        (
+            "/api/move_project_screenshot",
+            format!("id={id}&movement=down"),
+        ),
+        ("/api/delete_project_screenshot", format!("id={id}")),
+    ] {
+        let response = router
+            .clone()
+            .oneshot(form_post(endpoint, &body, None))
+            .await
+            .expect("send the anonymous change");
+
+        assert_eq!(
+            response.status(),
+            StatusCode::UNAUTHORIZED,
+            "{endpoint} answered an anonymous caller"
+        );
+    }
+
+    let stored = stored_screenshots(&database, "traxor").await;
+    assert_eq!(stored.len(), 1);
+    assert_eq!(stored[0].alt.to_string(), "Queue");
+}
+
+/// An application whose portfolio already holds these screenshots. The server
+/// renders from content loaded at startup, so they have to be stored before it
+/// is built.
+async fn app_holding_screenshots(alts: &[&str]) -> (Router, NamedTempFile) {
+    let (_, database) = app_with_owner().await;
+    for alt in alts {
+        given_screenshot(&database, "traxor", alt).await;
+    }
+    let state = ApplicationState::new(&settings_for(&database))
+        .await
+        .expect("rebuild the application");
+    (route(state), database)
+}
+
+#[tokio::test]
+async fn the_project_editor_lists_its_screenshots_with_reachable_controls() {
+    let (router, database) =
+        app_holding_screenshots(&["The transfer queue", "A single transfer"]).await;
+    let stored = stored_screenshots(&database, "traxor").await;
+    let cookie = sign_in(&router).await;
+
+    let body = body_text(
+        router
+            .oneshot(get_request("/admin/project/traxor", Some(&cookie)))
+            .await
+            .expect("send the editor request"),
+    )
+    .await;
+
+    for screenshot in &stored {
+        assert!(body.contains(&screenshot.media_path()));
+    }
+    assert!(body.contains("The transfer queue"));
+    assert!(body.contains("A single transfer"));
+    for label in [
+        "Move screenshot 01 up",
+        "Move screenshot 01 down",
+        "Move screenshot 02 up",
+        "Move screenshot 02 down",
+        "Delete screenshot 01",
+        "Delete screenshot 02",
+    ] {
+        assert!(body.contains(label), "{label} has no control");
+    }
+
+    // The ends of the order are unavailable before the page hydrates as well
+    // as after.
+    assert!(is_disabled(&body, "aria-label=\"Move screenshot 01 up\""));
+    assert!(is_disabled(&body, "aria-label=\"Move screenshot 02 down\""));
+    assert!(!is_disabled(
+        &body,
+        "aria-label=\"Move screenshot 01 down\""
+    ));
+    assert!(!is_disabled(&body, "aria-label=\"Move screenshot 02 up\""));
+}
+
+/// A Project with no screenshots offers the upload control and says so,
+/// rather than rendering an empty list.
+#[tokio::test]
+async fn a_project_without_screenshots_offers_only_the_upload_control() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let body = body_text(
+        router
+            .oneshot(get_request("/admin/project/traxor", Some(&cookie)))
+            .await
+            .expect("send the editor request"),
+    )
+    .await;
+
+    assert!(body.contains("No screenshots yet."));
+    assert!(!body.contains("Move screenshot 01 up"));
+    assert!(body.contains("/api/upload_project_screenshot"));
 }

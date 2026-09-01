@@ -534,7 +534,8 @@ mod tests {
         .await;
 
         assert_matches!(rejected, Err(ScreenshotError::UnknownProject));
-        assert!(sort_orders(&pool).await.is_empty());
+        let orders: [i64; 0] = [];
+        assert_eq!(sort_orders(&pool).await, orders);
     }
 
     #[tokio::test]

@@ -1,8 +1,10 @@
 mod project_collections;
 mod project_order;
+mod project_screenshots;
 
 pub use project_collections::{ProjectCollections, SaveRejection};
 pub use project_order::{ProjectPositionStepper, provide_project_order};
+pub use project_screenshots::ProjectScreenshotEditor;
 
 use self::project_order::ProjectRail;
 use crate::app::{

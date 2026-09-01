@@ -86,6 +86,7 @@ impl HostRejection {
 pub enum RequestKind {
     Login,
     ServerFunction,
+    ScreenshotUpload,
 }
 
 impl RequestKind {
@@ -93,6 +94,7 @@ impl RequestKind {
         match self {
             Self::Login => "login",
             Self::ServerFunction => "server_function",
+            Self::ScreenshotUpload => "screenshot_upload",
         }
     }
 }
@@ -100,6 +102,7 @@ impl RequestKind {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PortfolioResource {
     Project,
+    ProjectScreenshot,
     Profile,
     Contact,
     SiteMetadata,
@@ -109,6 +112,7 @@ impl PortfolioResource {
     const fn as_str(self) -> &'static str {
         match self {
             Self::Project => "project",
+            Self::ProjectScreenshot => "project_screenshot",
             Self::Profile => "profile",
             Self::Contact => "contact",
             Self::SiteMetadata => "site_metadata",

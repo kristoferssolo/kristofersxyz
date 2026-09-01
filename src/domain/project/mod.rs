@@ -15,10 +15,10 @@ pub use self::collections::{
 };
 pub use self::movement::{ProjectMove, ProjectMoveError};
 pub use self::screenshots::{
-    MAX_SCREENSHOT_EDGE, ProjectScreenshot, ProjectScreenshots, SCREENSHOT_MEDIA_PREFIX,
-    ScreenshotAltText, ScreenshotCaption, ScreenshotId, ScreenshotIdError, ScreenshotMediaType,
-    ScreenshotMediaTypeError, ScreenshotMove, ScreenshotMoveError, ScreenshotSize,
-    ScreenshotSizeError,
+    MAX_SCREENSHOT_BYTES, MAX_SCREENSHOT_EDGE, ProjectScreenshot, ProjectScreenshots,
+    SCREENSHOT_MEDIA_PREFIX, ScreenshotAltText, ScreenshotCaption, ScreenshotId, ScreenshotIdError,
+    ScreenshotMediaType, ScreenshotMediaTypeError, ScreenshotMove, ScreenshotMoveError,
+    ScreenshotSize, ScreenshotSizeError,
 };
 use crate::serde_helpers::impl_deserialize_from_str;
 use serde::{Deserialize, Serialize};

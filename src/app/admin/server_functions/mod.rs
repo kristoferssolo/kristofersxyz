@@ -6,11 +6,18 @@
 //! pages bind their forms to.
 
 mod projects;
+mod screenshots;
 mod session;
 mod singletons;
 #[cfg(feature = "ssr")]
 mod ssr;
+#[cfg(feature = "ssr")]
+mod upload;
 
 pub use projects::{CreateProject, MoveProject, SaveProject};
+pub use screenshots::{
+    DeleteProjectScreenshot, MoveProjectScreenshot, SaveScreenshotDetails,
+    upload_project_screenshot,
+};
 pub use session::{Login, Logout, SessionUser, current_user};
 pub use singletons::{SaveContact, SaveProfile, SaveSite};

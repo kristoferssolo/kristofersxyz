@@ -2,7 +2,8 @@ use super::super::{
     admin_path_for_slug,
     components::{
         EditorLayout, Eyebrow, FormMessage, MarkdownEditor, PageHeading, ProjectCollections,
-        ProjectPositionStepper, SaveButton, SaveRejection, TextArea, TextInput, action_error,
+        ProjectPositionStepper, ProjectScreenshotEditor, SaveButton, SaveRejection, TextArea,
+        TextInput, action_error,
     },
     error::AdminError,
     server_functions::{SaveContact, SaveProfile, SaveProject, SaveSite},
@@ -53,6 +54,11 @@ pub fn ProjectEditorPage() -> impl IntoView {
                     let active = admin_path_for_slug(&project.slug);
                     let breadcrumb = format!("Admin / {}", project.slug);
                     let stepper = view! { <ProjectPositionStepper slug=project.slug.clone() /> };
+                    // Screenshots sit outside the save form: each one carries
+                    // its own form, and a form cannot nest.
+                    let screenshots = view! {
+                        <ProjectScreenshotEditor slug=project.slug.clone() />
+                    };
                     let error = Signal::derive(move || action.value().get().and_then(Result::err));
                     let rejection = SaveRejection::new(error);
                     view! {
@@ -88,6 +94,7 @@ pub fn ProjectEditorPage() -> impl IntoView {
                                 {move || save_message(error, rejection)}
                                 <SaveButton />
                             </ActionForm>
+                            {screenshots}
                         </EditorLayout>
                     }
                     .into_any()
