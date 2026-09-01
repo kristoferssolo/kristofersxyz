@@ -95,7 +95,13 @@ pub fn ProjectEditorPage() -> impl IntoView {
                                     rejection
                                 />
                             </ActionForm>
-                            {screenshots}
+                            // Mirror the save form's grid so the screenshots
+                            // line up with the editor column, not the rail.
+                            <div class="grid grid-cols-1 gap-10 min-[961px]:grid-cols-[minmax(0,1fr)_320px]">
+                                <div class="mx-auto w-full min-w-0 min-[961px]:max-w-[1040px]">
+                                    {screenshots}
+                                </div>
+                            </div>
                         </EditorLayout>
                     }
                     .into_any()
