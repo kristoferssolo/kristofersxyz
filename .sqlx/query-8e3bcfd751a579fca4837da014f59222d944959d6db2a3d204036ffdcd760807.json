@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            screenshot_id\n        FROM\n            project_screenshot\n        WHERE\n            project_id = ?1\n        ORDER BY\n            sort_order\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "screenshot_id",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "project_screenshot",
+            "name": "screenshot_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8e3bcfd751a579fca4837da014f59222d944959d6db2a3d204036ffdcd760807"
+}

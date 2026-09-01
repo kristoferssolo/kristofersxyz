@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO\n            project_screenshot (\n                screenshot_id,\n                project_id,\n                media_type,\n                image,\n                width,\n                height,\n                alt_text,\n                caption,\n                sort_order\n            )\n        SELECT\n            ?1,\n            ?2,\n            ?3,\n            ?4,\n            ?5,\n            ?6,\n            ?7,\n            ?8,\n            COALESCE(MAX(sort_order), 0) + 1\n        FROM\n            project_screenshot\n        WHERE\n            project_id = ?2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "3bb349580fdd5c9d0a61ff69dab47ef332eeaf95d90544004b9c93f654387c0d"
+}

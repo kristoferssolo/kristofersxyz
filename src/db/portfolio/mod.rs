@@ -7,14 +7,19 @@
 mod projects;
 mod rows;
 
-pub use self::projects::{CreateError, MoveError};
+pub use self::projects::{
+    CreateError, MoveError, ScreenshotError, StoredScreenshot, append as append_project_screenshot,
+    delete_project_screenshot, image as project_screenshot_image,
+    move_within_project as move_project_screenshot, set_details as set_project_screenshot_details,
+};
 use self::rows::ProfileRow;
 use crate::{
     app::content::{Contact, FocusArea, PortfolioContent, Profile, Site, SocialLink},
     db::DbPool,
     domain::{
         ProjectDescription, ProjectDescriptionError, ProjectLinkUrlError, ProjectLinks,
-        ProjectMove, ProjectSlug, ProjectSlugError, ProjectTechnologies, VisibleNameError,
+        ProjectMove, ProjectSlug, ProjectSlugError, ProjectTechnologies, ScreenshotIdError,
+        ScreenshotMediaTypeError, ScreenshotSizeError, VisibleNameError,
     },
 };
 
@@ -54,10 +59,42 @@ pub enum LoadError {
         #[source]
         source: ProjectLinkUrlError,
     },
+    #[error("project '{slug}' has an invalid screenshot id")]
+    InvalidScreenshotId {
+        slug: ProjectSlug,
+        #[source]
+        source: ScreenshotIdError,
+    },
+    #[error("project '{slug}' has a screenshot in an unsupported format")]
+    InvalidScreenshotMediaType {
+        slug: ProjectSlug,
+        #[source]
+        source: ScreenshotMediaTypeError,
+    },
+    #[error("project '{slug}' has a screenshot with unusable dimensions")]
+    InvalidScreenshotSize {
+        slug: ProjectSlug,
+        #[source]
+        source: ScreenshotSizeError,
+    },
+    #[error("project '{slug}' has a screenshot with invalid alternative text")]
+    InvalidScreenshotAltText {
+        slug: ProjectSlug,
+        #[source]
+        source: VisibleNameError,
+    },
+    #[error("project '{slug}' has a screenshot with an invalid caption")]
+    InvalidScreenshotCaption {
+        slug: ProjectSlug,
+        #[source]
+        source: VisibleNameError,
+    },
     #[error("project '{slug}' repeats a technology")]
     RepeatedTechnology { slug: ProjectSlug },
     #[error("project '{slug}' repeats a link label")]
     RepeatedLinkLabel { slug: ProjectSlug },
+    #[error("project '{slug}' repeats a screenshot")]
+    RepeatedScreenshot { slug: ProjectSlug },
 }
 
 /// Reads the whole portfolio in a handful of ordered queries and assembles it

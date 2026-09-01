@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            media_type,\n            image\n        FROM\n            project_screenshot\n        WHERE\n            screenshot_id = ?1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "media_type",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "project_screenshot",
+            "name": "media_type"
+          }
+        }
+      },
+      {
+        "name": "image",
+        "ordinal": 1,
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "project_screenshot",
+            "name": "image"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "ab4e7871dae4d873020b4718ecfbd8c5f330861c8d9e5f35e3b5898ce0a9052a"
+}

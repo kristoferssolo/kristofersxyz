@@ -5,12 +5,13 @@ use crate::{
         DbPool,
         portfolio::{
             LoadError,
-            rows::{ProjectItemRow, ProjectLinkRow, ProjectRow},
+            rows::{ProjectItemRow, ProjectLinkRow, ProjectRow, ProjectScreenshotRow},
         },
     },
     domain::{
         Project, ProjectDescription, ProjectLink, ProjectLinkLabel, ProjectLinkUrl, ProjectLinks,
-        ProjectSlug, ProjectTechnologies, TechnologyName,
+        ProjectScreenshot, ProjectScreenshots, ProjectSlug, ProjectTechnologies, ScreenshotAltText,
+        ScreenshotCaption, ScreenshotId, ScreenshotMediaType, ScreenshotSize, TechnologyName,
     },
 };
 
@@ -31,8 +32,12 @@ fn project_row_range<T>(
     start..end
 }
 
-/// Loads every Project in the public order, with its ordered Technologies
-/// and links.
+/// Loads every Project in the public order, with its ordered Technologies,
+/// links, and Project Screenshots.
+///
+/// The screenshot query reads metadata only. Image bytes stay in the database
+/// until the media route asks for one, so loading the portfolio never carries
+/// them into memory or into the page.
 ///
 /// # Errors
 ///
@@ -90,8 +95,29 @@ pub async fn load(pool: &DbPool) -> Result<Vec<Project>, LoadError> {
     .fetch_all(pool)
     .await?;
 
+    let screenshots = sqlx::query_as!(
+        ProjectScreenshotRow,
+        r#"
+        SELECT
+            project_id,
+            screenshot_id,
+            media_type,
+            width,
+            height,
+            alt_text,
+            caption
+        FROM
+            project_screenshot
+        ORDER BY
+            project_id,
+            sort_order
+        "#,
+    )
+    .fetch_all(pool)
+    .await?;
+
     rows.into_iter()
-        .map(|project| assemble(project, &technologies, &links))
+        .map(|project| assemble(project, &technologies, &links, &screenshots))
         .collect()
 }
 
@@ -102,6 +128,7 @@ fn assemble(
     project: ProjectRow,
     technologies: &[ProjectItemRow],
     links: &[ProjectLinkRow],
+    screenshots: &[ProjectScreenshotRow],
 ) -> Result<Project, LoadError> {
     let slug =
         project
@@ -154,14 +181,76 @@ fn assemble(
         })
         .collect::<Result<Vec<_>, LoadError>>()?;
 
+    let screenshot_range = project_row_range(screenshots, project.id, |row| row.project_id);
+    let screenshot_rows = screenshots.get(screenshot_range).unwrap_or_default();
+    let evidence = screenshot_rows
+        .iter()
+        .map(|row| screenshot(row, &slug))
+        .collect::<Result<Vec<_>, LoadError>>()?;
+
     Ok(Project {
         technologies: ProjectTechnologies::try_from(names)
             .map_err(|_| LoadError::RepeatedTechnology { slug: slug.clone() })?,
         links: ProjectLinks::try_from(destinations)
             .map_err(|_| LoadError::RepeatedLinkLabel { slug: slug.clone() })?,
+        screenshots: ProjectScreenshots::try_from(evidence)
+            .map_err(|_| LoadError::RepeatedScreenshot { slug: slug.clone() })?,
         slug,
         title: project.title,
         summary: project.summary,
         description,
     })
+}
+
+/// Validates one stored screenshot row into the metadata a figure renders
+/// from. The bytes are not part of this row, so nothing here loads an image.
+fn screenshot(
+    row: &ProjectScreenshotRow,
+    slug: &ProjectSlug,
+) -> Result<ProjectScreenshot, LoadError> {
+    Ok(ProjectScreenshot {
+        id: row
+            .screenshot_id
+            .parse::<ScreenshotId>()
+            .map_err(|source| LoadError::InvalidScreenshotId {
+                slug: slug.clone(),
+                source,
+            })?,
+        media_type: row
+            .media_type
+            .parse::<ScreenshotMediaType>()
+            .map_err(|source| LoadError::InvalidScreenshotMediaType {
+                slug: slug.clone(),
+                source,
+            })?,
+        size: ScreenshotSize::try_from((dimension(row.width), dimension(row.height))).map_err(
+            |source| LoadError::InvalidScreenshotSize {
+                slug: slug.clone(),
+                source,
+            },
+        )?,
+        alt: row
+            .alt_text
+            .parse::<ScreenshotAltText>()
+            .map_err(|source| LoadError::InvalidScreenshotAltText {
+                slug: slug.clone(),
+                source,
+            })?,
+        caption: row
+            .caption
+            .as_deref()
+            .map(str::parse::<ScreenshotCaption>)
+            .transpose()
+            .map_err(|source| LoadError::InvalidScreenshotCaption {
+                slug: slug.clone(),
+                source,
+            })?,
+    })
+}
+
+/// A stored dimension as the domain type reads it. SQLite holds an integer
+/// wide enough to carry a value the application never wrote, so anything
+/// outside `u32` is pushed to an end the domain already rejects.
+fn dimension(value: i64) -> u32 {
+    u32::try_from(value).unwrap_or(if value.is_negative() { 0 } else { u32::MAX })
 }

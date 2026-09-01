@@ -2,16 +2,24 @@
 //!
 //! Constructors validate the route slug and require a non-empty description
 //! before persistence or rendering can use a Project. The ordered Technology
-//! and Project Link collections live in [`collections`].
+//! and Project Link collections live in [`collections`], and the ordered
+//! Project Screenshots in [`screenshots`].
 
 mod collections;
 mod movement;
+mod screenshots;
 
 pub use self::collections::{
     ProjectLink, ProjectLinkLabel, ProjectLinkUrl, ProjectLinkUrlError, ProjectLinks,
     ProjectTechnologies, RepeatedEntry, TechnologyName, VisibleNameError,
 };
 pub use self::movement::{ProjectMove, ProjectMoveError};
+pub use self::screenshots::{
+    MAX_SCREENSHOT_EDGE, ProjectScreenshot, ProjectScreenshots, SCREENSHOT_MEDIA_PREFIX,
+    ScreenshotAltText, ScreenshotCaption, ScreenshotId, ScreenshotIdError, ScreenshotMediaType,
+    ScreenshotMediaTypeError, ScreenshotMove, ScreenshotMoveError, ScreenshotSize,
+    ScreenshotSizeError,
+};
 use crate::serde_helpers::impl_deserialize_from_str;
 use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
@@ -24,6 +32,8 @@ pub struct Project {
     pub description: ProjectDescription,
     pub technologies: ProjectTechnologies,
     pub links: ProjectLinks,
+    /// Visual Project Evidence, in the order the Owner arranged it.
+    pub screenshots: ProjectScreenshots,
 }
 
 impl Project {
@@ -162,6 +172,7 @@ mod tests {
             description: crate::test_support::parse("# What it solves"),
             technologies: ProjectTechnologies::default(),
             links: ProjectLinks::default(),
+            screenshots: ProjectScreenshots::default(),
         };
 
         assert_eq!(project.path(), "/work/guenther");

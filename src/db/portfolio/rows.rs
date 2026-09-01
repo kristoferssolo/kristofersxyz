@@ -24,3 +24,13 @@ pub struct ProjectLinkRow {
     pub label: String,
     pub href: String,
 }
+
+pub struct ProjectScreenshotRow {
+    pub project_id: i64,
+    pub screenshot_id: String,
+    pub media_type: String,
+    pub width: i64,
+    pub height: i64,
+    pub alt_text: String,
+    pub caption: Option<String>,
+}

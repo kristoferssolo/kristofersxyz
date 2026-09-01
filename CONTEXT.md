@@ -21,7 +21,7 @@ A selected piece of software Kristofers built, included as evidence of his abili
 _Avoid_: Repository, work item, entry
 
 **Project Detail**:
-The portfolio's in-depth account of a Project. It combines a description and visual evidence with the Technologies used and, when useful, its architecture.
+The portfolio's in-depth account of a Project. It combines a description and Project Screenshots with the Technologies used and, when useful, its architecture.
 _Avoid_: Read more, project page, case study
 
 **Project Description**:
@@ -31,6 +31,10 @@ _Avoid_: Body, content blob, case-study copy
 **Project Evidence**:
 Concrete material in a Project Detail that supports a claim about Kristofers's abilities, such as a screenshot, technical constraint, design decision, or result.
 _Avoid_: Feature list, proof point, content block
+
+**Project Screenshot**:
+Visual Project Evidence: one stored image of a Project, with the alternative text that describes it and, when it helps, a caption. Screenshots keep the order the Owner arranged them in.
+_Avoid_: Image, media, asset, gallery item, attachment
 
 **Technology**:
 A language, framework, platform, protocol, algorithm, or major tool that materially shaped a Project.

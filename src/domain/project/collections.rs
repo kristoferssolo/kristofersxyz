@@ -73,8 +73,9 @@ impl FromStr for ProjectLinkLabel {
 impl_deserialize_from_str!(ProjectLinkLabel);
 
 /// Accepts a single-line name a reader can see, with no surrounding
-/// whitespace to make two entries look alike.
-fn visible_name(value: &str) -> Result<String, VisibleNameError> {
+/// whitespace to make two entries look alike. Screenshot alternative text and
+/// captions follow the same rule, which is why this is the one place it lives.
+pub(super) fn visible_name(value: &str) -> Result<String, VisibleNameError> {
     let trimmed = value.trim();
     if trimmed.is_empty() {
         return Err(VisibleNameError::Empty);
@@ -311,9 +312,9 @@ pub struct RepeatedEntry {
 }
 
 /// The position of the first entry that an earlier position already used.
-/// Both collections stay short, so the pairwise scan avoids the ordering and
-/// hashing bounds a set would demand of the entry types.
-fn first_repeat<T>(items: &[T], equal: impl Fn(&T, &T) -> bool) -> Option<usize> {
+/// Every ordered collection stays short, so the pairwise scan avoids the
+/// ordering and hashing bounds a set would demand of the entry types.
+pub(super) fn first_repeat<T>(items: &[T], equal: impl Fn(&T, &T) -> bool) -> Option<usize> {
     items
         .iter()
         .enumerate()

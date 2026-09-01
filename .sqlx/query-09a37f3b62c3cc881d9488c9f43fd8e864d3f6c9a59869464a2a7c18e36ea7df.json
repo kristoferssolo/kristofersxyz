@@ -1,0 +1,98 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            project_id,\n            screenshot_id,\n            media_type,\n            width,\n            height,\n            alt_text,\n            caption\n        FROM\n            project_screenshot\n        ORDER BY\n            project_id,\n            sort_order\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "project_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "project_screenshot",
+            "name": "project_id"
+          }
+        }
+      },
+      {
+        "name": "screenshot_id",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "project_screenshot",
+            "name": "screenshot_id"
+          }
+        }
+      },
+      {
+        "name": "media_type",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "project_screenshot",
+            "name": "media_type"
+          }
+        }
+      },
+      {
+        "name": "width",
+        "ordinal": 3,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "project_screenshot",
+            "name": "width"
+          }
+        }
+      },
+      {
+        "name": "height",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "project_screenshot",
+            "name": "height"
+          }
+        }
+      },
+      {
+        "name": "alt_text",
+        "ordinal": 5,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "project_screenshot",
+            "name": "alt_text"
+          }
+        }
+      },
+      {
+        "name": "caption",
+        "ordinal": 6,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "project_screenshot",
+            "name": "caption"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "09a37f3b62c3cc881d9488c9f43fd8e864d3f6c9a59869464a2a7c18e36ea7df"
+}

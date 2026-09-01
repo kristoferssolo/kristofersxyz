@@ -7,7 +7,8 @@
 use crate::domain::Project;
 #[cfg(test)]
 use crate::domain::{
-    ProjectDescription, ProjectLink, ProjectLinks, ProjectSlug, ProjectTechnologies,
+    ProjectDescription, ProjectLink, ProjectLinks, ProjectScreenshots, ProjectSlug,
+    ProjectTechnologies,
 };
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -271,6 +272,7 @@ mod fixture {
                     "GitHub",
                     "https://github.com/kristoferssolo/guenther",
                 )]),
+                screenshots: ProjectScreenshots::default(),
             },
             Project {
                 slug: project_slug("traxor"),
@@ -289,6 +291,7 @@ mod fixture {
                     "Codeberg",
                     "https://codeberg.org/kristoferssolo/traxor",
                 )]),
+                screenshots: ProjectScreenshots::default(),
             },
             Project {
                 slug: project_slug("cipher-workshop"),
@@ -306,6 +309,7 @@ mod fixture {
                     "GitHub",
                     "https://github.com/kristoferssolo/cipher-workshop",
                 )]),
+                screenshots: ProjectScreenshots::default(),
             },
         ]
     }

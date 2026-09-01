@@ -116,8 +116,11 @@ async fn ensure_intact(pool: &DbPool) -> Result<(), BackupError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::{connect_file, migrate, portfolio, seed_if_empty};
-    use claims::{assert_err, assert_ok};
+    use crate::{
+        db::{connect_file, migrate, portfolio, seed_if_empty},
+        domain::{ScreenshotAltText, ScreenshotMediaType, ScreenshotSize},
+    };
+    use claims::{assert_err, assert_ok, assert_some, assert_some_eq};
     use std::fs::File;
     use tempfile::{TempDir, tempdir};
 
@@ -185,6 +188,64 @@ mod tests {
         .await
         .expect("count the restored sessions");
         assert_eq!(sessions, 0);
+    }
+
+    /// Screenshots are the only content stored as bytes, so the copy has to
+    /// carry the image itself and not just the row that describes it.
+    #[tokio::test]
+    async fn a_restored_backup_keeps_screenshot_bytes_and_metadata() {
+        const IMAGE: &[u8] = &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x42];
+
+        let workspace = tempdir().expect("create a temporary workspace");
+        let (_, live) = live_database(&workspace).await;
+        let id = assert_ok!(
+            portfolio::append_project_screenshot(
+                &live,
+                &crate::test_support::parse("traxor"),
+                ScreenshotMediaType::Png,
+                IMAGE,
+                assert_ok!(ScreenshotSize::try_from((1600, 1000))),
+                &crate::test_support::parse::<ScreenshotAltText>(
+                    "traxor listing four transfers in a terminal."
+                ),
+                Some(&crate::test_support::parse(
+                    "The queue, ratios, and peers in one view."
+                )),
+            )
+            .await
+        );
+
+        let backup = workspace.path().join("portfolio-backup.db");
+        assert_ok!(back_up(&live, &backup).await);
+        let restored = assert_ok!(connect_file(&backup).await);
+        assert_ok!(prepare_restored(&restored).await);
+
+        let stored = assert_some!(assert_ok!(
+            portfolio::project_screenshot_image(&restored, &id).await
+        ));
+        assert_eq!(stored.bytes, IMAGE);
+        assert_eq!(stored.media_type, ScreenshotMediaType::Png);
+
+        let projects = assert_ok!(portfolio::load(&restored).await).projects;
+        let traxor = assert_some!(
+            projects
+                .iter()
+                .find(|project| project.slug.as_str() == "traxor")
+        );
+        let screenshot = assert_some!(traxor.screenshots.iter().next());
+        assert_eq!(screenshot.id, id);
+        assert_eq!(
+            screenshot.alt.to_string(),
+            "traxor listing four transfers in a terminal."
+        );
+        assert_some_eq!(
+            screenshot.caption.as_ref().map(ToString::to_string),
+            "The queue, ratios, and peers in one view.".to_owned()
+        );
+        assert_eq!(
+            (screenshot.size.width(), screenshot.size.height()),
+            (1600, 1000)
+        );
     }
 
     #[tokio::test]

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE\n            project_screenshot\n        SET\n            alt_text = ?1,\n            caption = ?2\n        WHERE\n            screenshot_id = ?3\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "6363ee91a77880fd8880216521d7a3c70a6c4d42795cb3326152d7eaa8d2d282"
+}

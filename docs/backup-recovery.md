@@ -4,9 +4,17 @@ How to copy the portfolio database safely, prove that a copy restores, put a
 restored copy into service, and take Owner access back after a suspected
 compromise.
 
-The database holds the portfolio content, the Owner password hash, and every
-active session. Treat any copy of it as a credential store: readable only by the
-application user, never committed, never served, never baked into an image.
+The database holds the portfolio content, the Project Screenshot images, the
+Owner password hash, and every active session. Treat any copy of it as a
+credential store: readable only by the application user, never committed, never
+served, never baked into an image.
+
+The screenshots are stored as blobs, so the file is roughly the size of the
+text content plus every image, and it grows by about the size of each upload.
+Expect a backup to be that large too. `VACUUM INTO` writes a compacted copy, so
+a backup is usually a little smaller than the live file rather than larger; a
+backup that is much smaller than the live database is a reason to look at what
+it contains before trusting it.
 
 ## Where the commands run
 
@@ -55,6 +63,9 @@ The recipe copies the backup into a temporary directory, runs SQLite's
 backup file itself is left untouched, and the temporary copy is deleted
 afterwards. A backup that has never been restored is a guess, so check the ones
 you intend to rely on.
+
+The integrity check covers the image blobs along with every other page, so a
+copy that passes it carries the screenshots intact.
 
 ## Restore into place
 
@@ -111,6 +122,10 @@ Three rules hold for every step below:
 8. Check the public pages, then the Owner login. Keep `portfolio-previous.db`
    until you are satisfied. To roll back, stop the application and reverse steps
    5 and 6 by name.
+
+   Open a Project Detail that has screenshots and confirm the images render.
+   They are served from `/media/project/<id>` out of the restored database, so a
+   broken image there means the restore, not the browser.
 
 ## Restore Owner access
 
@@ -201,5 +216,7 @@ every stored hash and locks the Owner out.
 `src/db/backup.rs` holds a test that backs up a seeded temporary database,
 restores the copy, and checks that the portfolio content survives, that the copy
 passes its integrity check, and that the sessions the backup carried are gone
-before the copy is treated as ready. A second test checks that a backup refuses
-to write over an existing file.
+before the copy is treated as ready. A second test stores a Project Screenshot,
+backs the database up, and checks that the restored copy still returns the exact
+image bytes along with the media type, dimensions, alternative text, and
+caption. A third checks that a backup refuses to write over an existing file.

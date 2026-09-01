@@ -7,7 +7,11 @@ pub use owner::OwnerId;
 pub(crate) use owner::SessionVersion;
 pub use owner::{Username, UsernameError};
 pub use project::{
-    Project, ProjectDescription, ProjectDescriptionError, ProjectLink, ProjectLinkLabel,
-    ProjectLinkUrl, ProjectLinkUrlError, ProjectLinks, ProjectMove, ProjectMoveError, ProjectSlug,
-    ProjectSlugError, ProjectTechnologies, RepeatedEntry, TechnologyName, VisibleNameError,
+    MAX_SCREENSHOT_EDGE, Project, ProjectDescription, ProjectDescriptionError, ProjectLink,
+    ProjectLinkLabel, ProjectLinkUrl, ProjectLinkUrlError, ProjectLinks, ProjectMove,
+    ProjectMoveError, ProjectScreenshot, ProjectScreenshots, ProjectSlug, ProjectSlugError,
+    ProjectTechnologies, RepeatedEntry, SCREENSHOT_MEDIA_PREFIX, ScreenshotAltText,
+    ScreenshotCaption, ScreenshotId, ScreenshotIdError, ScreenshotMediaType,
+    ScreenshotMediaTypeError, ScreenshotMove, ScreenshotMoveError, ScreenshotSize,
+    ScreenshotSizeError, TechnologyName, VisibleNameError,
 };

@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        DELETE FROM\n            project_screenshot\n        WHERE\n            screenshot_id = ?1\n        RETURNING\n            project_id AS \"project_id!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "project_id!",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "project_screenshot",
+            "name": "project_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4dd48d7045c009766c3b39fbecfeb1e4818c70e245844797bfa9dee8d1ad184e"
+}
