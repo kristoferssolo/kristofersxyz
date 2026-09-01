@@ -16,7 +16,7 @@ use super::super::error::AdminError;
 use super::{DragState, DropIndicator};
 use crate::domain::{ProjectLinks, ProjectTechnologies};
 use leptos::{ev, prelude::*, web_sys::DragEvent};
-use lucide_leptos::{ChevronDown, ChevronUp, Trash2};
+use lucide_leptos::{ChevronDown, ChevronUp, GripVertical, Trash2};
 
 /// Which line the last save rejected, so the editor can mark it and repeat the
 /// reason beside it.
@@ -316,14 +316,15 @@ fn EmptyBuffer(children: Children) -> impl IntoView {
     }
 }
 
-const LINE: &str = "grid grid-cols-[3.4ch_minmax(0,1fr)_auto] items-stretch gap-x-[.8ch] \
+const LINE: &str = "grid grid-cols-[1rem_2.75ch_minmax(0,1fr)_auto] items-stretch gap-x-[.15ch] \
     relative cursor-grab border-b border-[#101317] pr-[.45rem] last:border-b-0";
+const DRAG_HANDLE: &str = "inline-flex items-center justify-center text-[#4c525a]";
 const GUTTER: &str = "flex items-center justify-end border-r border-[#1a1d21] py-[.3rem] \
-    pr-[.7ch] pl-[.5rem] text-[11px] text-[#3f454d]";
+    pr-[.55ch] pl-[.15rem] text-[11px] text-[#3f454d]";
 const FIELD: &str = "m-0 w-full border-0 border-b border-transparent bg-transparent px-[.25rem] \
     py-[.32rem] font-[inherit] text-[13px] text-white focus:border-b-[#e2a340] \
     focus:bg-[#0b0e11] focus:outline-none";
-const LINE_MESSAGE: &str = "col-start-2 col-span-2 m-0 pb-[.4rem] pl-[.25rem] text-[11px] \
+const LINE_MESSAGE: &str = "col-start-3 col-span-2 m-0 pb-[.4rem] pl-[.25rem] text-[11px] \
     leading-[1.45] text-[#e2a340]";
 
 #[component]
@@ -358,6 +359,9 @@ fn TechnologyLine(
             on:dragend=move |_: DragEvent| drag.clear()
         >
             <DropIndicator drag target=Signal::derive(move || index.get()) />
+            <span class=DRAG_HANDLE aria-hidden="true">
+                <GripVertical size=14 />
+            </span>
             <span class=GUTTER>{move || position(index.get())}</span>
             <div class="grid min-w-0 py-[.15rem]">
                 <label class="sr-only" for=move || field_id("technology", index.get())>
@@ -424,6 +428,9 @@ fn LinkLine(
             on:dragend=move |_: DragEvent| drag.clear()
         >
             <DropIndicator drag target=Signal::derive(move || index.get()) />
+            <span class=DRAG_HANDLE aria-hidden="true">
+                <GripVertical size=14 />
+            </span>
             <span class=GUTTER>{move || position(index.get())}</span>
             <div class="grid min-w-0 py-[.15rem]">
                 <label class="sr-only" for=move || field_id("link-label", index.get())>
@@ -563,7 +570,7 @@ where
     view! {
         <button
             type="button"
-            class="relative grid w-full cursor-pointer grid-cols-[3.4ch_minmax(0,1fr)] items-stretch gap-x-[.8ch] border-0 border-t border-dashed border-[#1e2126] bg-transparent pr-[.45rem] text-left font-[inherit] text-[12px] text-[#8b939d] hover:text-[#e2a340]"
+            class="relative grid w-full cursor-pointer grid-cols-[1rem_2.75ch_minmax(0,1fr)] items-stretch gap-x-[.15ch] border-0 border-t border-dashed border-[#1e2126] bg-transparent pr-[.45rem] text-left font-[inherit] text-[12px] text-[#8b939d] hover:text-[#e2a340]"
             on:click=move |_: ev::MouseEvent| on_add()
             on:dragover=move |event: DragEvent| drag.over(total.get_untracked(), &event)
             on:drop=move |event: DragEvent| {
@@ -576,8 +583,9 @@ where
             on:dragend=move |_: DragEvent| drag.clear()
         >
             <DropIndicator drag target=total />
+            <span aria-hidden="true"></span>
             <span class=GUTTER>"+"</span>
-            <span class="inline-flex items-center gap-[.8ch] py-[.5rem]">{label}</span>
+            <span class="inline-flex items-center gap-[.8ch] py-[.5rem] pl-[.25rem]">{label}</span>
         </button>
     }
 }
