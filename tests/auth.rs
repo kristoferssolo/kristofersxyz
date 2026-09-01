@@ -1833,12 +1833,35 @@ async fn a_drag_takes_the_place_of_the_project_it_names() {
 }
 
 #[tokio::test]
+async fn a_drag_can_place_a_project_after_the_final_project() {
+    let (router, _database) = app_with_owner().await;
+    let cookie = sign_in(&router).await;
+
+    let moved = router
+        .clone()
+        .oneshot(project_move("guenther", "to-end", Some(&cookie)))
+        .await
+        .expect("send the move");
+
+    assert_eq!(moved.status(), StatusCode::OK);
+    assert_eq!(
+        portfolio_order(&body_text(moved).await),
+        ["traxor", "cipher-workshop", "guenther"]
+    );
+}
+
+#[tokio::test]
 async fn an_impossible_or_unknown_move_changes_nothing() {
     let (router, _database) = app_with_owner().await;
     let cookie = sign_in(&router).await;
     let rejected = [
         ("guenther", "up", StatusCode::UNPROCESSABLE_ENTITY),
         ("cipher-workshop", "down", StatusCode::UNPROCESSABLE_ENTITY),
+        (
+            "cipher-workshop",
+            "to-end",
+            StatusCode::UNPROCESSABLE_ENTITY,
+        ),
         ("ghost", "down", StatusCode::NOT_FOUND),
         ("traxor", "place-of:ghost", StatusCode::NOT_FOUND),
         ("traxor", "sideways", StatusCode::UNPROCESSABLE_ENTITY),

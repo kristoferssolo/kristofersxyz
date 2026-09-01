@@ -23,6 +23,9 @@ pub enum ProjectMove {
     /// Naming the anchor rather than an index keeps a request from a stale
     /// page from landing somewhere the Owner did not point at.
     ToPlaceOf(ProjectSlug),
+    /// To the end of the public order, which is the drop target after the
+    /// final Project.
+    ToEnd,
 }
 
 impl fmt::Display for ProjectMove {
@@ -31,6 +34,7 @@ impl fmt::Display for ProjectMove {
             Self::Up => formatter.write_str("up"),
             Self::Down => formatter.write_str("down"),
             Self::ToPlaceOf(slug) => write!(formatter, "{PLACE_OF}{slug}"),
+            Self::ToEnd => formatter.write_str("to-end"),
         }
     }
 }
@@ -42,6 +46,7 @@ impl FromStr for ProjectMove {
         match value {
             "up" => Ok(Self::Up),
             "down" => Ok(Self::Down),
+            "to-end" => Ok(Self::ToEnd),
             other => other
                 .strip_prefix(PLACE_OF)
                 .ok_or(ProjectMoveError::Unknown)?
@@ -74,6 +79,7 @@ mod tests {
     #[rstest]
     #[case("up", ProjectMove::Up)]
     #[case("down", ProjectMove::Down)]
+    #[case("to-end", ProjectMove::ToEnd)]
     fn a_step_reads_back_from_its_field(#[case] value: &str, #[case] expected: ProjectMove) {
         assert_ok_eq!(value.parse::<ProjectMove>(), expected);
         assert_eq!(expected.to_string(), value);

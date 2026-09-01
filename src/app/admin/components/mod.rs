@@ -1,12 +1,13 @@
+mod drag;
 mod project_collections;
 mod project_order;
 mod project_screenshots;
 
+pub use drag::{DragState, DropIndicator};
 pub use project_collections::{ProjectCollections, SaveRejection};
 pub use project_order::{ProjectPositionStepper, provide_project_order};
 pub use project_screenshots::ProjectScreenshotEditor;
 
-use self::project_order::ProjectRail;
 use crate::app::{
     admin::{error::AdminError, server_functions::Logout},
     layout::{CollapsibleSidebar, CommandShell, SidebarPreference},
@@ -15,6 +16,7 @@ use crate::app::{
 use leptos::{form::ActionForm, prelude::*};
 use leptos_router::components::A;
 use lucide_leptos::{Box as BoxIcon, ChevronRight, Globe, Mail, Plus, User};
+use project_order::ProjectRail;
 use std::time::Duration;
 
 /// The shared shape of one editor navigation entry.

@@ -114,6 +114,12 @@ fn reordered(
             }
             target
         }
+        ProjectMove::ToEnd => {
+            if from == last {
+                return Err(MoveError::InvalidMovement);
+            }
+            slugs.len()
+        }
     };
 
     let mut order = (0..slugs.len())
@@ -206,9 +212,23 @@ mod tests {
         );
     }
 
+    #[test]
+    fn an_end_move_takes_the_final_place() {
+        let order = assert_ok!(reordered(&SEEDED, &slug("guenther"), &ProjectMove::ToEnd));
+
+        assert_eq!(
+            order
+                .into_iter()
+                .filter_map(|index| SEEDED.get(index).copied())
+                .collect::<Vec<_>>(),
+            ["traxor", "cipher-workshop", "guenther"]
+        );
+    }
+
     #[rstest]
     #[case("guenther", ProjectMove::Up)]
     #[case("cipher-workshop", ProjectMove::Down)]
+    #[case("cipher-workshop", ProjectMove::ToEnd)]
     #[case("traxor", ProjectMove::ToPlaceOf(slug("traxor")))]
     fn an_impossible_move_is_rejected(#[case] moved: &str, #[case] movement: ProjectMove) {
         assert_matches!(

@@ -13,6 +13,7 @@
 //! the stored text whether or not the page has hydrated.
 
 use super::super::error::AdminError;
+use super::{DragState, DropIndicator};
 use crate::domain::{ProjectLinks, ProjectTechnologies};
 use leptos::{ev, prelude::*, web_sys::DragEvent};
 use lucide_leptos::{ChevronDown, ChevronUp, Trash2};
@@ -83,69 +84,6 @@ struct LinkRow {
     id: usize,
     label: RwSignal<String>,
     href: RwSignal<String>,
-}
-
-/// Tracks one collection's native drag operation and the row currently under
-/// the pointer. Technologies and links each get their own state, so a drag
-/// cannot cross the collection boundary.
-#[derive(Clone, Copy)]
-struct DragState {
-    dragged: RwSignal<Option<usize>>,
-    target: RwSignal<Option<usize>>,
-}
-
-impl DragState {
-    fn new() -> Self {
-        Self {
-            dragged: RwSignal::new(None),
-            target: RwSignal::new(None),
-        }
-    }
-
-    fn is_dragging(self, index: usize) -> bool {
-        self.dragged.get().is_some_and(|dragged| dragged == index)
-    }
-
-    fn is_drop_target(self, index: usize) -> bool {
-        self.dragged.get().is_some() && self.target.get().is_some_and(|target| target == index)
-    }
-
-    fn start(self, index: usize, event: &DragEvent) {
-        if let Some(transfer) = event.data_transfer() {
-            transfer.set_effect_allowed("move");
-            let _ = transfer.set_data("text/plain", &index.to_string());
-        }
-        self.target.set(None);
-        self.dragged.set(Some(index));
-    }
-
-    fn over(self, index: usize, event: &DragEvent) {
-        event.prevent_default();
-        if self.dragged.get_untracked().is_some() {
-            if let Some(transfer) = event.data_transfer() {
-                transfer.set_drop_effect("move");
-            }
-            self.target.set(Some(index));
-        }
-    }
-
-    fn drop<T: Clone + Send + Sync + 'static>(
-        self,
-        rows: &RowList<T>,
-        index: usize,
-        event: &DragEvent,
-    ) {
-        event.prevent_default();
-        if let Some(dragged) = self.dragged.get_untracked() {
-            rows.move_to(dragged, index);
-        }
-        self.clear();
-    }
-
-    fn clear(self) {
-        self.target.set(None);
-        self.dragged.set(None);
-    }
 }
 
 /// The rows of one ordered collection and the moves its buttons perform.
@@ -253,8 +191,8 @@ pub fn ProjectCollections(
     links: ProjectLinks,
     rejection: SaveRejection,
 ) -> impl IntoView {
-    let technology_drag = DragState::new();
-    let link_drag = DragState::new();
+    let technology_drag = DragState::<usize>::new();
+    let link_drag = DragState::<usize>::new();
     let technology_rows = RowList::new(
         technologies
             .into_iter()
@@ -394,7 +332,7 @@ fn TechnologyLine(
     index: ReadSignal<usize>,
     row: TechnologyRow,
     rejection: SaveRejection,
-    drag: DragState,
+    drag: DragState<usize>,
 ) -> impl IntoView {
     let message = move || rejection.message_for(RejectedLine::Technology(line_number(index.get())));
 
@@ -402,19 +340,24 @@ fn TechnologyLine(
         <div
             class=LINE
             class=("cursor-grabbing", move || {
-                drag.is_dragging(index.get())
+                drag.is_dragging(&index.get())
             })
             draggable="true"
-            on:dragstart=move |event: DragEvent| drag.start(index.get_untracked(), &event)
+            on:dragstart=move |event: DragEvent| {
+                let index = index.get_untracked();
+                drag.start(index, &index.to_string(), &event);
+            }
             on:dragover=move |event: DragEvent| drag.over(index.get_untracked(), &event)
-            on:drop=move |event: DragEvent| drag.drop(&rows, index.get_untracked(), &event)
+            on:drop=move |event: DragEvent| {
+                event.prevent_default();
+                if let Some(dragged) = drag.dragged() {
+                    rows.move_to(dragged, index.get_untracked());
+                }
+                drag.clear();
+            }
             on:dragend=move |_: DragEvent| drag.clear()
         >
-            <span
-                class="pointer-events-none absolute inset-x-0 top-[-1px] z-10 h-px bg-[#e2a340]"
-                class=("hidden", move || !drag.is_drop_target(index.get()))
-                aria-hidden="true"
-            ></span>
+            <DropIndicator drag target=Signal::derive(move || index.get()) />
             <span class=GUTTER>{move || position(index.get())}</span>
             <div class="grid min-w-0 py-[.15rem]">
                 <label class="sr-only" for=move || field_id("technology", index.get())>
@@ -452,7 +395,7 @@ fn LinkLine(
     index: ReadSignal<usize>,
     row: LinkRow,
     rejection: SaveRejection,
-    drag: DragState,
+    drag: DragState<usize>,
 ) -> impl IntoView {
     let label_message =
         move || rejection.message_for(RejectedLine::LinkLabel(line_number(index.get())));
@@ -463,19 +406,24 @@ fn LinkLine(
         <div
             class=LINE
             class=("cursor-grabbing", move || {
-                drag.is_dragging(index.get())
+                drag.is_dragging(&index.get())
             })
             draggable="true"
-            on:dragstart=move |event: DragEvent| drag.start(index.get_untracked(), &event)
+            on:dragstart=move |event: DragEvent| {
+                let index = index.get_untracked();
+                drag.start(index, &index.to_string(), &event);
+            }
             on:dragover=move |event: DragEvent| drag.over(index.get_untracked(), &event)
-            on:drop=move |event: DragEvent| drag.drop(&rows, index.get_untracked(), &event)
+            on:drop=move |event: DragEvent| {
+                event.prevent_default();
+                if let Some(dragged) = drag.dragged() {
+                    rows.move_to(dragged, index.get_untracked());
+                }
+                drag.clear();
+            }
             on:dragend=move |_: DragEvent| drag.clear()
         >
-            <span
-                class="pointer-events-none absolute inset-x-0 top-[-1px] z-10 h-px bg-[#e2a340]"
-                class=("hidden", move || !drag.is_drop_target(index.get()))
-                aria-hidden="true"
-            ></span>
+            <DropIndicator drag target=Signal::derive(move || index.get()) />
             <span class=GUTTER>{move || position(index.get())}</span>
             <div class="grid min-w-0 py-[.15rem]">
                 <label class="sr-only" for=move || field_id("link-label", index.get())>
@@ -602,7 +550,7 @@ where
 fn AddLine<T, Add>(
     label: &'static str,
     rows: RowList<T>,
-    drag: DragState,
+    drag: DragState<usize>,
     on_add: Add,
 ) -> impl IntoView
 where
@@ -618,14 +566,16 @@ where
             class="relative grid w-full cursor-pointer grid-cols-[3.4ch_minmax(0,1fr)] items-stretch gap-x-[.8ch] border-0 border-t border-dashed border-[#1e2126] bg-transparent pr-[.45rem] text-left font-[inherit] text-[12px] text-[#8b939d] hover:text-[#e2a340]"
             on:click=move |_: ev::MouseEvent| on_add()
             on:dragover=move |event: DragEvent| drag.over(total.get_untracked(), &event)
-            on:drop=move |event: DragEvent| drag.drop(&rows, total.get_untracked(), &event)
+            on:drop=move |event: DragEvent| {
+                event.prevent_default();
+                if let Some(dragged) = drag.dragged() {
+                    rows.move_to(dragged, total.get_untracked());
+                }
+                drag.clear();
+            }
             on:dragend=move |_: DragEvent| drag.clear()
         >
-            <span
-                class="pointer-events-none absolute inset-x-0 top-[-1px] z-10 h-px bg-[#e2a340]"
-                class=("hidden", move || !drag.is_drop_target(total.get()))
-                aria-hidden="true"
-            ></span>
+            <DropIndicator drag target=total />
             <span class=GUTTER>"+"</span>
             <span class="inline-flex items-center gap-[.8ch] py-[.5rem]">{label}</span>
         </button>

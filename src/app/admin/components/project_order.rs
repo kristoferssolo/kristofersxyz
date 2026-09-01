@@ -10,7 +10,7 @@
 //! Project that cannot move that way renders its button disabled, server-side
 //! included. Dragging a row is also available after the page has hydrated.
 
-use super::{EntryIcon, Icon, NAVIGATION_LINK, NewProjectLink};
+use super::{DragState, DropIndicator, EntryIcon, Icon, NAVIGATION_LINK, NewProjectLink};
 use crate::{
     app::{
         admin::{admin_path_for_slug, server_functions::MoveProject},
@@ -71,6 +71,15 @@ impl ProjectOrder {
             movement: ProjectMove::ToPlaceOf(onto).to_string(),
         });
     }
+
+    fn drag_to_end(self, slug: &ProjectSlug) {
+        self.pressed
+            .set(Some(control_id(Place::Rail, &ProjectMove::Up, slug)));
+        self.action.dispatch(MoveProject {
+            slug: slug.to_string(),
+            movement: ProjectMove::ToEnd.to_string(),
+        });
+    }
 }
 
 /// Which surface a control belongs to, so the rail and the heading stepper can
@@ -102,7 +111,9 @@ pub fn provide_project_order(portfolio: Portfolio) {
 #[component]
 pub fn ProjectRail(active: String) -> impl IntoView {
     let portfolio = expect_context::<Portfolio>();
-    let dragged = RwSignal::new(None::<ProjectSlug>);
+    let drag = DragState::<ProjectSlug>::new();
+    let total = Signal::derive(move || portfolio.current().projects.len());
+    let order = ProjectOrder::expect();
 
     view! {
         <p class="mt-8 mb-[.8rem] text-[10px] tracking-[.2em] text-[#767d87] uppercase">"Projects"</p>
@@ -113,18 +124,35 @@ pub fn ProjectRail(active: String) -> impl IntoView {
                     .current()
                     .projects
                     .into_iter()
-                    .map(|project| {
+                    .enumerate()
+                    .map(|(target, project)| {
                         view! {
                             <ProjectRailRow
                                 active=active.clone()
                                 slug=project.slug
                                 title=project.title
-                                dragged
+                                target
+                                drag
                             />
                         }
                     })
                     .collect_view()
             }}
+            <li
+                class="relative h-[.8rem]"
+                aria-hidden="true"
+                on:dragover=move |event: DragEvent| drag.over(total.get_untracked(), &event)
+                on:drop=move |event: DragEvent| {
+                    event.prevent_default();
+                    if let Some(held) = drag.dragged() {
+                        order.drag_to_end(&held);
+                    }
+                    drag.clear();
+                }
+                on:dragend=move |_: DragEvent| drag.clear()
+            >
+                <DropIndicator drag target=total />
+            </li>
         </ul>
         <p class="mb-2 text-[11px] leading-[1.5] text-[#767d87]">
             "Drag a project onto the place you want it, or use the move buttons."
@@ -138,7 +166,8 @@ fn ProjectRailRow(
     active: String,
     slug: ProjectSlug,
     title: String,
-    dragged: RwSignal<Option<ProjectSlug>>,
+    target: usize,
+    drag: DragState<ProjectSlug>,
 ) -> impl IntoView {
     let order = ProjectOrder::expect();
     let href = admin_path_for_slug(&slug);
@@ -150,37 +179,34 @@ fn ProjectRailRow(
 
     view! {
         <li
-            class="flex cursor-grab items-center justify-between gap-[1ch]"
+            class="relative flex cursor-grab items-center justify-between gap-[1ch]"
             class=(
                 "cursor-grabbing",
-                move || dragged.get().is_some_and(|held| held == dragging_slug),
+                move || drag.is_dragging(&dragging_slug),
             )
             class=(
                 "bg-[#0b0e11]",
-                move || dragged.get().is_some_and(|held| held == row_slug),
+                move || drag.is_dragging(&row_slug),
             )
             draggable="true"
             on:dragstart=move |event: DragEvent| {
-                if let Some(transfer) = event.data_transfer() {
-                    transfer.set_effect_allowed("move");
-                    let _ = transfer.set_data("text/plain", start_slug.as_str());
-                }
-                dragged.set(Some(start_slug.clone()));
+                drag.start(start_slug.clone(), start_slug.as_str(), &event);
             }
             on:dragover=move |event: DragEvent| {
-                event.prevent_default();
+                drag.over(target, &event);
             }
             on:drop=move |event: DragEvent| {
                 event.prevent_default();
-                if let Some(held) = dragged.get_untracked()
+                if let Some(held) = drag.dragged()
                     && held != drop_slug
                 {
                     order.drag(&held, drop_slug.clone());
                 }
-                dragged.set(None);
+                drag.clear();
             }
-            on:dragend=move |_: DragEvent| dragged.set(None)
+            on:dragend=move |_: DragEvent| drag.clear()
         >
+            <DropIndicator drag target=Signal::derive(move || target) />
             <span class="inline-flex text-[#4c525a]" aria-hidden="true">
                 <GripVertical size=14 />
             </span>
@@ -313,6 +339,7 @@ fn control_id(place: Place, movement: &ProjectMove, slug: &ProjectSlug) -> Strin
         ProjectMove::Up => "up",
         ProjectMove::Down => "down",
         ProjectMove::ToPlaceOf(_) => "place",
+        ProjectMove::ToEnd => "end",
     };
     format!("{}-move-{direction}-{slug}", place.as_str())
 }
