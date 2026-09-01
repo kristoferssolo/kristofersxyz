@@ -1,0 +1,21 @@
+{
+  "db_name": "SQLite",
+  "query": "\nSELECT\n    EXISTS (\n        SELECT\n            1\n        FROM\n            project\n        WHERE\n            slug = ?1\n    ) AS \"taken!\"\n    ",
+  "describe": {
+    "columns": [
+      {
+        "name": "taken!",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c80f260db4e9aa60ed485f02ea6dc0934f1e120f0ac1390109401501727b2a44"
+}
