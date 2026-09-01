@@ -450,4 +450,22 @@ mod page_tests {
             "/work/traxor".to_owned()
         );
     }
+
+    #[test]
+    fn number_keys_and_search_follow_the_stored_project_order() {
+        let mut content = portfolio_content();
+        content.projects.swap(0, 1);
+        let buffer = Buffer::from_content(&content);
+
+        assert_some_eq!(
+            buffer.by_number(2).map(|selection| selection.entry.path()),
+            "/work/traxor".to_owned()
+        );
+        assert_some_eq!(
+            buffer
+                .search(&EntryId::Profile, "rust")
+                .map(|hit| hit.selection.entry.path()),
+            "/work/traxor".to_owned()
+        );
+    }
 }
