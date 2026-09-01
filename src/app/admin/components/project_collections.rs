@@ -131,7 +131,7 @@ impl DragState {
 
     fn drop<T: Clone + Send + Sync + 'static>(
         self,
-        rows: RowList<T>,
+        rows: &RowList<T>,
         index: usize,
         event: &DragEvent,
     ) {
@@ -176,31 +176,31 @@ impl<T: Clone + Send + Sync + 'static> RowList<T> {
         id
     }
 
-    fn len(self) -> usize {
+    fn len(&self) -> usize {
         self.rows.with(Vec::len)
     }
 
-    fn has_rows(self) -> bool {
+    fn has_rows(&self) -> bool {
         !self.rows.with(Vec::is_empty)
     }
 
-    fn append(self, row: T) {
+    fn append(&self, row: T) {
         self.rows.update(|rows| rows.push(row));
     }
 
-    fn remove(self, index: usize) {
+    fn remove(&self, index: usize) {
         self.rows.update(|rows| remove_row(rows, index));
     }
 
-    fn move_up(self, index: usize) {
+    fn move_up(&self, index: usize) {
         self.rows.update(|rows| move_up(rows, index));
     }
 
-    fn move_down(self, index: usize) {
+    fn move_down(&self, index: usize) {
         self.rows.update(|rows| move_down(rows, index));
     }
 
-    fn move_to(self, index: usize, target: usize) {
+    fn move_to(&self, index: usize, target: usize) {
         self.rows.update(|rows| move_to(rows, index, target));
     }
 }
@@ -226,7 +226,7 @@ const fn move_down<T>(rows: &mut [T], index: usize) {
 
 /// Moves a row immediately before the row it was dropped on.
 fn move_to<T>(rows: &mut Vec<T>, index: usize, target: usize) {
-    if index == target || index >= rows.len() || target >= rows.len() {
+    if index == target || index >= rows.len() || target > rows.len() {
         return;
     }
 
@@ -302,6 +302,8 @@ pub fn ProjectCollections(
                 </Show>
                 <AddLine
                     label="add technology"
+                    rows=technology_rows
+                    drag=technology_drag
                     on_add=move || {
                         technology_rows
                             .append(TechnologyRow {
@@ -335,6 +337,8 @@ pub fn ProjectCollections(
                 </Show>
                 <AddLine
                     label="add link"
+                    rows=link_rows
+                    drag=link_drag
                     on_add=move || {
                         link_rows
                             .append(LinkRow {
@@ -403,7 +407,7 @@ fn TechnologyLine(
             draggable="true"
             on:dragstart=move |event: DragEvent| drag.start(index.get_untracked(), &event)
             on:dragover=move |event: DragEvent| drag.over(index.get_untracked(), &event)
-            on:drop=move |event: DragEvent| drag.drop(rows, index.get_untracked(), &event)
+            on:drop=move |event: DragEvent| drag.drop(&rows, index.get_untracked(), &event)
             on:dragend=move |_: DragEvent| drag.clear()
         >
             <span
@@ -464,7 +468,7 @@ fn LinkLine(
             draggable="true"
             on:dragstart=move |event: DragEvent| drag.start(index.get_untracked(), &event)
             on:dragover=move |event: DragEvent| drag.over(index.get_untracked(), &event)
-            on:drop=move |event: DragEvent| drag.drop(rows, index.get_untracked(), &event)
+            on:drop=move |event: DragEvent| drag.drop(&rows, index.get_untracked(), &event)
             on:dragend=move |_: DragEvent| drag.clear()
         >
             <span
@@ -592,18 +596,36 @@ where
     }
 }
 
-/// The ghost line that appends an empty row to a buffer.
+/// The line that appends an empty row to a buffer, and the drop target after
+/// the collection's final row.
 #[component]
-fn AddLine<Add>(label: &'static str, on_add: Add) -> impl IntoView
+fn AddLine<T, Add>(
+    label: &'static str,
+    rows: RowList<T>,
+    drag: DragState,
+    on_add: Add,
+) -> impl IntoView
 where
+    T: Clone + Send + Sync + 'static,
     Add: Fn() + 'static,
 {
+    let total_rows = rows.clone();
+    let total = Signal::derive(move || total_rows.len());
+
     view! {
         <button
             type="button"
-            class="grid w-full cursor-pointer grid-cols-[3.4ch_minmax(0,1fr)] items-stretch gap-x-[.8ch] border-0 border-t border-dashed border-[#1e2126] bg-transparent pr-[.45rem] text-left font-[inherit] text-[12px] text-[#8b939d] hover:text-[#e2a340]"
+            class="relative grid w-full cursor-pointer grid-cols-[3.4ch_minmax(0,1fr)] items-stretch gap-x-[.8ch] border-0 border-t border-dashed border-[#1e2126] bg-transparent pr-[.45rem] text-left font-[inherit] text-[12px] text-[#8b939d] hover:text-[#e2a340]"
             on:click=move |_: ev::MouseEvent| on_add()
+            on:dragover=move |event: DragEvent| drag.over(total.get_untracked(), &event)
+            on:drop=move |event: DragEvent| drag.drop(&rows, total.get_untracked(), &event)
+            on:dragend=move |_: DragEvent| drag.clear()
         >
+            <span
+                class="pointer-events-none absolute inset-x-0 top-[-1px] z-10 h-px bg-[#e2a340]"
+                class=("hidden", move || !drag.is_drop_target(total.get()))
+                aria-hidden="true"
+            ></span>
             <span class=GUTTER>"+"</span>
             <span class="inline-flex items-center gap-[.8ch] py-[.5rem]">{label}</span>
         </button>
@@ -672,6 +694,18 @@ mod tests {
 
         move_to(&mut rows, 2, 0);
         assert_eq!(rows, [3, 2, 1]);
+    }
+
+    #[test]
+    fn dropping_a_line_on_the_add_row_moves_it_to_the_end() {
+        let mut rows = lines();
+        let end = rows.len();
+        move_to(&mut rows, 0, end);
+        assert_eq!(rows, [2, 3, 1]);
+
+        let end = rows.len();
+        move_to(&mut rows, 2, end);
+        assert_eq!(rows, [2, 3, 1]);
     }
 
     #[test]
