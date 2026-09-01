@@ -1,3 +1,6 @@
+mod screenshots;
+
+use self::screenshots::ScreenshotFigures;
 use crate::{
     app::{
         content::Portfolio,
@@ -73,21 +76,14 @@ fn ProjectReader(project: Project) -> impl IntoView {
                             inner_html=description
                         ></div>
 
+                        <ScreenshotFigures screenshots=project.screenshots />
+
                         <ProjectSequence projects=content.projects current=project.slug.clone() />
                     </div>
 
                     <aside class="border-t border-[#1e2126] pt-6 xl:border-t-0 xl:pt-1">
                         <TechnologyList technologies=project.technologies />
                         <ProjectLinkList links=project.links />
-
-                        <div class="mt-9 border-t border-[#1e2126] pt-5">
-                            <p class="text-[10px] tracking-[0.2em] text-[#59616a] uppercase">
-                                "Evidence"
-                            </p>
-                            <p class="mt-3 font-sans text-[13px] leading-[1.6] text-[#7f8892]">
-                                "Description, system shape, implementation decisions, and source."
-                            </p>
-                        </div>
                     </aside>
                 </div>
             </article>

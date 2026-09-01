@@ -1975,7 +1975,7 @@ async fn stored_screenshots(database: &NamedTempFile, slug: &str) -> Vec<Project
 
 /// Stores a screenshot without going through the editor, for the tests that
 /// need one to already exist.
-async fn given_screenshot(database: &NamedTempFile, slug: &str, alt: &str) {
+async fn given_screenshot(database: &NamedTempFile, slug: &str, alt: &str, caption: Option<&str>) {
     let pool = db::connect(&format!("sqlite://{}", database.path().display()))
         .await
         .expect("connect to the test database");
@@ -1987,7 +1987,9 @@ async fn given_screenshot(database: &NamedTempFile, slug: &str, alt: &str) {
         ScreenshotSize::try_from((1600, 1000)).expect("the test size is valid"),
         &alt.parse::<ScreenshotAltText>()
             .expect("the test alternative text is valid"),
-        None,
+        caption
+            .map(|caption| caption.parse().expect("the test caption is valid"))
+            .as_ref(),
     )
     .await
     .expect("store the screenshot");
@@ -2130,7 +2132,7 @@ async fn an_upload_without_alternative_text_is_refused() {
 #[tokio::test]
 async fn screenshot_changes_require_an_owner_session() {
     let (router, database) = app_with_owner().await;
-    given_screenshot(&database, "traxor", "Queue").await;
+    given_screenshot(&database, "traxor", "Queue", None).await;
     let id = stored_screenshots(&database, "traxor").await[0]
         .id
         .to_string();
@@ -2179,10 +2181,10 @@ async fn screenshot_changes_require_an_owner_session() {
 /// An application whose portfolio already holds these screenshots. The server
 /// renders from content loaded at startup, so they have to be stored before it
 /// is built.
-async fn app_holding_screenshots(alts: &[&str]) -> (Router, NamedTempFile) {
+async fn app_holding_screenshots(screenshots: &[(&str, Option<&str>)]) -> (Router, NamedTempFile) {
     let (_, database) = app_with_owner().await;
-    for alt in alts {
-        given_screenshot(&database, "traxor", alt).await;
+    for (alt, caption) in screenshots {
+        given_screenshot(&database, "traxor", alt, *caption).await;
     }
     let state = ApplicationState::new(&settings_for(&database))
         .await
@@ -2193,7 +2195,7 @@ async fn app_holding_screenshots(alts: &[&str]) -> (Router, NamedTempFile) {
 #[tokio::test]
 async fn the_project_editor_lists_its_screenshots_with_reachable_controls() {
     let (router, database) =
-        app_holding_screenshots(&["The transfer queue", "A single transfer"]).await;
+        app_holding_screenshots(&[("The transfer queue", None), ("A single transfer", None)]).await;
     let stored = stored_screenshots(&database, "traxor").await;
     let cookie = sign_in(&router).await;
 
@@ -2250,4 +2252,68 @@ async fn a_project_without_screenshots_offers_only_the_upload_control() {
     assert!(body.contains("No screenshots yet."));
     assert!(!body.contains("Move screenshot 01 up"));
     assert!(body.contains("/api/upload_project_screenshot"));
+}
+
+#[tokio::test]
+async fn the_project_detail_renders_its_screenshots_as_figures() {
+    let (router, database) = app_holding_screenshots(&[
+        (
+            "traxor listing four transfers in a terminal.",
+            Some("The queue, ratios, and peers in one keyboard-driven view."),
+        ),
+        ("A single transfer, expanded to its file list.", None),
+    ])
+    .await;
+    let stored = stored_screenshots(&database, "traxor").await;
+
+    let body = body_text(
+        router
+            .oneshot(get_request("/work/traxor", None))
+            .await
+            .expect("send the detail request"),
+    )
+    .await;
+
+    // Stored order is reader order.
+    assert!(appears_before(
+        &body,
+        &stored[0].media_path(),
+        &stored[1].media_path()
+    ));
+
+    let first = element_with(&body, &stored[0].media_path());
+    assert!(first.contains(r#"alt="traxor listing four transfers in a terminal.""#));
+    assert!(first.contains(r#"width="1600""#));
+    assert!(first.contains(r#"height="1000""#));
+    // The first figure is the one likely to be on screen already.
+    assert!(!first.contains("loading=\"lazy\""));
+
+    let second = element_with(&body, &stored[1].media_path());
+    assert!(second.contains("loading=\"lazy\""));
+    assert!(second.contains("decoding=\"async\""));
+
+    assert!(body.contains("<figure"));
+    assert!(body.contains("<figcaption"));
+    assert!(body.contains("The queue, ratios, and peers in one keyboard-driven view."));
+    // A screenshot without a caption renders none.
+    assert_eq!(body.matches("<figcaption").count(), 1);
+}
+
+/// Evidence that does not exist gets no heading and no placeholder standing in
+/// for it.
+#[tokio::test]
+async fn a_project_without_screenshots_renders_no_screenshot_section() {
+    let (router, _database) = app_with_owner().await;
+
+    let body = body_text(
+        router
+            .oneshot(get_request("/work/traxor", None))
+            .await
+            .expect("send the detail request"),
+    )
+    .await;
+
+    assert!(body.contains("Terminal UI for managing Transmission torrents"));
+    assert!(!body.contains("Screenshots"));
+    assert!(!body.contains("<figure"));
 }
