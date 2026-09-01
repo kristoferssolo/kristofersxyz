@@ -2,9 +2,9 @@
 //!
 //! Both collections are edited as numbered lines in the rail beside the
 //! Project Description. Every line carries its position and the three actions
-//! that change it: move up, move down, and remove. Ordering is by button
-//! rather than by dragging, so a pointer, a keyboard, and assistive technology
-//! all reach it the same way.
+//! that change it: move up, move down, and remove. Rows can also be dragged
+//! directly; the buttons remain available as the keyboard and assistive
+//! technology fallback.
 //!
 //! Each line owns the signal behind its own field, so typing never re-renders
 //! the list and a move never costs the Owner their focus or their text. Field
@@ -14,7 +14,7 @@
 
 use super::super::error::AdminError;
 use crate::domain::{ProjectLinks, ProjectTechnologies};
-use leptos::{ev, prelude::*};
+use leptos::{ev, prelude::*, web_sys::DragEvent};
 use lucide_leptos::{ChevronDown, ChevronUp, Trash2};
 
 /// Which line the last save rejected, so the editor can mark it and repeat the
@@ -87,8 +87,9 @@ struct LinkRow {
 
 /// The rows of one ordered collection and the moves its buttons perform.
 ///
-/// Every move is a swap between two occupied positions, so no action can lose,
-/// duplicate, or reorder anything the Owner did not ask for.
+/// Button moves swap two occupied positions; a drag inserts the row before its
+/// target. No action can lose, duplicate, or reorder anything the Owner did not
+/// ask for.
 #[derive(Clone, Copy)]
 struct RowList<T: Send + Sync + 'static> {
     rows: RwSignal<Vec<T>>,
@@ -135,6 +136,10 @@ impl<T: Clone + Send + Sync + 'static> RowList<T> {
     fn move_down(self, index: usize) {
         self.rows.update(|rows| move_down(rows, index));
     }
+
+    fn move_to(self, index: usize, target: usize) {
+        self.rows.update(|rows| move_to(rows, index, target));
+    }
 }
 
 /// Swaps the row at `index` with the one above it. A move off either end of
@@ -156,6 +161,21 @@ const fn move_down<T>(rows: &mut [T], index: usize) {
     }
 }
 
+/// Moves a row immediately before the row it was dropped on.
+fn move_to<T>(rows: &mut Vec<T>, index: usize, target: usize) {
+    if index == target || index >= rows.len() || target >= rows.len() {
+        return;
+    }
+
+    let row = rows.remove(index);
+    let insertion = if index < target {
+        target.saturating_sub(1)
+    } else {
+        target
+    };
+    rows.insert(insertion, row);
+}
+
 /// Drops the row at `index`, leaving the rows around it in their order.
 fn remove_row<T>(rows: &mut Vec<T>, index: usize) {
     if index < rows.len() {
@@ -170,6 +190,8 @@ pub fn ProjectCollections(
     links: ProjectLinks,
     rejection: SaveRejection,
 ) -> impl IntoView {
+    let technology_dragged = RwSignal::new(None::<usize>);
+    let link_dragged = RwSignal::new(None::<usize>);
     let technology_rows = RowList::new(
         technologies
             .into_iter()
@@ -211,7 +233,7 @@ pub fn ProjectCollections(
                         each=move || technology_rows.rows.get()
                         key=|row: &TechnologyRow| row.id
                         children=move |index, row| {
-                            view! { <TechnologyLine rows=technology_rows index row rejection /> }
+                            view! { <TechnologyLine rows=technology_rows index row rejection dragged=technology_dragged /> }
                         }
                     />
                 </Show>
@@ -244,7 +266,7 @@ pub fn ProjectCollections(
                         each=move || link_rows.rows.get()
                         key=|row: &LinkRow| row.id
                         children=move |index, row| {
-                            view! { <LinkLine rows=link_rows index row rejection /> }
+                            view! { <LinkLine rows=link_rows index row rejection dragged=link_dragged /> }
                         }
                     />
                 </Show>
@@ -290,7 +312,7 @@ fn EmptyBuffer(children: Children) -> impl IntoView {
 }
 
 const LINE: &str = "grid grid-cols-[3.4ch_minmax(0,1fr)_auto] items-stretch gap-x-[.8ch] \
-    border-b border-[#101317] pr-[.45rem] last:border-b-0";
+    cursor-grab border-b border-[#101317] pr-[.45rem] last:border-b-0";
 const GUTTER: &str = "flex items-center justify-end border-r border-[#1a1d21] py-[.3rem] \
     pr-[.7ch] pl-[.5rem] text-[11px] text-[#3f454d]";
 const FIELD: &str = "m-0 w-full border-0 border-b border-transparent bg-transparent px-[.25rem] \
@@ -305,11 +327,34 @@ fn TechnologyLine(
     index: ReadSignal<usize>,
     row: TechnologyRow,
     rejection: SaveRejection,
+    dragged: RwSignal<Option<usize>>,
 ) -> impl IntoView {
     let message = move || rejection.message_for(RejectedLine::Technology(line_number(index.get())));
 
     view! {
-        <div class=LINE>
+        <div
+            class=LINE
+            class=("cursor-grabbing", move || {
+                dragged.get().is_some_and(|held| held == index.get())
+            })
+            draggable="true"
+            on:dragstart=move |event: DragEvent| {
+                if let Some(transfer) = event.data_transfer() {
+                    transfer.set_effect_allowed("move");
+                    let _ = transfer.set_data("text/plain", &index.get_untracked().to_string());
+                }
+                dragged.set(Some(index.get_untracked()));
+            }
+            on:dragover=move |event: DragEvent| event.prevent_default()
+            on:drop=move |event: DragEvent| {
+                event.prevent_default();
+                if let Some(held) = dragged.get_untracked() {
+                    rows.move_to(held, index.get_untracked());
+                }
+                dragged.set(None);
+            }
+            on:dragend=move |_: DragEvent| dragged.set(None)
+        >
             <span class=GUTTER>{move || position(index.get())}</span>
             <div class="grid min-w-0 py-[.15rem]">
                 <label class="sr-only" for=move || field_id("technology", index.get())>
@@ -347,6 +392,7 @@ fn LinkLine(
     index: ReadSignal<usize>,
     row: LinkRow,
     rejection: SaveRejection,
+    dragged: RwSignal<Option<usize>>,
 ) -> impl IntoView {
     let label_message =
         move || rejection.message_for(RejectedLine::LinkLabel(line_number(index.get())));
@@ -354,7 +400,29 @@ fn LinkLine(
         move || rejection.message_for(RejectedLine::LinkUrl(line_number(index.get())));
 
     view! {
-        <div class=LINE>
+        <div
+            class=LINE
+            class=("cursor-grabbing", move || {
+                dragged.get().is_some_and(|held| held == index.get())
+            })
+            draggable="true"
+            on:dragstart=move |event: DragEvent| {
+                if let Some(transfer) = event.data_transfer() {
+                    transfer.set_effect_allowed("move");
+                    let _ = transfer.set_data("text/plain", &index.get_untracked().to_string());
+                }
+                dragged.set(Some(index.get_untracked()));
+            }
+            on:dragover=move |event: DragEvent| event.prevent_default()
+            on:drop=move |event: DragEvent| {
+                event.prevent_default();
+                if let Some(held) = dragged.get_untracked() {
+                    rows.move_to(held, index.get_untracked());
+                }
+                dragged.set(None);
+            }
+            on:dragend=move |_: DragEvent| dragged.set(None)
+        >
             <span class=GUTTER>{move || position(index.get())}</span>
             <div class="grid min-w-0 py-[.15rem]">
                 <label class="sr-only" for=move || field_id("link-label", index.get())>
@@ -545,6 +613,16 @@ mod tests {
         let mut rows = lines();
         remove_row(&mut rows, 1);
         assert_eq!(rows, [1, 3]);
+    }
+
+    #[test]
+    fn dropping_a_line_moves_it_before_the_target() {
+        let mut rows = lines();
+        move_to(&mut rows, 0, 2);
+        assert_eq!(rows, [2, 1, 3]);
+
+        move_to(&mut rows, 2, 0);
+        assert_eq!(rows, [3, 2, 1]);
     }
 
     #[test]
