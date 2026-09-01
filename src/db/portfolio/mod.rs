@@ -71,16 +71,16 @@ pub async fn load(pool: &DbPool) -> Result<PortfolioContent, LoadError> {
     let site = sqlx::query_as!(
         Site,
         r#"
-SELECT
-    url,
-    title,
-    description,
-    og_image
-FROM
-    site
-WHERE
-    id = 1
-    "#,
+        SELECT
+            url,
+            title,
+            description,
+            og_image
+        FROM
+            site
+        WHERE
+            id = 1
+        "#,
     )
     .fetch_one(pool)
     .await?;
@@ -88,14 +88,14 @@ WHERE
     let contact = sqlx::query_as!(
         Contact,
         r#"
-SELECT
-    name,
-    body
-FROM
-    contact
-WHERE
-    id = 1
-    "#
+        SELECT
+            name,
+            body
+        FROM
+            contact
+        WHERE
+            id = 1
+        "#
     )
     .fetch_one(pool)
     .await?;
@@ -114,29 +114,29 @@ async fn load_profile(pool: &DbPool) -> Result<Profile, LoadError> {
     let profile = sqlx::query_as!(
         ProfileRow,
         r#"
-SELECT
-    name,
-    title,
-    summary,
-    about,
-    email
-FROM
-    profile
-WHERE
-    id = 1
-    "#,
+        SELECT
+            name,
+            title,
+            summary,
+            about,
+            email
+        FROM
+            profile
+        WHERE
+            id = 1
+        "#,
     )
     .fetch_one(pool)
     .await?;
 
     let technologies = sqlx::query_scalar!(
         r#"
-SELECT
-    item
-FROM
-    profile_technology
-ORDER BY
-    sort_order
+        SELECT
+            item
+        FROM
+            profile_technology
+        ORDER BY
+            sort_order
     "#
     )
     .fetch_all(pool)
@@ -145,14 +145,14 @@ ORDER BY
     let working_style = sqlx::query_as!(
         FocusArea,
         r#"
-SELECT
-    label,
-    detail
-FROM
-    working_principle
-ORDER BY
-    sort_order
-    "#,
+        SELECT
+            label,
+            detail
+        FROM
+            working_principle
+        ORDER BY
+            sort_order
+        "#,
     )
     .fetch_all(pool)
     .await?;
@@ -160,15 +160,15 @@ ORDER BY
     let links = sqlx::query_as!(
         SocialLink,
         r#"
-SELECT
-    label,
-    href,
-    rel
-FROM
-    social_link
-ORDER BY
-    sort_order
-    "#,
+        SELECT
+            label,
+            href,
+            rel
+        FROM
+            social_link
+        ORDER BY
+            sort_order
+        "#,
     )
     .fetch_all(pool)
     .await?;
@@ -256,17 +256,17 @@ pub async fn set_profile(
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
-UPDATE
-    profile
-SET
-    name = ?1,
-    title = ?2,
-    summary = ?3,
-    about = ?4,
-    email = ?5
-WHERE
-    id = 1
-    "#,
+        UPDATE
+            profile
+        SET
+            name = ?1,
+            title = ?2,
+            summary = ?3,
+            about = ?4,
+            email = ?5
+        WHERE
+            id = 1
+        "#,
         name,
         title,
         summary,
@@ -287,14 +287,14 @@ WHERE
 pub async fn set_contact(pool: &DbPool, name: &str, body: &str) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
-UPDATE
-    contact
-SET
-    name = ?1,
-    body = ?2
-WHERE
-    id = 1
-    "#,
+        UPDATE
+            contact
+        SET
+            name = ?1,
+            body = ?2
+        WHERE
+            id = 1
+        "#,
         name,
         body
     )
@@ -318,16 +318,16 @@ pub async fn set_site(
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
-UPDATE
-    site
-SET
-    url = ?1,
-    title = ?2,
-    description = ?3,
-    og_image = ?4
-WHERE
-    id = 1
-    "#,
+        UPDATE
+            site
+        SET
+            url = ?1,
+            title = ?2,
+            description = ?3,
+            og_image = ?4
+        WHERE
+            id = 1
+        "#,
         url,
         title,
         description,

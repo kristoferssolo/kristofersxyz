@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE\n            project\n        SET\n            sort_order = -id\n    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "049f71a9184c808bbea8bec0935d499938df8fae9559bc4e45300991fd62d0c2"
+}

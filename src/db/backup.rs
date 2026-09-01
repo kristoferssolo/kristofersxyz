@@ -50,8 +50,8 @@ pub async fn back_up(pool: &DbPool, destination: &Path) -> Result<(), BackupErro
 
     sqlx::query!(
         r#"
-VACUUM INTO ?1
-    "#,
+        VACUUM INTO ?1
+        "#,
         destination
     )
     .execute(pool)
@@ -78,9 +78,9 @@ pub async fn prepare_restored(pool: &DbPool) -> Result<RestoreReport, BackupErro
 
     let revoked = sqlx::query!(
         r#"
-DELETE FROM
-    sessions
-    "#
+        DELETE FROM
+            sessions
+        "#
     )
     .execute(pool)
     .await?;
@@ -95,8 +95,8 @@ DELETE FROM
 async fn ensure_intact(pool: &DbPool) -> Result<(), BackupError> {
     let report: Vec<String> = sqlx::query_scalar!(
         r#"
-PRAGMA integrity_check
-    "#
+        PRAGMA integrity_check
+        "#
     )
     .fetch_all(pool)
     .await?
@@ -131,10 +131,10 @@ mod tests {
         assert_ok!(seed_if_empty(&pool).await);
         sqlx::query!(
             r#"
-INSERT INTO
-    sessions (id, data, expiry_date)
-VALUES
-    ('live', '{}', 4102444800)
+            INSERT INTO
+                sessions (id, data, expiry_date)
+            VALUES
+                ('live', '{}', 4102444800)
             "#
         )
         .execute(&pool)
@@ -175,10 +175,10 @@ VALUES
         assert_eq!(report.revoked_sessions, 1);
         let sessions = sqlx::query_scalar!(
             r#"
-SELECT
-    COUNT(*)
-FROM
-    sessions
+            SELECT
+                COUNT(*)
+            FROM
+                sessions
             "#
         )
         .fetch_one(&restored)

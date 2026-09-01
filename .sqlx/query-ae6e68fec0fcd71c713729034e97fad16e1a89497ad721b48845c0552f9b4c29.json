@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO\n                project_technology (project_id, item, sort_order)\n            VALUES\n                (?1, ?2, ?3)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "ae6e68fec0fcd71c713729034e97fad16e1a89497ad721b48845c0552f9b4c29"
+}

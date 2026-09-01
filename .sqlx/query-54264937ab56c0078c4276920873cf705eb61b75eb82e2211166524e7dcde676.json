@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            name,\n            body\n        FROM\n            contact\n        WHERE\n            id = 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "name",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contact",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "name": "body",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contact",
+            "name": "body"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "54264937ab56c0078c4276920873cf705eb61b75eb82e2211166524e7dcde676"
+}

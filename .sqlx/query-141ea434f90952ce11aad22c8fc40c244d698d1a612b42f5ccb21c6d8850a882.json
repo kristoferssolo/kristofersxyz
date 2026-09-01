@@ -1,0 +1,21 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                COUNT(*)\n            FROM\n                sessions\n            WHERE\n                id = ?1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "COUNT(*)",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "141ea434f90952ce11aad22c8fc40c244d698d1a612b42f5ccb21c6d8850a882"
+}

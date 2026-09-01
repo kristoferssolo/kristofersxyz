@@ -80,13 +80,13 @@ pub async fn validate_credentials(
     if let Some(replacement) = replacement {
         sqlx::query!(
             r#"
-UPDATE
-    users
-SET
-    password_hash = ?1
-WHERE
-    user_id = ?2
-    AND password_hash = ?3
+            UPDATE
+                users
+            SET
+                password_hash = ?1
+            WHERE
+                user_id = ?2
+                AND password_hash = ?3
         "#,
             replacement.expose_secret(),
             owner_id.to_string(),
@@ -117,14 +117,14 @@ async fn get_stored_credentials(
 ) -> Result<Option<(OwnerId, PasswordHash)>, AuthError> {
     let row = sqlx::query!(
         r#"
-SELECT
-    user_id,
-    password_hash
-FROM
-    users
-WHERE
-    username = ?1
-    "#,
+        SELECT
+            user_id,
+            password_hash
+        FROM
+            users
+        WHERE
+            username = ?1
+        "#,
         username.as_str()
     )
     .fetch_optional(pool)
@@ -158,15 +158,15 @@ mod tests {
         let hash = compute_password_hash(&password);
         sqlx::query!(
             r#"
-INSERT INTO
-    users (
-        user_id,
-        username,
-        password_hash,
-        session_version
-    )
-VALUES
-    (?1, ?2, ?3, ?4)
+            INSERT INTO
+                users (
+                    user_id,
+                    username,
+                    password_hash,
+                    session_version
+                )
+            VALUES
+                (?1, ?2, ?3, ?4)
         "#,
             id.to_string(),
             username,
@@ -219,12 +219,12 @@ VALUES
         let old_hash = old_hash.expose_secret().to_owned();
         sqlx::query!(
             r#"
-UPDATE
-    users
-SET
-    password_hash = ?1
-WHERE
-    user_id = ?2
+            UPDATE
+                users
+            SET
+                password_hash = ?1
+            WHERE
+                user_id = ?2
         "#,
             old_hash,
             id.to_string(),
@@ -239,12 +239,12 @@ WHERE
 
         let upgraded = sqlx::query_scalar!(
             r#"
-SELECT
-    password_hash
-FROM
-    users
-WHERE
-    user_id = ?1
+            SELECT
+                password_hash
+            FROM
+                users
+            WHERE
+                user_id = ?1
         "#,
             id.to_string(),
         )

@@ -1,0 +1,21 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        PRAGMA integrity_check\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "integrity_check",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "198c428695b37be2310a536d959001a43cc52b06228806cc70e1a5c46d307c77"
+}

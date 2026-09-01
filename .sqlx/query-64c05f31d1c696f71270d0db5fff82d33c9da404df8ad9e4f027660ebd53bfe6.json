@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            project_id,\n            label,\n            href\n        FROM\n            project_link\n        ORDER BY\n            project_id,\n            sort_order\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "project_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "project_link",
+            "name": "project_id"
+          }
+        }
+      },
+      {
+        "name": "label",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "project_link",
+            "name": "label"
+          }
+        }
+      },
+      {
+        "name": "href",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "project_link",
+            "name": "href"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "64c05f31d1c696f71270d0db5fff82d33c9da404df8ad9e4f027660ebd53bfe6"
+}

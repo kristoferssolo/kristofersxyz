@@ -15,11 +15,11 @@ use super::DbPool;
 pub async fn seed_if_empty(pool: &DbPool) -> Result<(), sqlx::Error> {
     let existing = sqlx::query_scalar!(
         r#"
-SELECT
-    COUNT(*)
-FROM
-    site
-    "#
+        SELECT
+            COUNT(*)
+        FROM
+            site
+        "#
     )
     .fetch_one(pool)
     .await?;
@@ -45,10 +45,10 @@ mod tests {
 
         let projects = sqlx::query_scalar!(
             r#"
-SELECT
-    COUNT(*)
-FROM
-    project
+            SELECT
+                COUNT(*)
+            FROM
+                project
         "#
         )
         .fetch_one(&pool)
@@ -65,12 +65,12 @@ FROM
 
         sqlx::query!(
             r#"
-UPDATE
-    site
-SET
-    title = 'edited'
-WHERE
-    id = 1
+            UPDATE
+                site
+            SET
+                title = 'edited'
+            WHERE
+                id = 1
         "#
         )
         .execute(&pool)
@@ -80,12 +80,12 @@ WHERE
 
         let title = sqlx::query_scalar!(
             r#"
-SELECT
-    title
-FROM
-    site
-WHERE
-    id = 1
+            SELECT
+                title
+            FROM
+                site
+            WHERE
+                id = 1
         "#
         )
         .fetch_one(&pool)

@@ -37,10 +37,10 @@ impl SqliteSessionStore {
         let now = OffsetDateTime::now_utc().unix_timestamp();
         let result = sqlx::query!(
             r#"
-DELETE FROM
-    sessions
-WHERE
-    expiry_date <= ?1
+            DELETE FROM
+                sessions
+            WHERE
+                expiry_date <= ?1
         "#,
             now
         )
@@ -53,12 +53,12 @@ WHERE
     async fn id_taken(&self, id: &Id) -> session_store::Result<bool> {
         let count = sqlx::query_scalar!(
             r#"
-SELECT
-    COUNT(*)
-FROM
-    sessions
-WHERE
-    id = ?1
+            SELECT
+                COUNT(*)
+            FROM
+                sessions
+            WHERE
+                id = ?1
         "#,
             id.to_string()
         )
@@ -73,14 +73,15 @@ WHERE
             .map_err(|error| session_store::Error::Encode(error.to_string()))?;
         sqlx::query!(
             r#"
-INSERT INTO
-    sessions (id, data, expiry_date)
-VALUES
-    (?1, ?2, ?3) ON CONFLICT(id) DO
-UPDATE
-SET
-    data = excluded.data,
-    expiry_date = excluded.expiry_date
+            INSERT INTO
+                sessions (id, data, expiry_date)
+            VALUES
+                (?1, ?2, ?3)
+            ON CONFLICT(id) DO
+            UPDATE
+            SET
+                data = excluded.data,
+                expiry_date = excluded.expiry_date
         "#,
             record.id.to_string(),
             data,
@@ -120,13 +121,13 @@ impl SessionStore for SqliteSessionStore {
         let now = OffsetDateTime::now_utc().unix_timestamp();
         let row = sqlx::query!(
             r#"
-SELECT
-    data,
-    expiry_date
-FROM
-    sessions
-WHERE
-    id = ?1
+            SELECT
+                data,
+                expiry_date
+            FROM
+                sessions
+            WHERE
+                id = ?1
         "#,
             session_id.to_string()
         )
@@ -163,10 +164,10 @@ WHERE
     async fn delete(&self, session_id: &Id) -> session_store::Result<()> {
         sqlx::query!(
             r#"
-DELETE FROM
-    sessions
-WHERE
-    id = ?1
+            DELETE FROM
+                sessions
+            WHERE
+                id = ?1
         "#,
             session_id.to_string()
         )

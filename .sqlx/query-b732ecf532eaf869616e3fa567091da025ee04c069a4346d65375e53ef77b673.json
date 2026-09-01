@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO\n            project (slug, title, summary, description_markdown, sort_order)\n        SELECT\n            ?1,\n            ?2,\n            ?3,\n            ?4,\n            COALESCE(MAX(sort_order), 0) + 1\n        FROM\n            project\n        RETURNING\n            id AS \"id!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "project",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b732ecf532eaf869616e3fa567091da025ee04c069a4346d65375e53ef77b673"
+}

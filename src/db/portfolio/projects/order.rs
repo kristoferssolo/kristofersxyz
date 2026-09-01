@@ -30,14 +30,14 @@ pub async fn move_to(
 
     let rows = sqlx::query!(
         r#"
-SELECT
-    id,
-    slug
-FROM
-    project
-ORDER BY
-    sort_order
-    "#
+        SELECT
+            id,
+            slug
+        FROM
+            project
+        ORDER BY
+            sort_order
+        "#
     )
     .fetch_all(&mut *transaction)
     .await?;
@@ -47,10 +47,10 @@ ORDER BY
 
     sqlx::query!(
         r#"
-UPDATE
-    project
-SET
-    sort_order = -id
+        UPDATE
+            project
+        SET
+            sort_order = -id
     "#
     )
     .execute(&mut *transaction)
@@ -64,13 +64,13 @@ SET
             i64::try_from(position.saturating_add(1)).map_err(|_| MoveError::InvalidMovement)?;
         sqlx::query!(
             r#"
-UPDATE
-    project
-SET
-    sort_order = ?1
-WHERE
-    id = ?2
-    "#,
+            UPDATE
+                project
+            SET
+                sort_order = ?1
+            WHERE
+                id = ?2
+            "#,
             sort_order,
             row.id
         )
@@ -157,13 +157,13 @@ mod tests {
     async fn sort_orders(pool: &DbPool) -> Vec<i64> {
         sqlx::query_scalar!(
             r#"
-SELECT
-    sort_order
-FROM
-    project
-ORDER BY
-    sort_order
-    "#
+            SELECT
+                sort_order
+            FROM
+                project
+            ORDER BY
+                sort_order
+            "#
         )
         .fetch_all(pool)
         .await

@@ -42,17 +42,17 @@ pub async fn load(pool: &DbPool) -> Result<Vec<Project>, LoadError> {
     let rows = sqlx::query_as!(
         ProjectRow,
         r#"
-SELECT
-    id,
-    slug,
-    title,
-    summary,
-    description_markdown
-FROM
-    project
-ORDER BY
-    sort_order
-    "#,
+        SELECT
+            id,
+            slug,
+            title,
+            summary,
+            description_markdown
+        FROM
+            project
+        ORDER BY
+            sort_order
+        "#,
     )
     .fetch_all(pool)
     .await?;
@@ -60,15 +60,15 @@ ORDER BY
     let technologies = sqlx::query_as!(
         ProjectItemRow,
         r#"
-SELECT
-    project_id,
-    item
-FROM
-    project_technology
-ORDER BY
-    project_id,
-    sort_order
-    "#,
+        SELECT
+            project_id,
+            item
+        FROM
+            project_technology
+        ORDER BY
+            project_id,
+            sort_order
+        "#,
     )
     .fetch_all(pool)
     .await?;
@@ -76,16 +76,16 @@ ORDER BY
     let links = sqlx::query_as!(
         ProjectLinkRow,
         r#"
-SELECT
-    project_id,
-    label,
-    href
-FROM
-    project_link
-ORDER BY
-    project_id,
-    sort_order
-    "#,
+        SELECT
+            project_id,
+            label,
+            href
+        FROM
+            project_link
+        ORDER BY
+            project_id,
+            sort_order
+        "#,
     )
     .fetch_all(pool)
     .await?;

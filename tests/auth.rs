@@ -878,8 +878,10 @@ async fn deleting_the_owner_invalidates_an_existing_session() {
         .await
         .expect("connect to the database");
     sqlx::query!(
-        "DELETE FROM
-    users"
+        r#"
+        DELETE FROM
+            users
+        "#
     )
     .execute(&pool)
     .await
@@ -893,10 +895,12 @@ async fn deleting_the_owner_invalidates_an_existing_session() {
     assert_eq!(response.headers()[header::LOCATION], "/login");
 
     let sessions = sqlx::query_scalar!(
-        "SELECT
-    COUNT(*)
-FROM
-    sessions"
+        r#"
+        SELECT
+            COUNT(*)
+        FROM
+            sessions
+        "#
     )
     .fetch_one(&pool)
     .await
@@ -914,11 +918,11 @@ async fn rotating_the_session_version_invalidates_an_existing_session() {
     let session_version = uuid::Uuid::new_v4().to_string();
     sqlx::query!(
         r#"
-UPDATE
-    users
-SET
-    session_version = ?1
-    "#,
+        UPDATE
+            users
+        SET
+            session_version = ?1
+        "#,
         session_version
     )
     .execute(&pool)
@@ -933,10 +937,12 @@ SET
     assert_eq!(response.headers()[header::LOCATION], "/login");
 
     let sessions = sqlx::query_scalar!(
-        "SELECT
-    COUNT(*)
-FROM
-    sessions"
+        r#"
+        SELECT
+            COUNT(*)
+        FROM
+            sessions
+        "#
     )
     .fetch_one(&pool)
     .await
@@ -952,10 +958,12 @@ async fn the_absolute_lifetime_invalidates_an_existing_session() {
         .await
         .expect("connect to the database");
     let data = sqlx::query_scalar!(
-        "SELECT
-    data
-FROM
-    sessions"
+        r#"
+        SELECT
+            data
+        FROM
+            sessions
+        "#
     )
     .fetch_one(&pool)
     .await
@@ -967,10 +975,12 @@ FROM
         .insert("owner-issued-at".to_owned(), serde_json::json!(0));
     let data = serde_json::to_string(&record).expect("serialize the expired session");
     sqlx::query!(
-        "UPDATE
-    sessions
-SET
-    data = ?1",
+        r#"
+        UPDATE
+            sessions
+        SET
+            data = ?1
+        "#,
         data
     )
     .execute(&pool)
@@ -988,10 +998,12 @@ SET
     assert_eq!(location.expect("redirect location"), "/login");
 
     let sessions = sqlx::query_scalar!(
-        "SELECT
-    COUNT(*)
-FROM
-    sessions"
+        r#"
+        SELECT
+            COUNT(*)
+        FROM
+            sessions
+        "#
     )
     .fetch_one(&pool)
     .await

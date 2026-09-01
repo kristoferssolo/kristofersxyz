@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            project_id,\n            item\n        FROM\n            project_technology\n        ORDER BY\n            project_id,\n            sort_order\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "project_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "project_technology",
+            "name": "project_id"
+          }
+        }
+      },
+      {
+        "name": "item",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "project_technology",
+            "name": "item"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "3b7f9557f5e460279f2f6911e94b318cb20d83115d549a78e172ca3e20cfee43"
+}

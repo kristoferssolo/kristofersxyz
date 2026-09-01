@@ -235,10 +235,10 @@ impl OwnerSession<Anonymous> {
         };
         let revoked_sessions = match sqlx::query!(
             r#"
-DELETE FROM
-    sessions
-WHERE
-    id <> ?1
+            DELETE FROM
+                sessions
+            WHERE
+                id <> ?1
         "#,
             session_id.to_string()
         )

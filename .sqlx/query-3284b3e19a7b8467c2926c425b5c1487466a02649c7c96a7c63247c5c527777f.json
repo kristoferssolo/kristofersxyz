@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                data,\n                expiry_date\n            FROM\n                sessions\n            WHERE\n                id = ?1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "data",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "data"
+          }
+        }
+      },
+      {
+        "name": "expiry_date",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "expiry_date"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "3284b3e19a7b8467c2926c425b5c1487466a02649c7c96a7c63247c5c527777f"
+}

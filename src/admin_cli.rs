@@ -109,20 +109,21 @@ pub async fn set_password(
     let mut transaction = pool.begin().await?;
     sqlx::query!(
         r#"
-INSERT INTO
-    users (
-        user_id,
-        username,
-        password_hash,
-        session_version
-    )
-VALUES
-    (?1, ?2, ?3, ?4) ON CONFLICT(username) DO
-UPDATE
-SET
-    password_hash = excluded.password_hash,
-    session_version = excluded.session_version
-    "#,
+        INSERT INTO
+            users (
+                user_id,
+                username,
+                password_hash,
+                session_version
+            )
+        VALUES
+            (?1, ?2, ?3, ?4)
+        ON CONFLICT(username) DO
+        UPDATE
+        SET
+            password_hash = excluded.password_hash,
+            session_version = excluded.session_version
+        "#,
         OwnerId::new().to_string(),
         username.as_str(),
         hash.expose_secret(),
@@ -132,9 +133,9 @@ SET
     .await?;
     let revoked_sessions = sqlx::query!(
         r#"
-DELETE FROM
-    sessions
-    "#
+        DELETE FROM
+            sessions
+        "#
     )
     .execute(&mut *transaction)
     .await?;
@@ -241,10 +242,10 @@ mod tests {
         let pool = db::connect(&settings.database.url).await.expect("connect");
         sqlx::query!(
             r#"
-INSERT INTO
-    sessions (id, data, expiry_date)
-VALUES
-    ('active', '{}', 4102444800)
+            INSERT INTO
+                sessions (id, data, expiry_date)
+            VALUES
+                ('active', '{}', 4102444800)
         "#
         )
         .execute(&pool)
@@ -261,10 +262,10 @@ VALUES
 
         let sessions = sqlx::query_scalar!(
             r#"
-SELECT
-    COUNT(*)
-FROM
-    sessions
+            SELECT
+                COUNT(*)
+            FROM
+                sessions
         "#
         )
         .fetch_one(&pool)
@@ -289,10 +290,10 @@ FROM
         let pool = db::connect(&settings.database.url).await.expect("connect");
         sqlx::query!(
             r#"
-INSERT INTO
-    sessions (id, data, expiry_date)
-VALUES
-    ('active', '{}', 4102444800)
+            INSERT INTO
+                sessions (id, data, expiry_date)
+            VALUES
+                ('active', '{}', 4102444800)
         "#
         )
         .execute(&pool)
@@ -300,10 +301,13 @@ VALUES
         .expect("insert an active session");
         sqlx::query!(
             r#"
-CREATE TRIGGER reject_session_deletion BEFORE DELETE ON sessions
-BEGIN
-    SELECT RAISE(ABORT, 'session deletion rejected');
-END
+            CREATE TRIGGER reject_session_deletion
+            BEFORE DELETE ON
+                sessions
+            BEGIN
+                SELECT
+                    RAISE(ABORT, 'session deletion rejected');
+            END
         "#
         )
         .execute(&pool)

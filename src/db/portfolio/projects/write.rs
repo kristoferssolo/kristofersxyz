@@ -33,17 +33,17 @@ pub async fn set(
 
     let project_id = sqlx::query_scalar!(
         r#"
-UPDATE
-    project
-SET
-    title = ?1,
-    summary = ?2,
-    description_markdown = ?3
-WHERE
-    slug = ?4
-RETURNING
-    id AS "id!"
-    "#,
+        UPDATE
+            project
+        SET
+            title = ?1,
+            summary = ?2,
+            description_markdown = ?3
+        WHERE
+            slug = ?4
+        RETURNING
+            id AS "id!"
+        "#,
         title,
         summary,
         markdown,
@@ -84,16 +84,16 @@ pub async fn create(
 
     let taken = sqlx::query_scalar!(
         r#"
-SELECT
-    EXISTS (
         SELECT
-            1
-        FROM
-            project
-        WHERE
-            slug = ?1
-    ) AS "taken!"
-    "#,
+            EXISTS (
+                SELECT
+                    1
+                FROM
+                    project
+                WHERE
+                    slug = ?1
+            ) AS "taken!"
+        "#,
         slug
     )
     .fetch_one(&mut *transaction)
@@ -104,19 +104,19 @@ SELECT
 
     let project_id = sqlx::query_scalar!(
         r#"
-INSERT INTO
-    project (slug, title, summary, description_markdown, sort_order)
-SELECT
-    ?1,
-    ?2,
-    ?3,
-    ?4,
-    COALESCE(MAX(sort_order), 0) + 1
-FROM
-    project
-RETURNING
-    id AS "id!"
-    "#,
+        INSERT INTO
+            project (slug, title, summary, description_markdown, sort_order)
+        SELECT
+            ?1,
+            ?2,
+            ?3,
+            ?4,
+            COALESCE(MAX(sort_order), 0) + 1
+        FROM
+            project
+        RETURNING
+            id AS "id!"
+        "#,
         slug,
         title,
         summary,
@@ -138,10 +138,11 @@ async fn clear_collections(
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
-DELETE FROM project_technology
-WHERE
-    project_id = ?1
-    "#,
+        DELETE FROM
+            project_technology
+        WHERE
+            project_id = ?1
+        "#,
         project_id
     )
     .execute(&mut **transaction)
@@ -149,10 +150,11 @@ WHERE
 
     sqlx::query!(
         r#"
-DELETE FROM project_link
-WHERE
-    project_id = ?1
-    "#,
+        DELETE FROM
+            project_link
+        WHERE
+            project_id = ?1
+        "#,
         project_id
     )
     .execute(&mut **transaction)
@@ -175,11 +177,11 @@ async fn write_collections(
         let item = name.as_str();
         sqlx::query!(
             r#"
-INSERT INTO
-    project_technology (project_id, item, sort_order)
-VALUES
-    (?1, ?2, ?3)
-    "#,
+            INSERT INTO
+                project_technology (project_id, item, sort_order)
+            VALUES
+                (?1, ?2, ?3)
+            "#,
             project_id,
             item,
             sort_order
@@ -195,11 +197,11 @@ VALUES
         let href = link.href.as_str();
         sqlx::query!(
             r#"
-INSERT INTO
-    project_link (project_id, label, href, sort_order)
-VALUES
-    (?1, ?2, ?3, ?4)
-    "#,
+            INSERT INTO
+                project_link (project_id, label, href, sort_order)
+            VALUES
+                (?1, ?2, ?3, ?4)
+            "#,
             project_id,
             label,
             href,

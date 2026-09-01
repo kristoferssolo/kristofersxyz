@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            label,\n            detail\n        FROM\n            working_principle\n        ORDER BY\n            sort_order\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "label",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "working_principle",
+            "name": "label"
+          }
+        }
+      },
+      {
+        "name": "detail",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "working_principle",
+            "name": "detail"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "6890ce8f6ec3837de797ef38b4cf5bc5980b418adca9e626ee5648087b2c8ab8"
+}
