@@ -16,7 +16,7 @@ use super::super::error::AdminError;
 use super::{DragState, DropIndicator};
 use crate::domain::{ProjectLinks, ProjectTechnologies};
 use leptos::{ev, prelude::*, web_sys::DragEvent};
-use lucide_leptos::{ChevronDown, ChevronUp, GripVertical, Trash2};
+use lucide_leptos::{ChevronDown, ChevronUp, GripVertical, Plus, Trash2};
 
 /// Which line the last save rejected, so the editor can mark it and repeat the
 /// reason beside it.
@@ -570,7 +570,7 @@ where
     view! {
         <button
             type="button"
-            class="relative grid w-full cursor-pointer grid-cols-[1rem_2.75ch_minmax(0,1fr)] items-stretch gap-x-[.15ch] border-0 border-t border-dashed border-[#1e2126] bg-transparent pr-[.45rem] text-left font-[inherit] text-[12px] text-[#8b939d] hover:text-[#e2a340]"
+            class="relative grid w-full cursor-pointer grid-cols-[1rem_2.75ch_minmax(0,1fr)] items-stretch gap-x-[.15ch] border-0 border-t border-dashed border-[#1e2126] bg-transparent p-0 pr-[.45rem] text-left font-[inherit] text-[12px] text-[#8b939d] hover:text-[#e2a340]"
             on:click=move |_: ev::MouseEvent| on_add()
             on:dragover=move |event: DragEvent| drag.over(total.get_untracked(), &event)
             on:drop=move |event: DragEvent| {
@@ -584,7 +584,9 @@ where
         >
             <DropIndicator drag target=total />
             <span aria-hidden="true"></span>
-            <span class=GUTTER>"+"</span>
+            <span class=GUTTER>
+                <Plus size=13 />
+            </span>
             <span class="inline-flex items-center gap-[.8ch] py-[.5rem] pl-[.25rem]">{label}</span>
         </button>
     }
