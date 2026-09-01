@@ -11,7 +11,7 @@
 //! Positions are rewritten as one through n inside the moving Project, so the
 //! order stays dense and the unique constraint holds at every row.
 
-use super::ScreenshotError;
+use super::{ScreenshotError, reorder_indices};
 use crate::{
     db::DbPool,
     domain::{
@@ -407,11 +407,7 @@ fn stepped(
         }
     };
 
-    let mut order = (0..total)
-        .filter(|position| *position != from)
-        .collect::<Vec<_>>();
-    order.insert(to.min(order.len()), from);
-    Ok(order)
+    Ok(reorder_indices(total, from, to))
 }
 
 #[cfg(test)]

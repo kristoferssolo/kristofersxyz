@@ -10,6 +10,16 @@ mod order;
 mod screenshots;
 mod write;
 
+/// Returns the positions after removing `from` and inserting it before `to`.
+/// A target equal to the collection length appends the moved position.
+fn reorder_indices(total: usize, from: usize, to: usize) -> Vec<usize> {
+    let mut order = (0..total)
+        .filter(|position| *position != from)
+        .collect::<Vec<_>>();
+    order.insert(to.min(order.len()), from);
+    order
+}
+
 pub use load::load;
 pub use order::move_to;
 pub use screenshots::{

@@ -6,7 +6,7 @@
 //! positions one through n, which keeps the unique constraint satisfied at
 //! every row and leaves the order dense after any number of moves.
 
-use super::MoveError;
+use super::{MoveError, reorder_indices};
 use crate::{
     db::DbPool,
     domain::{ProjectMove, ProjectSlug},
@@ -122,11 +122,7 @@ fn reordered(
         }
     };
 
-    let mut order = (0..slugs.len())
-        .filter(|position| *position != from)
-        .collect::<Vec<_>>();
-    order.insert(to.min(order.len()), from);
-    Ok(order)
+    Ok(reorder_indices(slugs.len(), from, to))
 }
 
 #[cfg(test)]
