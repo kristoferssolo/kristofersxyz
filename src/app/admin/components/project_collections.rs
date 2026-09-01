@@ -324,6 +324,7 @@ fn TechnologyLine(
                     prop:value=move || row.value.get()
                     on:input=move |event| row.value.set(event_target_value(&event))
                     aria-invalid=move || message().is_some().then_some("true")
+                    placeholder="language, framework, or tool"
                     spellcheck="false"
                 />
             </div>
@@ -368,6 +369,7 @@ fn LinkLine(
                     prop:value=move || row.label.get()
                     on:input=move |event| row.label.set(event_target_value(&event))
                     aria-invalid=move || label_message().is_some().then_some("true")
+                    placeholder="label, e.g. GitHub"
                     spellcheck="false"
                 />
                 <label class="sr-only" for=move || field_id("link-href", index.get())>
@@ -383,6 +385,7 @@ fn LinkLine(
                     on:input=move |event| row.href.set(event_target_value(&event))
                     aria-invalid=move || href_message().is_some().then_some("true")
                     inputmode="url"
+                    placeholder="URL, e.g. https://github.com/..."
                     spellcheck="false"
                 />
             </div>
